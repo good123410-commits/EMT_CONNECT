@@ -8,13 +8,31 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { supabase, type Profile } from '@/lib/supabaseClient';
+import { supabase, type UserProfile } from '@/lib/supabaseClient';
 import { ensureProfile, fetchProfile } from '@/services/profileService';
+
+const SESSION_INIT_TIMEOUT_MS = 3_000;
+const PROFILE_LOAD_TIMEOUT_MS = 4_000;
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        resolve(fallback);
+      });
+  });
+}
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
-  profile: Profile | null;
+  profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
@@ -24,15 +42,28 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function getSessionSafe(): Promise<Session | null> {
+  const sessionPromise = supabase.auth
+    .getSession()
+    .then(({ data }) => data.session)
+    .catch(() => null);
+
+  const timeoutPromise = new Promise<null>((resolve) => {
+    setTimeout(() => resolve(null), SESSION_INIT_TIMEOUT_MS);
+  });
+
+  return Promise.race([sessionPromise, timeoutPromise]);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = useCallback(async (userId: string, name?: string) => {
+  const loadProfile = useCallback(async (userId: string, name?: string, email?: string) => {
     try {
       let p = await fetchProfile(userId);
-      if (!p) p = await ensureProfile(userId, name);
+      if (!p) p = await ensureProfile(userId, name, email);
       setProfile(p);
     } catch {
       setProfile(null);
@@ -41,29 +72,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (!session?.user.id) return;
-    await loadProfile(session.user.id);
-  }, [session?.user.id, loadProfile]);
+    await loadProfile(session.user.id, session.user.user_metadata?.name, session.user.email);
+  }, [session?.user.id, session?.user.user_metadata?.name, session?.user.email, loadProfile]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      if (s?.user) {
-        loadProfile(s.user.id, s.user.user_metadata?.name).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
+    let mounted = true;
+
+    const bootstrap = async () => {
+      try {
+        const s = await getSessionSafe();
+        if (!mounted) return;
+
+        setSession(s);
+        if (s?.user) {
+          void withTimeout(
+            loadProfile(s.user.id, s.user.user_metadata?.name, s.user.email),
+            PROFILE_LOAD_TIMEOUT_MS,
+            undefined,
+          );
+        }
+      } finally {
+        if (mounted) setLoading(false);
       }
-    });
+    };
+
+    void bootstrap();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       if (s?.user) {
-        loadProfile(s.user.id, s.user.user_metadata?.name);
+        void loadProfile(s.user.id, s.user.user_metadata?.name, s.user.email);
       } else {
         setProfile(null);
       }
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, [loadProfile]);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -78,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: { data: { name } },
     });
     if (error) throw error;
-    if (data.user) await ensureProfile(data.user.id, name);
+    if (data.user) await ensureProfile(data.user.id, name, email);
   }, []);
 
   const signOut = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type SegmentOption<T extends string> = {
   value: T;
@@ -10,6 +10,16 @@ type SegmentControlProps<T extends string> = {
   value: T;
   onChange: (value: T) => void;
 };
+
+const activeShadow = StyleSheet.create({
+  segment: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+});
 
 export function SegmentControl<T extends string>({
   options,
@@ -23,7 +33,8 @@ export function SegmentControl<T extends string>({
         return (
           <Pressable
             key={option.value}
-            className={`flex-1 rounded-lg py-2.5 ${active ? 'bg-white shadow-sm' : ''}`}
+            className={`flex-1 rounded-lg py-2.5 ${active ? 'bg-white' : ''}`}
+            style={active ? activeShadow.segment : undefined}
             onPress={() => onChange(option.value)}
           >
             <Text

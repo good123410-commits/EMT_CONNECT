@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,10 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import type { AuthStackParamList } from '@/navigation/AuthStack';
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'SignUp'>;
 
-export function SignUpScreen() {
-  const navigation = useNavigation<Nav>();
+export function SignUpScreen({ navigation }: Props) {
   const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -71,7 +69,7 @@ export function SignUpScreen() {
 
           <Text className="text-2xl font-bold text-slate-900">회원가입</Text>
           <Text className="mt-2 text-sm text-slate-500">
-            가입 시 기본 역할은 일반인(public)입니다.
+            가입 시 기본 역할은 일반인(user)입니다.
           </Text>
 
           <Text className="mb-1 mt-6 text-sm font-medium text-slate-700">이름</Text>

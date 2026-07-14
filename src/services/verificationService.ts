@@ -1,13 +1,24 @@
 import {
   supabase,
+  USER_PROFILES_TABLE,
   VERIFICATIONS_BUCKET,
   type EmtVerification,
+  type UserRole,
 } from '@/lib/supabaseClient';
 
-const VALID_INVITATION_CODES = ['EMS-TEST-PRO', 'EMT-INVITE-2026'];
+const VALID_INVITATION_CODES: Record<string, UserRole> = {
+  'EMS-TEST-PRO': 'paramedic',
+  'EMT-INVITE-2026': 'paramedic',
+  'HOSP-TEST-2026': 'hospital',
+  'PRIVATE-EMS-TEST': 'private_ems',
+};
 
 export function isValidInvitationCode(code: string): boolean {
-  return VALID_INVITATION_CODES.includes(code.trim().toUpperCase());
+  return code.trim().toUpperCase() in VALID_INVITATION_CODES;
+}
+
+export function getRoleFromInvitationCode(code: string): UserRole | null {
+  return VALID_INVITATION_CODES[code.trim().toUpperCase()] ?? null;
 }
 
 export async function uploadVerificationDocument(
@@ -38,6 +49,7 @@ export async function submitVerificationRequest(
   documentUrl: string,
 ): Promise<EmtVerification> {
   const normalizedCode = invitationCode.trim().toUpperCase();
+  const targetRole = getRoleFromInvitationCode(normalizedCode);
 
   const { data, error } = await supabase
     .from('emt_verifications')
@@ -52,14 +64,14 @@ export async function submitVerificationRequest(
   if (error) throw error;
 
   await supabase
-    .from('profiles')
-    .update({ invitation_code_used: normalizedCode })
+    .from(USER_PROFILES_TABLE)
+    .update({ invitation_code: normalizedCode })
     .eq('id', userId);
 
-  if (isValidInvitationCode(normalizedCode)) {
+  if (targetRole) {
     await supabase
-      .from('profiles')
-      .update({ role: 'emt_certified', is_approved: true })
+      .from(USER_PROFILES_TABLE)
+      .update({ role: targetRole, is_approved: true })
       .eq('id', userId);
 
     await supabase

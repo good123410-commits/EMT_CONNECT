@@ -1,19 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { PlatformPressable } from '@react-navigation/elements';
+import { createDeferredScreen } from '@/navigation/deferredScreen';
 import { useUserRole } from '@/contexts/UserRoleContext';
-import { ChemicalScreen } from '@/screens/ChemicalScreen';
-import { HomeScreen } from '@/screens/HomeScreen';
-import { MapScreen } from '@/screens/MapScreen';
-import { ProScreen } from '@/screens/ProScreen';
-import { RewardsScreen } from '@/screens/RewardsScreen';
+import { isExpertRole } from '@/utils/roleAccess';
 
 export type MainTabParamList = {
   Home: undefined;
   Chemical: undefined;
   Map: undefined;
+  EmsCall: undefined;
   Rewards: undefined;
-  Pro?: undefined;
+  Hidden: undefined;
 };
+
+/** @deprecated MainTabParamList 사용 */
+export type PublicTabParamList = MainTabParamList;
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -23,13 +25,39 @@ function TabBarIcon({ name, color }: { name: TabIconName; color: string }) {
   return <Ionicons name={name} size={24} color={color} />;
 }
 
+function HiddenTabBarButton(props: BottomTabBarButtonProps) {
+  const { enterExpertMode } = useUserRole();
+
+  return (
+    <PlatformPressable
+      {...props}
+      onPress={() => {
+        enterExpertMode();
+      }}
+    />
+  );
+}
+
+const HomeScreen = createDeferredScreen(() => require('@/screens/HomeScreen').HomeScreen);
+const ChemicalScreen = createDeferredScreen(() => require('@/screens/ChemicalScreen').ChemicalScreen);
+const MapScreen = createDeferredScreen(() => require('@/screens/MapScreen').MapScreen);
+const PrivateEmsCallScreen = createDeferredScreen(
+  () => require('@/screens/PrivateEmsCallScreen').PrivateEmsCallScreen,
+);
+const RewardsScreen = createDeferredScreen(() => require('@/screens/RewardsScreen').RewardsScreen);
+const HiddenChannelEntryScreen = createDeferredScreen(
+  () => require('@/screens/HiddenChannelEntryScreen').HiddenChannelEntryScreen,
+);
+
 export function MainTabNavigator() {
-  const { isProUser } = useUserRole();
+  const { role } = useUserRole();
+  const showHiddenTab = isExpertRole(role);
 
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: true,
+        lazy: true,
+        headerShown: false,
         tabBarActiveTintColor: '#0f172a',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: {
@@ -42,7 +70,6 @@ export function MainTabNavigator() {
         name="Home"
         component={HomeScreen}
         options={{
-          headerShown: false,
           tabBarLabel: '가이드',
           tabBarIcon: ({ color }) => <TabBarIcon name="medkit-outline" color={color} />,
         }}
@@ -51,7 +78,6 @@ export function MainTabNavigator() {
         name="Chemical"
         component={ChemicalScreen}
         options={{
-          headerShown: false,
           tabBarLabel: '약물/화학',
           tabBarIcon: ({ color }) => <TabBarIcon name="flask-outline" color={color} />,
         }}
@@ -60,33 +86,49 @@ export function MainTabNavigator() {
         name="Map"
         component={MapScreen}
         options={{
-          headerShown: false,
           tabBarLabel: '지도',
           tabBarIcon: ({ color }) => <TabBarIcon name="map-outline" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="EmsCall"
+        component={PrivateEmsCallScreen}
+        options={{
+          tabBarLabel: '구급차',
+          tabBarIcon: ({ color }) => <TabBarIcon name="car-outline" color={color} />,
         }}
       />
       <Tab.Screen
         name="Rewards"
         component={RewardsScreen}
         options={{
-          headerShown: false,
           tabBarLabel: '리워드',
           tabBarIcon: ({ color }) => <TabBarIcon name="gift-outline" color={color} />,
         }}
       />
-      {isProUser ? (
-        <Tab.Screen
-          name="Pro"
-          component={ProScreen}
-          options={{
-            title: 'PRO',
-            tabBarLabel: 'PRO',
-            tabBarIcon: ({ color }) => (
-              <TabBarIcon name="shield-checkmark-outline" color={color} />
-            ),
-          }}
-        />
-      ) : null}
+      <Tab.Screen
+        name="Hidden"
+        component={HiddenChannelEntryScreen}
+        options={{
+          tabBarLabel: '히든',
+          tabBarIcon: ({ color }) => <TabBarIcon name="lock-closed-outline" color={color} />,
+          tabBarActiveTintColor: '#7c3aed',
+          tabBarItemStyle: showHiddenTab ? undefined : styles.hiddenTabItem,
+          tabBarButton: showHiddenTab ? HiddenTabBarButton : () => null,
+        }}
+      />
     </Tab.Navigator>
   );
 }
+
+/** @deprecated MainTabNavigator 사용 */
+export const PublicTabNavigator = MainTabNavigator;
+
+const styles = {
+  hiddenTabItem: {
+    display: 'none' as const,
+    width: 0,
+    height: 0,
+    overflow: 'hidden' as const,
+  },
+};

@@ -1,37 +1,28 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
+import type { UserRole } from '@/lib/supabaseClient';
+import { getRoleLabel } from '@/utils/roleAccess';
 
+const TEST_ROLES: UserRole[] = ['user', 'paramedic', 'hospital', 'private_ems'];
+
+/** @deprecated DevRoleCheatMenu(플로팅 FAB)로 대체됨 */
 export function ProModeTestButton() {
-  const { profile } = useAuth();
-  const { setRole, isProUser, isDevOverride } = useUserRole();
-  const serverRole = profile?.role ?? 'public';
+  const { role, setRole } = useUserRole();
+
+  const cycleRole = () => {
+    const idx = TEST_ROLES.indexOf(role);
+    const next = TEST_ROLES[(idx + 1) % TEST_ROLES.length];
+    setRole(next);
+  };
 
   return (
-    <View className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-      <View className="flex-row items-center">
-        <Ionicons name="flask" size={18} color="#64748b" />
-        <Text className="ml-2 text-sm font-bold text-slate-700">개발 테스트</Text>
-      </View>
-      <Text className="mt-2 text-xs leading-5 text-slate-500">
-        개발 빌드 전용: 로컬 UI 테스트용 역할 오버라이드입니다.
-        {'\n'}서버 역할: {serverRole}
-        {isDevOverride ? ' · UI 오버라이드 적용 중' : ''}
+    <Pressable
+      className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3"
+      onPress={cycleRole}
+    >
+      <Text className="text-xs text-slate-500">
+        (구) 역할 순환 — 상단 DEV 바를 사용하세요 · 현재: {getRoleLabel(role)}
       </Text>
-      <Pressable
-        className={`mt-3 flex-row items-center justify-center rounded-xl py-3 ${isProUser ? 'bg-orange-600' : 'bg-slate-900'}`}
-        onPress={() => setRole(isProUser ? 'public' : 'emt_certified')}
-      >
-        <Ionicons
-          name={isProUser ? 'eye-off-outline' : 'shield-checkmark-outline'}
-          size={18}
-          color="#fff"
-        />
-        <Text className="ml-2 text-sm font-bold text-white">
-          {isProUser ? '일반인 모드로 전환' : 'PRO 모드 전환 (테스트)'}
-        </Text>
-      </Pressable>
-    </View>
+    </Pressable>
   );
 }

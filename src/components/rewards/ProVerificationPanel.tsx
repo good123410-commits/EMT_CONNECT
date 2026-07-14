@@ -12,17 +12,19 @@ import {
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
+import type { EmtVerification } from '@/lib/supabaseClient';
 import {
   fetchLatestVerification,
+  getRoleFromInvitationCode,
   isValidInvitationCode,
   submitVerificationRequest,
   uploadVerificationDocument,
 } from '@/services/verificationService';
-import type { EmtVerification } from '@/lib/supabaseClient';
+import { getRoleLabel } from '@/utils/roleAccess';
 
 export function ProVerificationPanel() {
   const { user, profile, refreshProfile } = useAuth();
-  const { isProUser } = useUserRole();
+  const { isExpert, isApproved, canAccessHidden } = useUserRole();
   const [invitationCode, setInvitationCode] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -71,10 +73,17 @@ export function ProVerificationPanel() {
       const result = await submitVerificationRequest(user.id, invitationCode, documentUrl);
       setVerification(result);
       await refreshProfile();
-      if (isValidInvitationCode(invitationCode)) {
-        Alert.alert('PRO 인증 완료', '테스트 초대 코드로 PRO 모드가 활성화되었습니다.');
+      const targetRole = getRoleFromInvitationCode(invitationCode);
+      if (isValidInvitationCode(invitationCode) && targetRole) {
+        Alert.alert(
+          '승인 완료',
+          `테스트 초대 코드로 ${getRoleLabel(targetRole)} 계정이 활성화되었습니다.`,
+        );
       } else {
-        Alert.alert('제출 완료', '자격증 심사가 접수되었습니다. 승인 후 PRO 탭이 열립니다.');
+        Alert.alert(
+          '제출 완료',
+          '자격증 심사가 접수되었습니다. 관리자 승인 후 전용 화면으로 전환됩니다.',
+        );
       }
     } catch (e) {
       Alert.alert(
@@ -86,21 +95,34 @@ export function ProVerificationPanel() {
     }
   };
 
-  if (isProUser && profile?.is_approved) {
+  if (canAccessHidden) {
     return (
       <View className="rounded-2xl border border-green-200 bg-green-50 p-4">
         <View className="flex-row items-center">
           <Ionicons name="shield-checkmark" size={24} color="#16a34a" />
-          <Text className="ml-2 text-base font-bold text-green-800">PRO 인증 완료</Text>
+          <Text className="ml-2 text-base font-bold text-green-800">전문가 인증 완료</Text>
         </View>
         <Text className="mt-2 text-sm text-green-700">
-          응급구조사 인증이 완료되었습니다. 하단 PRO 탭을 이용할 수 있습니다.
+          {getRoleLabel(profile?.role ?? 'user')} 승인이 완료되었습니다. 전용 대시보드를 이용할
+          수 있습니다.
         </Text>
-        {profile.invitation_code_used ? (
-          <Text className="mt-1 text-xs text-green-600">
-            초대 코드: {profile.invitation_code_used}
-          </Text>
+        {profile?.invitation_code ? (
+          <Text className="mt-1 text-xs text-green-600">초대 코드: {profile.invitation_code}</Text>
         ) : null}
+      </View>
+    );
+  }
+
+  if (isExpert && !isApproved) {
+    return (
+      <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <View className="flex-row items-center">
+          <Ionicons name="time" size={24} color="#d97706" />
+          <Text className="ml-2 text-base font-bold text-amber-800">관리자 승인 대기 중</Text>
+        </View>
+        <Text className="mt-2 text-sm text-amber-700">
+          {getRoleLabel(profile?.role ?? 'user')} 계정 승인을 기다리고 있습니다.
+        </Text>
       </View>
     );
   }
@@ -113,7 +135,7 @@ export function ProVerificationPanel() {
           <Text className="ml-2 text-base font-bold text-amber-800">심사 대기 중</Text>
         </View>
         <Text className="mt-2 text-sm text-amber-700">
-          자격증이 제출되었습니다. 관리자 승인 후 PRO 탭이 활성화됩니다.
+          자격증이 제출되었습니다. 관리자 승인 후 전용 화면이 활성화됩니다.
         </Text>
         <Text className="mt-1 text-xs text-amber-600">제출일: {verification.updated_at}</Text>
       </View>
@@ -136,11 +158,12 @@ export function ProVerificationPanel() {
     <View className="rounded-2xl border border-slate-200 bg-white p-4">
       <View className="flex-row items-center">
         <Ionicons name="shield-outline" size={22} color="#0f172a" />
-        <Text className="ml-2 text-base font-bold text-slate-900">PRO 공간 인증 신청</Text>
+        <Text className="ml-2 text-base font-bold text-slate-900">전문가 채널 인증 신청</Text>
       </View>
       <Text className="mt-2 text-sm leading-5 text-slate-500">
-        초대장 코드와 응급구조사 자격증을 제출하면 PRO 탭이 열립니다.
-        {'\n'}테스트 코드: EMS-TEST-PRO
+        초대장 코드와 자격증을 제출하면 전문가 전용 화면이 열립니다.
+        {'\n'}테스트 코드: EMS-TEST-PRO (구조사), HOSP-TEST-2026 (병원), PRIVATE-EMS-TEST (사설
+        구급차)
       </Text>
 
       <Text className="mb-1 mt-4 text-sm font-medium text-slate-700">초대장 코드</Text>
@@ -164,7 +187,6 @@ export function ProVerificationPanel() {
           <>
             <Ionicons name="cloud-upload-outline" size={32} color="#94a3b8" />
             <Text className="mt-2 text-sm text-slate-500">갤러리에서 선택</Text>
-            <Text className="mt-1 text-xs text-slate-400">버킷: verifications</Text>
           </>
         )}
       </Pressable>

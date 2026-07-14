@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useWallet } from '@/contexts/WalletContext';
 
 export function WalletHeader() {
@@ -14,7 +14,10 @@ export function WalletHeader() {
           <Text className="text-3xl font-bold text-white">{balance.toLocaleString()}P</Text>
         </View>
         <View className="items-end">
-          <View className="flex-row items-center rounded-full bg-white/10 px-3 py-1">
+          <View
+            className="flex-row items-center rounded-full px-3 py-1"
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+          >
             <Ionicons name="flame" size={14} color="#f97316" />
             <Text className="ml-1 text-xs font-semibold text-orange-300">{streak}일 연속</Text>
           </View>
@@ -22,7 +25,7 @@ export function WalletHeader() {
         </View>
       </View>
       {transactions.length > 0 ? (
-        <View className="mt-3 border-t border-white/10 pt-3">
+        <View className="mt-3 border-t pt-3" style={{ borderTopColor: 'rgba(255, 255, 255, 0.1)' }}>
           <Text className="mb-1 text-xs text-slate-500">최근 내역</Text>
           {transactions.slice(0, 2).map((tx) => (
             <View key={tx.id} className="flex-row justify-between py-0.5">
@@ -54,9 +57,19 @@ export function PointFeedbackToast() {
 
   return (
     <View className="absolute bottom-24 left-4 right-4 z-50 items-center">
-      <View className="rounded-full bg-slate-900 px-5 py-3 shadow-lg">
+      <View className="rounded-full bg-slate-900 px-5 py-3" style={toastShadow.shadow}>
         <Text className="text-sm font-semibold text-white">{lastFeedback}</Text>
       </View>
     </View>
   );
 }
+
+const toastShadow = StyleSheet.create({
+  shadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+});

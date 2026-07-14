@@ -1,6 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LoginScreen } from '@/screens/auth/LoginScreen';
-import { SignUpScreen } from '@/screens/auth/SignUpScreen';
+import { createDeferredScreen } from '@/navigation/deferredScreen';
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -8,6 +7,9 @@ export type AuthStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
+
+const LoginScreen = createDeferredScreen(() => require('@/screens/auth/LoginScreen').LoginScreen);
+const SignUpScreen = createDeferredScreen(() => require('@/screens/auth/SignUpScreen').SignUpScreen);
 
 export function AuthStack() {
   return (

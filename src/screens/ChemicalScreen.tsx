@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   ScrollView,
@@ -11,62 +10,64 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackHeader } from '@/components/BackHeader';
 import { EmptyState } from '@/components/EmptyState';
-import { IsolationDistanceChart } from '@/components/IsolationDistanceChart';
 import { SearchBar } from '@/components/SearchBar';
-import { SegmentControl } from '@/components/SegmentControl';
-import { DRUGS, searchDrugs, type Drug } from '@/mockData/drugs';
-import {
-  HAZARD_LEVEL_COLORS,
-  HAZARD_LEVEL_LABELS,
-  HAZARDOUS_MATERIALS,
-  searchHazardousMaterials,
-  type HazardousMaterial,
-} from '@/mockData/hazardousMaterials';
-import { mockSearchWithQuery } from '@/services/mockSearch';
-
-type ChemicalTab = 'drug' | 'hazard';
+import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import { EmergencyApiError, searchMedicine, type MedicineInfo } from '@/services/emergencyApi';
 
 export function ChemicalScreen() {
-  const [tab, setTab] = useState<ChemicalTab>('drug');
-
   return (
     <View className="flex-1 bg-slate-50">
       <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 pb-3">
-        <Text className="mb-1 text-xl font-bold text-slate-900">약물 · 유해화학물질</Text>
-        <Text className="mb-3 text-sm text-slate-500">성분명 / UN 번호 검색 (mockData)</Text>
-        <SegmentControl
-          options={[
-            { value: 'drug', label: '약물 정보' },
-            { value: 'hazard', label: '유해화학물질' },
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
+        <Text className="mb-1 text-xl font-bold text-slate-900">약물 정보</Text>
+        <Text className="text-sm text-slate-500">e약은요 API · 기본 약물 검색</Text>
       </SafeAreaView>
-      {tab === 'drug' ? <DrugModule /> : <HazardModule />}
+      <DrugModule />
     </View>
   );
 }
 
 function DrugModule() {
   const [query, setQuery] = useState('');
-  const [drugs, setDrugs] = useState<Drug[]>(DRUGS);
+  const [medicines, setMedicines] = useState<MedicineInfo[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<Drug | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<MedicineInfo | null>(null);
 
   const runSearch = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (trimmed.length < 2) {
+      setMedicines([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    const results = await mockSearchWithQuery(searchDrugs, text);
-    setDrugs(results);
-    setLoading(false);
+    setError(null);
+
+    try {
+      const results = await searchMedicine({ itemName: trimmed, numOfRows: 20 });
+      setMedicines(results);
+    } catch (err) {
+      const message =
+        err instanceof EmergencyApiError ? err.message : '약물 정보를 불러오지 못했습니다.';
+      setError(message);
+      setMedicines([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    runSearch(query);
+    const timer = setTimeout(() => {
+      runSearch(query);
+    }, 400);
+
+    return () => clearTimeout(timer);
   }, [query, runSearch]);
 
   if (selected) {
-    return <DrugDetail drug={selected} onBack={() => setSelected(null)} />;
+    return <MedicineDetail medicine={selected} onBack={() => setSelected(null)} />;
   }
 
   return (
@@ -75,31 +76,52 @@ function DrugModule() {
         <SearchBar
           value={query}
           onChangeText={setQuery}
-          placeholder="성분명, 제품명 검색 (예: 에피네프린)"
+          placeholder="제품명 검색 (예: 타이레놀, 게보린)"
           loading={loading}
         />
+        {error ? (
+          <View className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3">
+            <Text className="text-sm text-red-700">{error}</Text>
+            <Pressable
+              className="mt-2 self-start rounded-lg bg-red-600 px-3 py-1.5"
+              onPress={() => runSearch(query)}
+            >
+              <Text className="text-xs font-semibold text-white">다시 시도</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Text className="mt-2 text-xs text-slate-400">식약처 e약은요 API · 2글자 이상 입력</Text>
+        )}
       </View>
       <FlatList
-        data={drugs}
-        keyExtractor={(item) => item.id}
+        data={medicines}
+        keyExtractor={(item) => item.itemSeq || item.itemName}
         contentContainerClassName="px-4 pb-4 gap-3"
         ListEmptyComponent={
-          <EmptyState message="검색 결과가 없습니다" hint="에피네프린, 날록손 등으로 검색해 보세요" />
+          loading ? null : (
+            <EmptyState
+              message={query.trim().length < 2 ? '약 이름을 검색해 주세요' : '검색 결과가 없습니다'}
+              hint={
+                query.trim().length < 2
+                  ? '타이레놀, 게보린, 아스피린 등으로 검색'
+                  : '다른 제품명으로 검색해 보세요'
+              }
+            />
+          )
         }
         renderItem={({ item }) => (
           <Pressable
             className="rounded-2xl border border-slate-200 bg-white p-4 active:bg-slate-50"
             onPress={() => setSelected(item)}
           >
-            <Text className="text-xs font-medium text-blue-600">{item.category}</Text>
-            <Text className="mt-1 text-lg font-bold text-slate-900">{item.productName}</Text>
-            <Text className="mt-0.5 text-sm text-slate-500">성분: {item.ingredient}</Text>
+            <Text className="text-xs font-medium text-blue-600">{item.entpName || 'e약은요'}</Text>
+            <Text className="mt-1 text-lg font-bold text-slate-900">{item.itemName}</Text>
             <Text className="mt-2 text-sm text-slate-600" numberOfLines={2}>
-              {item.indication}
+              {stripHtml(item.efficacy) || '효능 정보를 확인하려면 탭하세요'}
             </Text>
             <View className="mt-3 flex-row items-center">
               <Ionicons name="document-text-outline" size={14} color="#64748b" />
-              <Text className="ml-1 text-xs text-slate-500">현장 처치 프로토콜 보기</Text>
+              <Text className="ml-1 text-xs text-slate-500">복용법 · 주의사항 보기</Text>
               <Ionicons name="chevron-forward" size={16} color="#94a3b8" style={{ marginLeft: 'auto' }} />
             </View>
           </Pressable>
@@ -109,191 +131,62 @@ function DrugModule() {
   );
 }
 
-function DrugDetail({ drug, onBack }: { drug: Drug; onBack: () => void }) {
+function stripHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function MedicineDetail({ medicine, onBack }: { medicine: MedicineInfo; onBack: () => void }) {
+  useHardwareBackHandler(onBack, true);
+
   return (
     <ScrollView className="flex-1" contentContainerClassName="p-4 pb-8">
-      <BackHeader title={drug.productName} onBack={onBack} />
+      <BackHeader title={medicine.itemName} onBack={onBack} />
 
       <View className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
-        <Text className="text-xs font-medium text-blue-600">{drug.category}</Text>
-        <Text className="mt-2 text-sm text-slate-600">{drug.indication}</Text>
-        <View className="mt-4 border-t border-slate-100 pt-4">
-          <DoseRow label="성인 용량" value={drug.adultDose} />
-          <DoseRow label="소아 용량" value={drug.pediatricDose} />
-        </View>
+        <Text className="text-xs font-medium text-blue-600">{medicine.entpName}</Text>
+        <Text className="mt-1 text-xs text-slate-400">품목코드: {medicine.itemSeq || '-'}</Text>
       </View>
 
-      <Text className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
-        현장 처치 프로토콜
-      </Text>
-      {drug.fieldProtocol.map((step) => (
-        <View
-          key={step.order}
-          className="mb-3 flex-row rounded-2xl border border-slate-200 bg-white p-4"
-        >
-          <View className="mr-3 h-8 w-8 items-center justify-center rounded-full bg-blue-600">
-            <Text className="text-sm font-bold text-white">{step.order}</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-base font-semibold text-slate-900">{step.action}</Text>
-            <Text className="mt-1 text-sm leading-5 text-slate-600">{step.detail}</Text>
-          </View>
-        </View>
-      ))}
-
-      <View className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-        <Text className="mb-2 text-sm font-bold text-amber-800">금기 / 주의</Text>
-        {drug.contraindications.map((c) => (
-          <Text key={c} className="text-sm text-amber-900">
-            · {c}
-          </Text>
-        ))}
-      </View>
+      <MedicineSection title="효능·효과" body={medicine.efficacy} />
+      <MedicineSection title="복용법" body={medicine.usage} />
+      <MedicineSection title="사용 전 주의" body={medicine.warningBeforeUse} highlight="amber" />
+      <MedicineSection title="주의사항" body={medicine.precautions} highlight="amber" />
+      <MedicineSection title="약물 상호작용" body={medicine.interactions} />
+      <MedicineSection title="부작용" body={medicine.sideEffects} highlight="red" />
+      <MedicineSection title="보관법" body={medicine.storage} />
     </ScrollView>
   );
 }
 
-function DoseRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="mb-2">
-      <Text className="text-xs font-medium text-slate-500">{label}</Text>
-      <Text className="text-sm font-semibold text-slate-800">{value}</Text>
-    </View>
-  );
-}
+function MedicineSection({
+  title,
+  body,
+  highlight,
+}: {
+  title: string;
+  body: string;
+  highlight?: 'amber' | 'red';
+}) {
+  const text = stripHtml(body);
+  if (!text) return null;
 
-function HazardModule() {
-  const [query, setQuery] = useState('');
-  const [materials, setMaterials] = useState<HazardousMaterial[]>(HAZARDOUS_MATERIALS);
-  const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<HazardousMaterial | null>(null);
+  const borderClass =
+    highlight === 'red'
+      ? 'border-red-200 bg-red-50'
+      : highlight === 'amber'
+        ? 'border-amber-200 bg-amber-50'
+        : 'border-slate-200 bg-white';
 
-  const runSearch = useCallback(async (text: string) => {
-    setLoading(true);
-    const results = await mockSearchWithQuery(searchHazardousMaterials, text);
-    setMaterials(results);
-    setLoading(false);
-  }, []);
+  const titleClass =
+    highlight === 'red' ? 'text-red-700' : highlight === 'amber' ? 'text-amber-800' : 'text-slate-500';
 
-  useEffect(() => {
-    runSearch(query);
-  }, [query, runSearch]);
-
-  if (selected) {
-    return <HazardDetail material={selected} onBack={() => setSelected(null)} />;
-  }
+  const bodyClass =
+    highlight === 'red' ? 'text-red-900' : highlight === 'amber' ? 'text-amber-900' : 'text-slate-700';
 
   return (
-    <View className="flex-1">
-      <View className="px-4 py-3">
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder="UN 번호 또는 물질명 (예: UN 1005, 암모니아)"
-          loading={loading}
-        />
-      </View>
-      {loading && materials.length === 0 ? (
-        <ActivityIndicator className="mt-8" size="large" color="#0f172a" />
-      ) : (
-        <FlatList
-          data={materials}
-          keyExtractor={(item) => item.id}
-          contentContainerClassName="px-4 pb-4 gap-3"
-          ListEmptyComponent={
-            <EmptyState message="검색 결과가 없습니다" hint="UN 1005, 염소, 황산 등으로 검색해 보세요" />
-          }
-          renderItem={({ item }) => (
-            <Pressable
-              className="rounded-2xl border border-slate-200 bg-white p-4 active:bg-slate-50"
-              onPress={() => setSelected(item)}
-            >
-              <View className="flex-row items-center justify-between">
-                <Text className="text-sm font-bold text-orange-600">{item.unNumber}</Text>
-                <View
-                  className="rounded-full px-2 py-0.5"
-                  style={{ backgroundColor: `${HAZARD_LEVEL_COLORS[item.hazardLevel]}20` }}
-                >
-                  <Text
-                    className="text-xs font-bold"
-                    style={{ color: HAZARD_LEVEL_COLORS[item.hazardLevel] }}
-                  >
-                    위험 {HAZARD_LEVEL_LABELS[item.hazardLevel]}
-                  </Text>
-                </View>
-              </View>
-              <Text className="mt-2 text-lg font-bold text-slate-900">{item.name}</Text>
-              <Text className="text-sm text-slate-500">{item.nameEn}</Text>
-              <Text className="mt-2 text-sm text-slate-600">{item.hazardClass} · {item.ergGuide}</Text>
-              <View className="mt-3 flex-row items-center">
-                <Ionicons name="resize-outline" size={14} color="#64748b" />
-                <Text className="ml-1 text-xs text-slate-500">이격 거리 시각화 보기</Text>
-                <Ionicons name="chevron-forward" size={16} color="#94a3b8" style={{ marginLeft: 'auto' }} />
-              </View>
-            </Pressable>
-          )}
-        />
-      )}
-    </View>
-  );
-}
-
-function HazardDetail({ material, onBack }: { material: HazardousMaterial; onBack: () => void }) {
-  return (
-    <ScrollView className="flex-1" contentContainerClassName="p-4 pb-8">
-      <BackHeader title={material.name} onBack={onBack} />
-
-      <View className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
-        <View className="flex-row flex-wrap gap-2">
-          <Badge label={material.unNumber} color="#ea580c" />
-          <Badge label={material.ergGuide} color="#64748b" />
-          <Badge
-            label={`위험 ${HAZARD_LEVEL_LABELS[material.hazardLevel]}`}
-            color={HAZARD_LEVEL_COLORS[material.hazardLevel]}
-          />
-        </View>
-        <Text className="mt-3 text-sm text-slate-500">{material.nameEn}</Text>
-        <Text className="mt-1 text-base font-semibold text-slate-800">{material.hazardClass}</Text>
-      </View>
-
-      <Text className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
-        초기 이격 거리 (ERG 가상)
-      </Text>
-      <IsolationDistanceChart zones={material.isolationZones} />
-
-      <Text className="mb-3 mt-6 text-sm font-bold uppercase tracking-wide text-slate-500">
-        노출 증상
-      </Text>
-      <View className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
-        {material.symptoms.map((s) => (
-          <Text key={s} className="mb-1 text-sm text-slate-700">
-            · {s}
-          </Text>
-        ))}
-      </View>
-
-      <Text className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
-        초기 대응
-      </Text>
-      {material.firstActions.map((action, i) => (
-        <View
-          key={action}
-          className="mb-2 flex-row rounded-xl border border-slate-200 bg-white p-3"
-        >
-          <Text className="mr-2 font-bold text-orange-600">{i + 1}.</Text>
-          <Text className="flex-1 text-sm text-slate-700">{action}</Text>
-        </View>
-      ))}
-    </ScrollView>
-  );
-}
-
-function Badge({ label, color }: { label: string; color: string }) {
-  return (
-    <View className="rounded-full px-3 py-1" style={{ backgroundColor: `${color}18` }}>
-      <Text className="text-xs font-bold" style={{ color }}>
-        {label}
-      </Text>
+    <View className={`mb-4 rounded-2xl border p-4 ${borderClass}`}>
+      <Text className={`mb-2 text-sm font-bold uppercase tracking-wide ${titleClass}`}>{title}</Text>
+      <Text className={`text-sm leading-6 ${bodyClass}`}>{text}</Text>
     </View>
   );
 }
