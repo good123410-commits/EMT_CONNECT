@@ -12,11 +12,7 @@ const clientId = import.meta.env.VITE_ADSENSE_CLIENT_ID as string | undefined;
  */
 export function AdSenseSlot({ slotId, className = '', format = 'auto' }: AdSenseSlotProps) {
   if (!clientId) {
-    return (
-      <div className={`ad-slot ad-slot--placeholder ${className}`} aria-hidden>
-        <span>AdSense · {slotId}</span>
-      </div>
-    );
+    return null;
   }
 
   return (

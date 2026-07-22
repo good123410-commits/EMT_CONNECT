@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AdSenseSlot } from '../components/AdSenseSlot';
 import { useToast } from '../contexts/ToastContext';
 import {
   fetchGuideBySlug,
@@ -119,8 +118,6 @@ export function BlogDetailPage() {
 
   return (
     <article className="guide-detail-read">
-      <AdSenseSlot slotId="blog-detail-top" className="mb-6" />
-
       <Link to="/blog" className="guide-back-btn">
         ← 목록으로 돌아가기
       </Link>
@@ -143,8 +140,6 @@ export function BlogDetailPage() {
       ) : null}
 
       {renderGuideContent(post.content)}
-
-      <AdSenseSlot slotId="blog-detail-bottom" className="mt-10" />
 
       <footer className="guide-detail-actions">
         <Link to="/blog" className="btn btn-secondary">

@@ -30,6 +30,7 @@ import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 // import { SkillsPage } from './pages/SkillsPage';
 import './styles.css';
+import './dark-theme.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

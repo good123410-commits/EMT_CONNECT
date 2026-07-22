@@ -1,10 +1,13 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { BRAND_NAME, BRAND_NAME_KO } from '../constants/branding';
 import { SiteHeader } from './SiteHeader';
 
 export function Layout() {
+  const { pathname } = useLocation();
+  const isHome = pathname === '/';
+
   return (
-    <div className="site site--v2">
+    <div className={`site site--v2${isHome ? ' site--home' : ''}`}>
       <SiteHeader />
       <main className="site-main">
         <Outlet />

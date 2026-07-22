@@ -13,6 +13,13 @@ type HeroEpicSliderProps = {
   children: ReactNode;
 };
 
+const DRAG_SKIP_SELECTOR = 'button, a, input, textarea, select, [role="tab"]';
+const SWIPE_THRESHOLD_PX = 48;
+
+function isDragExcludedTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest(DRAG_SKIP_SELECTOR));
+}
+
 export function HeroEpicSlider({ slides, autoPlayMs = 5500, children }: HeroEpicSliderProps) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -27,8 +34,13 @@ export function HeroEpicSlider({ slides, autoPlayMs = 5500, children }: HeroEpic
     [count],
   );
 
-  const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
-  const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
+  const goPrev = useCallback(() => {
+    setIndex((current) => (count === 0 ? current : (current - 1 + count) % count));
+  }, [count]);
+
+  const goNext = useCallback(() => {
+    setIndex((current) => (count === 0 ? current : (current + 1) % count));
+  }, [count]);
 
   useEffect(() => {
     if (count <= 1 || paused) return undefined;
@@ -38,19 +50,37 @@ export function HeroEpicSlider({ slides, autoPlayMs = 5500, children }: HeroEpic
     return () => window.clearInterval(timer);
   }, [count, paused, autoPlayMs]);
 
-  const onPointerDown = (e: React.PointerEvent) => {
+  useEffect(() => {
+    setIndex((current) => (count === 0 ? 0 : Math.min(current, count - 1)));
+  }, [count]);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLElement>) => {
+    if (e.button !== 0 || isDragExcludedTarget(e.target)) return;
+
     dragRef.current = { startX: e.clientX, dragging: true };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const onPointerUp = (e: React.PointerEvent) => {
+  const onPointerUp = (e: React.PointerEvent<HTMLElement>) => {
     if (!dragRef.current.dragging) return;
+
     const delta = e.clientX - dragRef.current.startX;
     dragRef.current.dragging = false;
-    if (Math.abs(delta) > 48) {
+
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+
+    if (isDragExcludedTarget(e.target)) return;
+
+    if (Math.abs(delta) > SWIPE_THRESHOLD_PX) {
       if (delta < 0) goNext();
       else goPrev();
     }
+  };
+
+  const stopCarouselPointer = (e: React.PointerEvent | React.MouseEvent) => {
+    e.stopPropagation();
   };
 
   if (count === 0) {
@@ -99,7 +129,11 @@ export function HeroEpicSlider({ slides, autoPlayMs = 5500, children }: HeroEpic
           <button
             type="button"
             className="hero-epic-nav hero-epic-nav--prev"
-            onClick={goPrev}
+            onPointerDown={stopCarouselPointer}
+            onClick={(e) => {
+              e.stopPropagation();
+              goPrev();
+            }}
             aria-label="이전 슬라이드"
           >
             ‹
@@ -107,7 +141,11 @@ export function HeroEpicSlider({ slides, autoPlayMs = 5500, children }: HeroEpic
           <button
             type="button"
             className="hero-epic-nav hero-epic-nav--next"
-            onClick={goNext}
+            onPointerDown={stopCarouselPointer}
+            onClick={(e) => {
+              e.stopPropagation();
+              goNext();
+            }}
             aria-label="다음 슬라이드"
           >
             ›
@@ -121,7 +159,11 @@ export function HeroEpicSlider({ slides, autoPlayMs = 5500, children }: HeroEpic
                 className={`hero-epic-dot${i === index ? ' hero-epic-dot--active' : ''}`}
                 aria-selected={i === index}
                 aria-label={`${slide.title} (${i + 1}/${count})`}
-                onClick={() => goTo(i)}
+                onPointerDown={stopCarouselPointer}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goTo(i);
+                }}
               />
             ))}
           </div>

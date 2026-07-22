@@ -37,7 +37,9 @@ export function LandingPage() {
           </div>
         </HeroEpicSlider>
 
-        <PlatformStatsBar />
+        <div className="landing-stats-bridge">
+          <PlatformStatsBar />
+        </div>
         <MonthlyInterviewSection />
         <AppCtaBanner />
         <HomeGuideSection />

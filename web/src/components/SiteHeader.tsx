@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { BRAND_NAME } from '../constants/branding';
 import { MAIN_NAV } from '../constants/navigation';
 import { useAuth } from '../contexts/AuthContext';
+import { useHeaderOverlay } from '../hooks/useHeaderOverlay';
 import { LoginModal } from './LoginModal';
 import { SettingsDropdown } from './SettingsDropdown';
 
@@ -40,6 +41,7 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ onLoginClick }: SiteHeaderProps) {
   const { isAdmin } = useAuth();
+  const { isHome, scrolled } = useHeaderOverlay();
   const isMobileNav = useMobileNav();
   const [loginOpen, setLoginOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -149,9 +151,19 @@ export function SiteHeader({ onLoginClick }: SiteHeaderProps) {
       ),
     );
 
+  const headerClassName = [
+    'site-header',
+    'site-header--v2',
+    isHome ? 'site-header--overlay' : '',
+    isHome && scrolled ? 'site-header--scrolled' : '',
+    mobileOpen ? 'site-header--menu-open' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <>
-      <header className="site-header site-header--v2" ref={headerRef}>
+      <header className={headerClassName} ref={headerRef}>
         <div className="header-shell">
           {/* Left — Logo */}
           <Link to="/" className="header-brand" onClick={closeMobile}>
