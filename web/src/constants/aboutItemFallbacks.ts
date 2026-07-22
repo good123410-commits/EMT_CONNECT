@@ -1,0 +1,146 @@
+import type { AboutItemPageSlug, KemixAboutItem } from '../types';
+
+export const ABOUT_ITEM_PAGE_META: Record<
+  AboutItemPageSlug,
+  { label: string; path: string; badgeLabel: string; badgePlaceholder: string }
+> = {
+  history: {
+    label: '케믹스 연혁',
+    path: '/about/history',
+    badgeLabel: '연도',
+    badgePlaceholder: '예: 2026',
+  },
+  structure: {
+    label: '케믹스 구성',
+    path: '/about/structure',
+    badgeLabel: '구분 (선택)',
+    badgePlaceholder: '예: 핵심팀',
+  },
+  'dev-log': {
+    label: '개발일지',
+    path: '/about/dev-log',
+    badgeLabel: '기간',
+    badgePlaceholder: '예: 2026-07',
+  },
+};
+
+export const ABOUT_ITEM_FALLBACKS: Record<AboutItemPageSlug, KemixAboutItem[]> = {
+  history: [
+    {
+      id: 'fallback-history-1',
+      page_slug: 'history',
+      badge_label: '2024',
+      title: 'EMS_Connect 모바일 앱 베타 출시',
+      summary: 'EMS_Connect 모바일 앱 베타 출시',
+      content: '<p>응급의료 현장을 위한 모바일 앱 베타 서비스를 시작했습니다.</p>',
+      display_order: 0,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 'fallback-history-2',
+      page_slug: 'history',
+      badge_label: '2025',
+      title: '실시간 응급실·병원 찾기 서비스 정식 오픈',
+      summary: '실시간 응급실·병원 찾기 서비스 정식 오픈',
+      content: '<p>공공 데이터 기반 실시간 응급실·병원 찾기 기능을 정식 오픈했습니다.</p>',
+      display_order: 1,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 'fallback-history-3',
+      page_slug: 'history',
+      badge_label: '2026',
+      title: 'KEMIX 브랜드 리뉴얼 및 공식 웹 플랫폼 런칭',
+      summary: 'KEMIX(케믹스) 브랜드 리뉴얼 및 공식 웹 플랫폼 런칭',
+      content: '<p>KEMI에서 KEMIX로 리브랜딩하고 공식 웹 플랫폼을 런칭했습니다.</p>',
+      display_order: 2,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+  ],
+  structure: [
+    {
+      id: 'fallback-structure-1',
+      page_slug: 'structure',
+      badge_label: null,
+      title: '플랫폼 개발팀',
+      summary: '웹·모바일 앱, Supabase 백엔드, 실시간 데이터 연동',
+      content: '<p>웹·모바일 앱, Supabase 백엔드, 실시간 데이터 연동을 담당합니다.</p>',
+      display_order: 0,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 'fallback-structure-2',
+      page_slug: 'structure',
+      badge_label: null,
+      title: '콘텐츠·편집팀',
+      summary: '생활 응급처치 가이드, 이달의 인터뷰, SEO 콘텐츠',
+      content: '<p>생활 응급처치 가이드, 이달의 인터뷰, SEO 콘텐츠를 제작합니다.</p>',
+      display_order: 1,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 'fallback-structure-3',
+      page_slug: 'structure',
+      badge_label: null,
+      title: 'EMS 커뮤니티팀',
+      summary: '구급대원 커뮤니티 운영, 모금·후원 관리',
+      content: '<p>구급대원 커뮤니티 운영과 모금·후원 관리를 담당합니다.</p>',
+      display_order: 2,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 'fallback-structure-4',
+      page_slug: 'structure',
+      badge_label: null,
+      title: '의료 자문단',
+      summary: '응급의료 전문가 자문, 프로토콜 검수',
+      content: '<p>응급의료 전문가 자문과 프로토콜 검수를 수행합니다.</p>',
+      display_order: 3,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+  ],
+  'dev-log': [
+    {
+      id: 'fallback-devlog-1',
+      page_slug: 'dev-log',
+      badge_label: '2026-07',
+      title: 'KEMIX 웹 플랫폼 v2.0',
+      summary: '오프닝 몽타주, GNB 개편, 모금 계좌 관리 시스템 구축',
+      content: '<p>오프닝 몽타주, GNB 개편, 모금 계좌 관리 시스템을 구축했습니다.</p>',
+      display_order: 0,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 'fallback-devlog-2',
+      page_slug: 'dev-log',
+      badge_label: '2026-06',
+      title: '실시간 통계 바 연동',
+      summary: '병원·가이드·구급대원 수 Supabase RPC 연동',
+      content: '<p>병원·가이드·구급대원 수 Supabase RPC 연동을 완료했습니다.</p>',
+      display_order: 1,
+      is_published: true,
+      created_at: '',
+      updated_at: '',
+    },
+  ],
+};
+
+export function getAboutItemFallbacks(pageSlug: AboutItemPageSlug): KemixAboutItem[] {
+  return ABOUT_ITEM_FALLBACKS[pageSlug] ?? [];
+}

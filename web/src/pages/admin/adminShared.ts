@@ -12,6 +12,7 @@ export type AdminTabId =
   | 'trainings'
   | 'guides'
   | 'community'
+  | 'polls'
   | 'skills'
   | 'donations'
   | 'faq'
@@ -57,7 +58,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: 'KEMIX 커뮤니티',
     children: [
       { id: 'community', label: '자유게시판' },
-      { id: 'skills', label: '스킬 테크 트리' },
+      // { id: 'skills', label: '스킬 테크 트리' },
+      { id: 'polls', label: 'KEMIX 투표' },
       { id: 'donations', label: '모금 계좌' },
     ],
   },
@@ -92,6 +94,12 @@ export function getAdminSubTabs(groupId: string) {
 export function tabToAboutSlug(tab: AdminTabId): AboutPageSlug | null {
   const map: Partial<Record<AdminTabId, AboutPageSlug>> = {
     'about-vision': 'vision',
+  };
+  return map[tab] ?? null;
+}
+
+export function tabToAboutItemSlug(tab: AdminTabId): import('../../types').AboutItemPageSlug | null {
+  const map: Partial<Record<AdminTabId, import('../../types').AboutItemPageSlug>> = {
     'about-history': 'history',
     'about-structure': 'structure',
     'about-dev-log': 'dev-log',

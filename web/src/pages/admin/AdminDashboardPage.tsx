@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PageHero } from '../../components/PageHero';
 import { AdminAboutPagesPanel } from './AdminAboutPagesPanel';
+import { AdminAboutItemsPanel } from './AdminAboutItemsPanel';
 import { AdminCommunityPanel } from './AdminCommunityPanel';
 import { AdminDonationsPanel } from './AdminDonationsPanel';
 import { AdminFaqPanel } from './AdminFaqPanel';
@@ -9,16 +10,17 @@ import { AdminInterviewsPanel } from './AdminInterviewsPanel';
 import { AdminNav } from './AdminNav';
 import { AdminOpeningSlidesPanel } from './AdminOpeningSlidesPanel';
 import { AdminSchedulesPanel } from './AdminSchedulesPanel';
-import { AdminSkillsPanel } from './AdminSkillsPanel';
+import { AdminPollsPanel } from './AdminPollsPanel';
 import { AdminSiteSettingsPanel } from './AdminSiteSettingsPanel';
 import { AdminTrainingsPanel } from './AdminTrainingsPanel';
 import { AdminUsersPanel } from './AdminUsersPanel';
-import { findAdminGroupForTab, tabToAboutSlug, type AdminTabId } from './adminShared';
+import { findAdminGroupForTab, tabToAboutItemSlug, tabToAboutSlug, type AdminTabId } from './adminShared';
 
 export function AdminDashboardPage() {
   const [tab, setTab] = useState<AdminTabId>('about-vision');
   const [group, setGroup] = useState(() => findAdminGroupForTab('about-vision'));
   const aboutSlug = tabToAboutSlug(tab);
+  const aboutItemSlug = tabToAboutItemSlug(tab);
 
   const handleGroupChange = (groupId: string, defaultTab: AdminTabId) => {
     setGroup(groupId);
@@ -42,13 +44,15 @@ export function AdminDashboardPage() {
         />
 
         {aboutSlug ? <AdminAboutPagesPanel slug={aboutSlug} /> : null}
+        {aboutItemSlug ? <AdminAboutItemsPanel pageSlug={aboutItemSlug} /> : null}
         {tab === 'opening' && <AdminOpeningSlidesPanel />}
         {tab === 'interviews' && <AdminInterviewsPanel />}
         {tab === 'schedules' && <AdminSchedulesPanel />}
         {tab === 'trainings' && <AdminTrainingsPanel />}
         {tab === 'guides' && <AdminGuidesPanel />}
         {tab === 'community' && <AdminCommunityPanel />}
-        {tab === 'skills' && <AdminSkillsPanel />}
+        {/* {tab === 'skills' && <AdminSkillsPanel />} */}
+        {tab === 'polls' && <AdminPollsPanel />}
         {tab === 'donations' && <AdminDonationsPanel />}
         {tab === 'faq' && <AdminFaqPanel />}
         {tab === 'users' && <AdminUsersPanel />}

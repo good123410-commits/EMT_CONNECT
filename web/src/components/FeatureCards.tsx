@@ -34,7 +34,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'KEMIX 커뮤니티',
-    description: '자유게시판, 스킬 테크 트리, 모금 안내까지 응급의료인을 위한 공간입니다.',
+    description: '자유게시판, 모금 안내까지 응급의료인을 위한 공간입니다.',
     tone: 'violet',
   },
 ] as const;

@@ -553,6 +553,48 @@ export async function adminUpsertAboutPage(input: UpsertAboutPageInput) {
   return data as import('../types').KemixAboutPage;
 }
 
+// ── About items (history / structure / dev-log) ──
+export async function adminListAboutItems(
+  pageSlug?: import('../types').AboutItemPageSlug,
+): Promise<import('../types').KemixAboutItem[]> {
+  const { data, error } = await supabase.rpc('admin_list_about_items', {
+    p_page_slug: pageSlug ?? null,
+  });
+  if (error) rpcError(error);
+  return (data ?? []) as import('../types').KemixAboutItem[];
+}
+
+export type UpsertAboutItemInput = {
+  id?: string;
+  page_slug: import('../types').AboutItemPageSlug;
+  badge_label?: string | null;
+  title: string;
+  summary: string;
+  content: string;
+  display_order: number;
+  is_published: boolean;
+};
+
+export async function adminUpsertAboutItem(input: UpsertAboutItemInput) {
+  const { data, error } = await supabase.rpc('admin_upsert_about_item', {
+    p_id: input.id ?? null,
+    p_page_slug: input.page_slug,
+    p_badge_label: input.badge_label ?? null,
+    p_title: input.title,
+    p_summary: input.summary,
+    p_content: input.content,
+    p_display_order: input.display_order,
+    p_is_published: input.is_published,
+  });
+  if (error) rpcError(error);
+  return data as import('../types').KemixAboutItem;
+}
+
+export async function adminDeleteAboutItem(id: string) {
+  const { error } = await supabase.rpc('admin_delete_about_item', { p_id: id });
+  if (error) rpcError(error);
+}
+
 // ── Users ──
 export async function adminListUsers(options?: {
   search?: string;
@@ -588,4 +630,54 @@ export async function adminSetUserBlocked(userId: string, blocked: boolean) {
   });
   if (error) rpcError(error);
   return data as import('../types').AdminUserRow;
+}
+
+// ── Polls ──
+function mapPollList(data: unknown): import('../types').Poll[] {
+  if (!Array.isArray(data)) return [];
+  return data as import('../types').Poll[];
+}
+
+export async function adminListPolls(): Promise<import('../types').Poll[]> {
+  const { data, error } = await supabase.rpc('admin_list_polls');
+  if (error) rpcError(error);
+  return mapPollList(data);
+}
+
+export type UpsertPollInput = {
+  id?: string;
+  title: string;
+  description: string;
+  is_published: boolean;
+  ends_at: string | null;
+  display_order: number;
+  options: Array<{ id?: string; label: string; display_order: number }>;
+};
+
+export async function adminUpsertPoll(input: UpsertPollInput) {
+  const { data, error } = await supabase.rpc('admin_upsert_poll', {
+    p_id: input.id ?? null,
+    p_title: input.title,
+    p_description: input.description,
+    p_is_published: input.is_published,
+    p_ends_at: input.ends_at,
+    p_display_order: input.display_order,
+    p_options: input.options,
+  });
+  if (error) rpcError(error);
+  return data as import('../types').Poll;
+}
+
+export async function adminDeletePoll(id: string) {
+  const { error } = await supabase.rpc('admin_delete_poll', { p_id: id });
+  if (error) rpcError(error);
+}
+
+export async function adminClosePoll(id: string, closed = true) {
+  const { data, error } = await supabase.rpc('admin_close_poll', {
+    p_id: id,
+    p_closed: closed,
+  });
+  if (error) rpcError(error);
+  return data as import('../types').Poll;
 }

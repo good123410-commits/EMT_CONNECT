@@ -105,6 +105,8 @@ export type OpeningSlide = {
 
 export type AboutPageSlug = 'vision' | 'history' | 'structure' | 'dev-log';
 
+export type AboutItemPageSlug = 'history' | 'structure' | 'dev-log';
+
 export type KemixAboutPage = {
   id?: string;
   slug: AboutPageSlug;
@@ -115,6 +117,19 @@ export type KemixAboutPage = {
   is_published: boolean;
   updated_at?: string;
   created_at?: string;
+};
+
+export type KemixAboutItem = {
+  id: string;
+  page_slug: AboutItemPageSlug;
+  badge_label: string | null;
+  title: string;
+  summary: string;
+  content: string;
+  display_order: number;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type CommunityCategory = {
@@ -154,3 +169,28 @@ export type SiteSetting = {
 };
 
 export type AdminUserRow = UserProfile;
+
+export type PollOption = {
+  id: string;
+  poll_id: string;
+  label: string;
+  display_order: number;
+  vote_count?: number;
+};
+
+export type Poll = {
+  id: string;
+  title: string;
+  description: string;
+  is_published: boolean;
+  is_closed: boolean;
+  ends_at: string | null;
+  closed_at: string | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  is_votable?: boolean;
+  total_votes?: number;
+  my_vote_option_id?: string | null;
+  options: PollOption[];
+};

@@ -28,7 +28,8 @@ export function Layout() {
             <h4>서비스</h4>
             <Link to="/blog">응급처치 가이드</Link>
             <Link to="/community/board">자유게시판</Link>
-            <Link to="/community/skills">스킬 테크 트리</Link>
+            {/* <Link to="/community/skills">스킬 테크 트리</Link> */}
+            <Link to="/community/polls">KEMIX 투표</Link>
             <Link to="/community/donation">모금 계좌</Link>
           </div>
           <div className="footer-col">

@@ -31,14 +31,42 @@ export type GuideCategory = {
 export type PlatformStats = {
   download_count: number;
   guide_count: number;
-  community_count: number;
+  member_count: number;
+  today_visitor_count: number;
 };
 
 const FALLBACK_STATS: PlatformStats = {
   download_count: 0,
   guide_count: 0,
-  community_count: 0,
+  member_count: 0,
+  today_visitor_count: 0,
 };
+
+const VISITOR_KEY_STORAGE = 'kemix-visitor-id';
+
+function getOrCreateVisitorKey(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    let id = localStorage.getItem(VISITOR_KEY_STORAGE);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(VISITOR_KEY_STORAGE, id);
+    }
+    return id;
+  } catch {
+    return '';
+  }
+}
+
+export async function recordSiteVisit(): Promise<void> {
+  const visitorKey = getOrCreateVisitorKey();
+  if (!visitorKey) return;
+  try {
+    await supabase.rpc('record_site_visit', { p_visitor_key: visitorKey });
+  } catch {
+    // 방문 기록 실패는 통계 표시에 영향 없음
+  }
+}
 
 const FALLBACK_CATEGORIES: GuideCategory[] = [
   { id: 'fb-cpr', name: '심폐소생술', slug: 'cpr', display_order: 1, is_active: true },
@@ -141,18 +169,20 @@ export async function fetchPlatformStats(): Promise<PlatformStats> {
     const row = Array.isArray(data) ? data[0] : data;
     if (!row) return FALLBACK_STATS;
     const r = row as Record<string, unknown>;
-    const downloads = Number(r.download_count);
-    const guides = Number(r.guide_count);
-    const community =
-      r.community_count != null ? Number(r.community_count) : Number(r.active_paramedic_count);
     return {
-      download_count: Number.isFinite(downloads) ? downloads : FALLBACK_STATS.download_count,
-      guide_count: Number.isFinite(guides) ? guides : 0,
-      community_count: Number.isFinite(community) ? community : 0,
+      download_count: toStatNumber(r.download_count, FALLBACK_STATS.download_count),
+      guide_count: toStatNumber(r.guide_count, 0),
+      member_count: toStatNumber(r.member_count, 0),
+      today_visitor_count: toStatNumber(r.today_visitor_count, 0),
     };
   } catch {
     return FALLBACK_STATS;
   }
+}
+
+function toStatNumber(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 export function subscribeGuides(onChange: () => void): () => void {

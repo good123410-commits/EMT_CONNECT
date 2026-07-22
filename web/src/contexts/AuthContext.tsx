@@ -108,11 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithOAuth = useCallback(async (provider: Provider) => {
     storeAuthReturnPath();
+
+    // 카카오 개인 앱: scopes 미지정 — account_email 요청 시 KOE205 발생
+    const options: { redirectTo?: string; scopes?: string } = {
+      redirectTo: getOAuthRedirectUrl(),
+    };
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: {
-        redirectTo: getOAuthRedirectUrl(),
-      },
+      options,
     });
     if (error) throw error;
   }, []);

@@ -26,7 +26,8 @@ export const MAIN_NAV: NavItem[] = [
     label: 'KEMIX 커뮤니티',
     children: [
       { to: '/community/board', label: '자유게시판' },
-      { to: '/community/skills', label: '스킬 테크 트리' },
+      // { to: '/community/skills', label: '스킬 테크 트리' },
+      { to: '/community/polls', label: 'KEMIX 투표' },
       { to: '/community/donation', label: '모금 계좌 안내' },
     ],
   },
@@ -42,7 +43,8 @@ export const MAIN_NAV: NavItem[] = [
 
 export const COMMUNITY_TABS = [
   { to: '/community/board', label: '자유게시판' },
-  { to: '/community/skills', label: '스킬 테크 트리' },
+  // { to: '/community/skills', label: '스킬 테크 트리' },
+  { to: '/community/polls', label: 'KEMIX 투표' },
   { to: '/community/donation', label: '모금 계좌 안내' },
 ] as const;
 

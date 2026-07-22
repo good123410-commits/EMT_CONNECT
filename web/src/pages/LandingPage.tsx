@@ -31,10 +31,7 @@ export function LandingPage() {
             하나로 연결하는 공식 플랫폼입니다.
           </p>
           <div className="hero-epic-actions">
-            <Link to="/community/board" className="btn btn-hero-primary">
-              KEMIX 커뮤니티
-            </Link>
-            <Link to="/blog" className="btn btn-hero-ghost">
+            <Link to="/blog" className="btn btn-hero-primary">
               생활 응급처치 가이드
             </Link>
           </div>

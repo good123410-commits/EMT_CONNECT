@@ -1,5 +1,5 @@
-import { AboutPageView } from '../../components/AboutPageView';
+import { AboutItemsPageView } from '../../components/about/AboutItemsPageView';
 
 export function HistoryPage() {
-  return <AboutPageView slug="history" />;
+  return <AboutItemsPageView pageSlug="history" />;
 }

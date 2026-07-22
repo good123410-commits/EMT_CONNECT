@@ -1,5 +1,5 @@
-import { AboutPageView } from '../../components/AboutPageView';
+import { AboutItemsPageView } from '../../components/about/AboutItemsPageView';
 
 export function StructurePage() {
-  return <AboutPageView slug="structure" />;
+  return <AboutItemsPageView pageSlug="structure" />;
 }

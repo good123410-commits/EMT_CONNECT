@@ -1,5 +1,5 @@
-import { AboutPageView } from '../../components/AboutPageView';
+import { AboutItemsPageView } from '../../components/about/AboutItemsPageView';
 
 export function DevLogPage() {
-  return <AboutPageView slug="dev-log" />;
+  return <AboutItemsPageView pageSlug="dev-log" />;
 }

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { BRAND_NAME, BRAND_NAME_KO } from '../constants/branding';
+import { BRAND_NAME } from '../constants/branding';
 import { MAIN_NAV } from '../constants/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginModal } from './LoginModal';
@@ -16,12 +16,31 @@ function ChevronIcon() {
   );
 }
 
+const MOBILE_NAV_QUERY = '(max-width: 1180px)';
+
+function useMobileNav() {
+  const [isMobileNav, setIsMobileNav] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(MOBILE_NAV_QUERY).matches : false,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_NAV_QUERY);
+    const onChange = () => setIsMobileNav(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  return isMobileNav;
+}
+
 type SiteHeaderProps = {
   onLoginClick?: () => void;
 };
 
 export function SiteHeader({ onLoginClick }: SiteHeaderProps) {
   const { isAdmin } = useAuth();
+  const isMobileNav = useMobileNav();
   const [loginOpen, setLoginOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -54,20 +73,50 @@ export function SiteHeader({ onLoginClick }: SiteHeaderProps) {
     };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    if (!isMobileNav) return;
+    setOpenDropdown(null);
+  }, [isMobileNav]);
+
+  const handleDropdownEnter = useCallback(
+    (label: string) => {
+      if (isMobileNav) return;
+      setOpenDropdown(label);
+    },
+    [isMobileNav],
+  );
+
+  const handleDropdownLeave = useCallback(() => {
+    if (isMobileNav) return;
+    setOpenDropdown(null);
+  }, [isMobileNav]);
+
+  const toggleDropdown = useCallback(
+    (label: string) => {
+      setOpenDropdown((current) => (current === label ? null : label));
+    },
+    [],
+  );
+
   const renderNavItems = (mobile = false) =>
     MAIN_NAV.map((item) =>
       'children' in item ? (
         <li
           key={item.label}
-          className={`gnb-item gnb-item--dropdown${openDropdown === item.label ? ' gnb-item--open' : ''}`}
-          onMouseEnter={mobile ? undefined : () => setOpenDropdown(item.label)}
-          onMouseLeave={mobile ? undefined : () => setOpenDropdown(null)}
+          className={`gnb-item gnb-item--dropdown${openDropdown === item.label ? ' gnb-item--open' : ''}${mobile ? ' gnb-item--mobile' : ''}`}
+          onMouseEnter={mobile ? undefined : () => handleDropdownEnter(item.label)}
+          onMouseLeave={mobile ? undefined : handleDropdownLeave}
         >
           <button
             type="button"
             className="gnb-link gnb-link--trigger"
             aria-expanded={openDropdown === item.label}
-            onClick={() => setOpenDropdown((v) => (v === item.label ? null : item.label))}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (mobile || isMobileNav) {
+                toggleDropdown(item.label);
+              }
+            }}
           >
             <span>{item.label}</span>
             <ChevronIcon />
@@ -107,7 +156,6 @@ export function SiteHeader({ onLoginClick }: SiteHeaderProps) {
           {/* Left — Logo */}
           <Link to="/" className="header-brand" onClick={closeMobile}>
             <span className="brand-mark">{BRAND_NAME}</span>
-            <span className="brand-sub">{BRAND_NAME_KO}</span>
           </Link>
 
           {/* Center — GNB */}
