@@ -1,6 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { memo } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DistanceRow } from '@/components/map/DistanceText';
+import type { DistanceUnitMode } from '@/utils/formatDistance';
 
 type MapMarkerDetailSheetProps = {
   visible: boolean;
@@ -74,17 +77,25 @@ type MapMarkerShellCardProps = {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
   badge?: string;
+  subtitle?: string;
+  statusBadge?: React.ReactNode;
+  distanceUnitMode?: DistanceUnitMode;
+  onDistanceUnitModeChange?: (mode: DistanceUnitMode) => void;
   onPress: () => void;
   selected?: boolean;
 };
 
-export function MapMarkerShellCard({
+function MapMarkerShellCardComponent({
   name,
   distanceM,
   walkMin,
   icon,
   iconColor = '#64748b',
   badge,
+  subtitle,
+  statusBadge,
+  distanceUnitMode = 'auto',
+  onDistanceUnitModeChange,
   onPress,
   selected,
 }: MapMarkerShellCardProps) {
@@ -104,12 +115,16 @@ export function MapMarkerShellCard({
           <Text style={styles.cardTitle} numberOfLines={2}>
             {name}
           </Text>
+          {statusBadge}
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           {distanceM > 0 ? (
             <View style={styles.distanceRow}>
-              <Ionicons name="walk-outline" size={14} color="#64748b" />
-              <Text style={styles.distanceText}>
-                {distanceM}m · {walkMin}분
-              </Text>
+              <DistanceRow
+                distanceM={distanceM}
+                walkMin={walkMin}
+                unitMode={distanceUnitMode}
+                onUnitModeChange={onDistanceUnitModeChange}
+              />
             </View>
           ) : (
             <Text style={styles.hintText}>탭하여 상세 정보 보기</Text>
@@ -120,6 +135,8 @@ export function MapMarkerShellCard({
     </Pressable>
   );
 }
+
+export const MapMarkerShellCard = memo(MapMarkerShellCardComponent);
 
 const styles = StyleSheet.create({
   overlay: {
@@ -240,16 +257,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f172a',
   },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#64748b',
+  },
   distanceRow: {
     marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  distanceText: {
-    marginLeft: 4,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
   },
   hintText: {
     marginTop: 4,

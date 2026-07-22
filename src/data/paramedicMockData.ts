@@ -9,6 +9,35 @@ export type BambooMessage = {
   isHot?: boolean;
 };
 
+export type CaseStudyPost = {
+  id: string;
+  title: string;
+  anonymousLabel: string;
+  summary: string;
+  body: string;
+  tags: string[];
+  postedAt: string;
+  likes: number;
+};
+
+export type ChatMessage = {
+  id: string;
+  roomId: string;
+  anonymousLabel: string;
+  content: string;
+  postedAt: string;
+};
+
+export type ResourceDocument = {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  url: string;
+  updatedAt: string;
+  isExternal?: boolean;
+};
+
 export type JobPost = {
   id: string;
   type: 'hire' | 'seek';
@@ -69,6 +98,106 @@ export const BAMBOO_MESSAGES: BambooMessage[] = [
     tags: ['ER상황', '현장팁'],
     postedAt: '1시간 전',
     likes: 19,
+  },
+];
+
+export const CASE_STUDY_POSTS: CaseStudyPost[] = [
+  {
+    id: 'cs-1',
+    title: '심정지 현장 ROSC 후 전원 거절 대응',
+    anonymousLabel: '경기 · 6년차',
+    summary: '요양병원 심정지 환자 ROSC 후 ICU bed 부재로 2차 병원 거절 — 전원 협의 절차 정리',
+    body: '현장 ROSC 후 1차 병원 ER 도착, ICU bed 없음 통보. 2차·3차 병원 사전 연락 시 bed 확인 질문 리스트를 미리 정리해 두면 거절률이 줄었습니다. 환자 식별 정보는 익명 처리했습니다.',
+    tags: ['케이스스터디', '전원', 'ROSC'],
+    postedAt: '2시간 전',
+    likes: 18,
+  },
+  {
+    id: 'cs-2',
+    title: '소아 기도이물 현장 처치 후기 (익명)',
+    anonymousLabel: '서울 · 4년차',
+    summary: '소아 기도이물 의심 — BVM 보조 및 이송 중 SpO2 모니터링 포인트',
+    body: '소아 환자 기도이물 의심 콜. 산소포화도 추이와 자세 유지가 핵심이었습니다. 병원 도착 전 간호 인계 시 모니터링 수치를 시간순으로 공유했습니다.',
+    tags: ['케이스스터디', '소아', '기도'],
+    postedAt: '5시간 전',
+    likes: 27,
+  },
+  {
+    id: 'cs-3',
+    title: '다발 외상 현장 triage 메모',
+    anonymousLabel: '부산 · 8년차',
+    summary: '교통사고 다수 환자 — 현장 triage 태깅 및 2차 이송 우선순위',
+    body: '경상 환자와 중증 환자 분리 후 119 지휘 체계에 맞춰 태깅. 현장 사진·환자 정보는 게시하지 않았으며 절차만 공유합니다.',
+    tags: ['케이스스터디', '외상', 'triage'],
+    postedAt: '1일 전',
+    likes: 34,
+  },
+];
+
+export const CHAT_MESSAGES: ChatMessage[] = [
+  {
+    id: 'cm-1',
+    roomId: 'all',
+    anonymousLabel: '익명 · 서울',
+    content: '오늘 밤 통합방 — 전국 ER 혼잡도 공유해요. 개인정보·병원 실명은 올리지 말아주세요.',
+    postedAt: '10분 전',
+  },
+  {
+    id: 'cm-2',
+    roomId: 'seoul',
+    anonymousLabel: '익명 · 강남',
+    content: '서울권 ○○권역 야간 2인1조 미확보 센터 있다는 제보 있음. 면접 때 확인 권장.',
+    postedAt: '25분 전',
+  },
+  {
+    id: 'cm-3',
+    roomId: 'gyeonggi',
+    anonymousLabel: '익명 · 수원',
+    content: '경기 서부권 장거리 이송 많은 날입니다. 교대 조 확인하세요.',
+    postedAt: '40분 전',
+  },
+  {
+    id: 'cm-4',
+    roomId: 'busan',
+    anonymousLabel: '익명 · 해운대',
+    content: '부산 ER 대기시간 양호. 전원 문의 시 triage 레벨 먼저 공유 부탁.',
+    postedAt: '1시간 전',
+  },
+  {
+    id: 'cm-5',
+    roomId: 'other',
+    anonymousLabel: '익명 · 광주',
+    content: '영남·호남권 소속 대원들 환영합니다. 지역별 장비 입고 정보도 공유해요.',
+    postedAt: '2시간 전',
+  },
+];
+
+export const RESOURCE_DOCUMENTS: ResourceDocument[] = [
+  {
+    id: 'rd-1',
+    title: '2025 응급의료 현장 처치 가이드라인 (요약)',
+    category: '프로토콜',
+    description: '최신 응급의료 현장 처치 핵심 프로토콜 요약본',
+    url: 'https://example.com/mirae-ems/protocol-2025.pdf',
+    updatedAt: '2025-03',
+  },
+  {
+    id: 'rd-2',
+    title: '미래회 학술대회 공지',
+    category: '학술회',
+    description: '연간 학술대회 일정·등록 안내 (외부 웹)',
+    url: 'https://example.com/mirae-ems/conference',
+    updatedAt: '2025-06',
+    isExternal: true,
+  },
+  {
+    id: 'rd-3',
+    title: '응급구조사 법정 교육 자료',
+    category: '교육',
+    description: '보수교육·법정교육 참고 자료 목록',
+    url: 'https://example.com/mirae-ems/education',
+    updatedAt: '2025-01',
+    isExternal: true,
   },
 ];
 

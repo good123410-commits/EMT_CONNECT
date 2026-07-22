@@ -54,48 +54,97 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
   }
 }
 
+async function fetchUserProfileRow(userId: string): Promise<UserProfile | null> {
+  try {
+    return await fetchFromTable(USER_PROFILES_TABLE, userId);
+  } catch {
+    return null;
+  }
+}
+
+function isMissingUserProfilesColumnError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('schema cache') || lower.includes('could not find the');
+}
+
+/** PostgREST 스키마에 없는 컬럼은 제거하고 upsert 재시도 (v5 DB: name/wallet 등 없음) */
+async function upsertUserProfileRow(payload: Record<string, unknown>): Promise<UserProfile> {
+  let current: Record<string, unknown> = { ...payload };
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const { data, error } = await supabase
+      .from(USER_PROFILES_TABLE)
+      .upsert(current, { onConflict: 'id' })
+      .select('*')
+      .single();
+
+    if (!error && data) {
+      return data as UserProfile;
+    }
+
+    if (!error) {
+      break;
+    }
+
+    if (!isMissingUserProfilesColumnError(error.message)) {
+      throw new Error(`회원 프로필(user_profiles)을 준비하지 못했습니다: ${error.message}`);
+    }
+
+    const match = error.message.match(/Could not find the '([^']+)' column/);
+    const missingKey = match?.[1];
+    if (!missingKey || !(missingKey in current)) {
+      throw new Error(`회원 프로필(user_profiles)을 준비하지 못했습니다: ${error.message}`);
+    }
+
+    const next = { ...current };
+    delete next[missingKey];
+    current = next;
+
+    if (!('id' in current)) {
+      throw new Error('회원 프로필(user_profiles)을 준비하지 못했습니다: id가 필요합니다.');
+    }
+  }
+
+  throw new Error(
+    '회원 프로필(user_profiles)을 준비하지 못했습니다. Supabase에서 migration_v11_user_profiles_columns.sql을 실행해 주세요.',
+  );
+}
+
+/** 로그인 사용자 user_profiles 행 보장 (Supabase RPC, 없으면 클라이언트 upsert) */
 export async function ensureProfile(
   userId: string,
   name?: string,
   email?: string,
 ): Promise<UserProfile> {
-  const existing = await fetchProfile(userId);
-  if (existing) return existing;
+  const { error: rpcError } = await supabase.rpc('ensure_my_user_profile');
+  if (!rpcError) {
+    const row = await fetchUserProfileRow(userId);
+    if (row) return row;
+  }
 
-  const payload = {
-    id: userId,
-    email: email ?? null,
-    name: name ?? null,
-    role: 'user' as const,
-    is_approved: false,
-    wallet_balance: 0,
-  };
+  const onUserProfiles = await fetchUserProfileRow(userId);
+  if (onUserProfiles) return onUserProfiles;
 
-  try {
-    const { data, error } = await supabase
-      .from(USER_PROFILES_TABLE)
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    return data as UserProfile;
-  } catch {
-    const { data, error } = await supabase
-      .from(LEGACY_PROFILES_TABLE)
-      .insert({
+  const legacy = await fetchProfile(userId);
+  const payload = legacy
+    ? {
         id: userId,
+        email: email ?? legacy.email ?? null,
+        name: legacy.name ?? name ?? null,
+        role: legacy.role,
+        is_approved: legacy.is_approved,
+        wallet_balance: legacy.wallet_balance ?? 0,
+      }
+    : {
+        id: userId,
+        email: email ?? null,
         name: name ?? null,
-        role: 'public',
+        role: 'user' as const,
         is_approved: false,
         wallet_balance: 0,
-      })
-      .select('*')
-      .single();
+      };
 
-    if (error) throw error;
-    return mapLegacyProfile(data as Record<string, unknown>);
-  }
+  return upsertUserProfileRow(payload);
 }
 
 export async function updateProfileRole(

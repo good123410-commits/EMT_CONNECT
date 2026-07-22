@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import { useIsFocused } from '@react-navigation/native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FlatList,
+  ActivityIndicator,
   Pressable,
   Text,
   View,
@@ -10,51 +11,118 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BedAvailabilityBar, ErDashboardSummary } from '@/components/ErDashboard';
 import { EmptyState } from '@/components/EmptyState';
+import { ErDutyContactButtons, ErHospitalSpecsPanel } from '@/components/facility/ErHospitalSpecsPanel';
+import { FacilitySearchBarComponent } from '@/components/facility/FacilitySearchBarComponent';
+import { PediatricHospitalCard } from '@/components/facility/PediatricHospitalCard';
+import { PartnerHospitalBadge } from '@/components/facility/PartnerHospitalBadge';
+import { HospitalSpecialtyTags } from '@/components/facility/HospitalSpecialtyTags';
+import { HospitalWeeklyHours } from '@/components/facility/HospitalWeeklyHours';
+import { MoonlightHospitalBadge } from '@/components/facility/MoonlightHospitalBadge';
+import { EmergencyMapView } from '@/components/map/EmergencyMapView';
+import { DistanceText } from '@/components/map/DistanceText';
+import { PharmacyOpenBadge } from '@/components/map/PharmacyOpenBadge';
+import { SegmentControl } from '@/components/SegmentControl';
+import { useFacilitySearchMode } from '@/hooks/useFacilitySearchMode';
+import {
+  useFacilityMarkersQuery,
+  usePrefetchFacilityMarkers,
+} from '@/hooks/useFacilityMarkersQuery';
+import { ER_STATUS_COLORS, ER_STATUS_LABELS } from '@/mockData/aedAndEmergency';
+import {
+  formatCount,
+  formatEmergencyUpdatedAt,
+  isMoonlightChildrenHospital,
+  safeErStatus,
+  type HospitalDetail,
+} from '@/services/emergencyApi';
+
+import {
+  fetchPediatricHospitals,
+  fetchRegionalHospitalMetadataIndex,
+  type HospitalFinderItem,
+  type HospitalMetadataEntry,
+} from '@/services/hospitalFinderService';
+import {
+  ensureCustomHospitalDbHydrated,
+  mergeCustomHospitalsIntoPediatricList,
+} from '@/services/customHospitalService';
+import {
+  applyErLiveOverlayToLocal,
+  enrichErMarkersWithMetadata,
+  fetchErHospitalFullDetail,
+  fetchErLiveOverlay,
+  getHybridHospitalDetailFromStore,
+  resolveErLiveApiRegion,
+  sortErTabHospitals,
+  type ErLiveOverlayResult,
+  type LocalHospitalMarkerWithLive,
+} from '@/services/hybridErService';
+import {
+  getLocationWithRegionImmediate,
+  subscribeToLocationUpdates,
+  type LocationRegion,
+  type LocationSnapshot,
+} from '@/services/locationService';
+import { LIVE_STATUS_FALLBACK_MESSAGE } from '@/types/localFacility';
+import type { LocalPharmacyMarker } from '@/types/localFacility';
+import {
+  getMapCenterFromSnapshot,
+  toAedMapPoints,
+  toLocalHospitalMapPoints,
+  toLocalPharmacyMapPoints,
+  toPediatricHospitalMapPoints,
+} from '@/utils/mapMarkers';
 import {
   MapMarkerDetailSheet,
   MapMarkerShellCard,
 } from '@/components/map/MapMarkerDetailSheet';
-import { SearchBar } from '@/components/SearchBar';
-import { SegmentControl } from '@/components/SegmentControl';
-import { ER_STATUS_COLORS, ER_STATUS_LABELS } from '@/mockData/aedAndEmergency';
+import { confirmPhoneCall } from '@/utils/confirmPhoneCall';
+import { buildEmergencyHospitalSpecs } from '@/utils/emergencyHospitalSpecs';
+import { getHospitalErOverride } from '@/services/customHospitalService';
+import { mergeEmergencyBedWithOverride, mergeSpecsWithErOverride } from '@/utils/hospitalEquipmentOverride';
 import {
-  EmergencyApiError,
-  fetchAedDetail,
-  fetchAedMarkerShells,
-  fetchHospitalDetail,
-  fetchHospitalMarkerShells,
-  fetchPharmacyDetail,
-  fetchPharmacyMarkerShells,
-  formatCount,
-  formatEmergencyUpdatedAt,
-  getEquipmentLabels,
-  isPediatricPriorityHospital,
-  safeDisplayText,
-  safeErStatus,
-  type AedLocationItem,
-  type AedMarkerShell,
-  type HospitalDetail,
-  type HospitalMarkerShell,
-  type PharmacyInfo,
-  type PharmacyMarkerShell,
-} from '@/services/emergencyApi';
-import {
-  getLocationWithRegionImmediate,
-  subscribeToLocationUpdates,
-  type LocationSnapshot,
-} from '@/services/locationService';
+  cycleDistanceUnitMode,
+  formatDistanceMeters,
+  type DistanceUnitMode,
+} from '@/utils/formatDistance';
+import { getPharmacyOpenStatus } from '@/utils/pharmacyHours';
+import { getTreatmentDayCode } from '@/utils/hospitalHours';
 
-type MapTab = 'aed' | 'er' | 'pharmacy';
+import type { LocalAedMarker } from '@/types/localAed';
+
+type MapModuleSharedProps = {
+  distanceUnitMode: DistanceUnitMode;
+  onDistanceUnitModeChange: (mode: DistanceUnitMode) => void;
+};
+
+type MapTab = 'aed' | 'er' | 'pharmacy' | 'pediatric';
 
 export function MapScreen() {
   const isFocused = useIsFocused();
   const [tab, setTab] = useState<MapTab>('aed');
+  const [distanceUnitMode, setDistanceUnitMode] = useState<DistanceUnitMode>('auto');
   const [locationSnapshot, setLocationSnapshot] = useState<LocationSnapshot>(() =>
     getLocationWithRegionImmediate(),
   );
 
+  const facilitySearch = useFacilitySearchMode({ locationSnapshot });
+  usePrefetchFacilityMarkers(facilitySearch.searchParams, isFocused);
+
+  const handleDistanceUnitChange = (mode: DistanceUnitMode) => {
+    setDistanceUnitMode(mode);
+  };
+
+  const mapModuleShared: MapModuleSharedProps = {
+    distanceUnitMode,
+    onDistanceUnitModeChange: handleDistanceUnitChange,
+  };
+
   useEffect(() => {
     return subscribeToLocationUpdates(setLocationSnapshot);
+  }, []);
+
+  useEffect(() => {
+    void ensureCustomHospitalDbHydrated();
   }, []);
 
   const regionLabel =
@@ -74,605 +142,1123 @@ export function MapScreen() {
           options={[
             { value: 'aed', label: 'AED' },
             { value: 'er', label: '응급실' },
+            { value: 'pediatric', label: '소아' },
             { value: 'pharmacy', label: '약국' },
           ]}
           value={tab}
           onChange={setTab}
         />
       </SafeAreaView>
-      {tab === 'aed' ? (
-        <AedModule active={isFocused} />
-      ) : tab === 'er' ? (
-        <ErModule active={isFocused} />
-      ) : (
-        <PharmacyModule active={isFocused} />
-      )}
+      <View style={{ flex: 1, display: tab === 'aed' ? 'flex' : 'none' }}>
+        <AedModule
+          locationSnapshot={locationSnapshot}
+          facilitySearch={facilitySearch}
+          {...mapModuleShared}
+        />
+      </View>
+      <View style={{ flex: 1, display: tab === 'er' ? 'flex' : 'none' }}>
+        <ErModule
+          active={isFocused && tab === 'er'}
+          locationSnapshot={locationSnapshot}
+          facilitySearch={facilitySearch}
+          {...mapModuleShared}
+        />
+      </View>
+      <View style={{ flex: 1, display: tab === 'pharmacy' ? 'flex' : 'none' }}>
+        <PharmacyModule
+          locationSnapshot={locationSnapshot}
+          facilitySearch={facilitySearch}
+          {...mapModuleShared}
+        />
+      </View>
+      <View style={{ flex: 1, display: tab === 'pediatric' ? 'flex' : 'none' }}>
+        <PediatricModule
+          active={isFocused && tab === 'pediatric'}
+          locationSnapshot={locationSnapshot}
+          facilitySearch={facilitySearch}
+          {...mapModuleShared}
+        />
+      </View>
     </View>
   );
 }
 
-function AedModule({ active }: { active: boolean }) {
-  const [query, setQuery] = useState('');
-  const [markers, setMarkers] = useState<AedMarkerShell[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchMode, setSearchMode] = useState<'gps' | 'region'>('gps');
-  const [initialLoaded, setInitialLoaded] = useState(false);
-  const [selectedMarker, setSelectedMarker] = useState<AedMarkerShell | null>(null);
-  const [detail, setDetail] = useState<AedLocationItem | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
+type FacilitySearchState = ReturnType<typeof useFacilitySearchMode>;
 
-  const loadMarkerShells = useCallback(async (searchQuery: string) => {
-    setLoading(true);
-    setError(null);
+const LIST_ESTIMATED_ITEM_SIZE = 96;
 
-    const trimmed = searchQuery.trim();
+function AedModule({
+  locationSnapshot,
+  facilitySearch,
+  distanceUnitMode,
+  onDistanceUnitModeChange,
+}: {
+  locationSnapshot: LocationSnapshot;
+  facilitySearch: FacilitySearchState;
+} & MapModuleSharedProps) {
+  const [selectedAED, setSelectedAED] = useState<LocalAedMarker | null>(null);
+  const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
 
-    try {
-      const items = trimmed
-        ? await fetchAedMarkerShells({ addressQuery: trimmed, maxResults: 80 })
-        : await fetchAedMarkerShells({ maxResults: 50 });
+  const {
+    mode,
+    sido,
+    sigungu,
+    gpsLoading,
+    searchParams,
+    statusLabel,
+    activateGpsSearch,
+    handleSidoChange,
+    handleSigunguChange,
+  } = facilitySearch;
 
-      setMarkers(items);
-      setSearchMode(trimmed ? 'region' : 'gps');
-    } catch (err) {
-      const message =
-        err instanceof EmergencyApiError ? err.message : 'AED 정보를 불러오지 못했습니다.';
-      setError(message);
-      setMarkers([]);
-    } finally {
-      setLoading(false);
-      setInitialLoaded(true);
-    }
-  }, []);
+  const { data: markers = [], isFetching } = useFacilityMarkersQuery('aed', searchParams);
+
+  const mapPoints = useMemo(() => toAedMapPoints(markers), [markers]);
 
   useEffect(() => {
-    if (!active) return undefined;
-    const timer = setTimeout(() => {
-      void loadMarkerShells(query);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [active, query, loadMarkerShells]);
+    if (selectedAED) return;
+    const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
+    if (nextCenter) setMapCenter(nextCenter);
+  }, [locationSnapshot, selectedAED]);
 
-  useEffect(() => {
-    if (!active || query.trim()) return undefined;
-    return subscribeToLocationUpdates((snapshot) => {
-      if (snapshot.permissionGranted) {
-        void loadMarkerShells('');
-      }
-    });
-  }, [active, query, loadMarkerShells]);
-
-  const loadDetail = useCallback(async (marker: AedMarkerShell) => {
-    setDetailLoading(true);
-    setDetailError(null);
-    setDetail(null);
-
-    try {
-      const result = await fetchAedDetail(marker.id, {
-        addressQuery: query.trim() || undefined,
-      });
-      setDetail(result);
-    } catch (err) {
-      const message =
-        err instanceof EmergencyApiError ? err.message : 'AED 상세 정보를 불러오지 못했습니다.';
-      setDetailError(message);
-    } finally {
-      setDetailLoading(false);
-    }
-  }, [query]);
-
-  const handleMarkerPress = (marker: AedMarkerShell) => {
-    setSelectedMarker(marker);
-    void loadDetail(marker);
+  const handleMarkerPress = (marker: LocalAedMarker) => {
+    setSelectedAED(marker);
+    setMapCenter({ latitude: marker.latitude, longitude: marker.longitude });
   };
 
   const handleCloseSheet = () => {
-    setSelectedMarker(null);
-    setDetail(null);
-    setDetailError(null);
+    setSelectedAED(null);
   };
 
   return (
     <View className="flex-1">
-      <View className="px-4 py-3">
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder="지역·읍면동·상세주소 검색"
-          loading={loading}
+      <View className="h-[42%] min-h-[220px] border-b border-slate-200">
+        <EmergencyMapView
+          points={mapPoints}
+          kind="aed"
+          selectedId={selectedAED?.id}
+          loading={false}
+          center={mapCenter}
+          onMarkerPress={(point: { payload: LocalAedMarker }) => handleMarkerPress(point.payload)}
         />
-        {error ? (
-          <View className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3">
-            <Text className="text-sm text-red-700">{error}</Text>
-            <Pressable
-              className="mt-2 self-start rounded-lg bg-red-600 px-3 py-1.5"
-              onPress={() => void loadMarkerShells(query)}
-            >
-              <Text className="text-xs font-semibold text-white">다시 시도</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Text className="mt-2 text-xs text-slate-400">
-            {searchMode === 'region'
-              ? `'${query.trim()}' 주소 검색 · 마커 고속 로딩 · 탭 시 상세`
-              : 'GPS 5km · 마커 고속 로딩 · 탭 시 상세'}
-          </Text>
-        )}
       </View>
 
-      <FlatList
+      <View className="px-4 py-3">
+        <FacilitySearchBarComponent
+          facilityLabel="AED"
+          mode={mode}
+          sido={sido}
+          sigungu={sigungu}
+          gpsLoading={gpsLoading}
+          statusLabel={statusLabel}
+          resultCount={markers.length}
+          onActivateGps={() => void activateGpsSearch()}
+          onSidoChange={handleSidoChange}
+          onSigunguChange={handleSigunguChange}
+        />
+        {isFetching ? (
+          <ActivityIndicator size="small" color="#64748b" className="mt-1" />
+        ) : null}
+      </View>
+
+      <FlashList
+        style={{ flex: 1 }}
         data={markers}
+        estimatedItemSize={LIST_ESTIMATED_ITEM_SIZE}
         keyExtractor={(item) => item.id}
-        contentContainerClassName="px-4 pb-4 gap-3"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
         ListEmptyComponent={
-          loading && !initialLoaded ? null : (
-            <EmptyState
-              message={query.trim() ? '해당 주소의 AED를 찾을 수 없습니다' : '주변 AED를 찾을 수 없습니다'}
-              hint="읍·면·동, 시·군·구, 상세 주소로 검색해 보세요"
-            />
-          )
+          <EmptyState
+            message={
+              searchParams.textQuery || searchParams.regionFilter
+                ? '해당 검색어의 AED를 찾을 수 없습니다'
+                : '주변 AED를 찾을 수 없습니다'
+            }
+            hint="시·도 또는 시·군·구를 선택해 보세요"
+          />
         }
         renderItem={({ item, index }) => (
           <MapMarkerShellCard
-            name={item.name}
+            name={item.name || 'AED'}
             distanceM={item.distanceM}
             walkMin={item.walkMin}
             icon="heart-circle"
-            iconColor={index === 0 && searchMode === 'gps' ? '#dc2626' : '#64748b'}
-            badge={index === 0 && searchMode === 'gps' ? '최단' : undefined}
-            selected={selectedMarker?.id === item.id}
+            iconColor={index === 0 && mode === 'gps' ? '#dc2626' : '#64748b'}
+            badge={index === 0 && mode === 'gps' ? '최단' : undefined}
+            selected={selectedAED?.id === item.id}
+            distanceUnitMode={distanceUnitMode}
+            onDistanceUnitModeChange={onDistanceUnitModeChange}
             onPress={() => handleMarkerPress(item)}
           />
         )}
       />
 
       <MapMarkerDetailSheet
-        visible={selectedMarker !== null}
-        title={detail?.buildPlace || detail?.org || selectedMarker?.name || 'AED'}
-        loading={detailLoading}
-        error={detailError}
+        visible={selectedAED !== null}
+        title={selectedAED?.name || 'AED'}
+        loading={false}
         onClose={handleCloseSheet}
-        onRetry={selectedMarker ? () => void loadDetail(selectedMarker) : undefined}
       >
-        {detail ? <AedDetailContent location={detail} /> : null}
+        {selectedAED ? (
+          <AedDetailContent aed={selectedAED} distanceUnitMode={distanceUnitMode} onDistanceUnitToggle={() => onDistanceUnitModeChange(cycleDistanceUnitMode(distanceUnitMode))} />
+        ) : null}
       </MapMarkerDetailSheet>
     </View>
   );
 }
 
-function AedDetailContent({ location }: { location: AedLocationItem }) {
+function AedDetailContent({
+  aed,
+  distanceUnitMode,
+  onDistanceUnitToggle,
+}: {
+  aed: LocalAedMarker;
+  distanceUnitMode: DistanceUnitMode;
+  onDistanceUnitToggle: () => void;
+}) {
+  const hasCoords =
+    Number.isFinite(aed.latitude) &&
+    Number.isFinite(aed.longitude) &&
+    !(aed.latitude === 0 && aed.longitude === 0);
+  const phone = aed.phone?.trim();
+
   return (
     <View>
       <View className="mb-4 h-32 items-center justify-center rounded-xl bg-slate-100">
         <Ionicons name="map" size={40} color="#94a3b8" />
         <Text className="mt-2 text-xs text-slate-500">AED 설치 위치</Text>
         <Text className="text-xs text-slate-400">
-          {Number.isFinite(location.latitude) && Number.isFinite(location.longitude)
-            ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+          {hasCoords
+            ? `${aed.latitude.toFixed(4)}, ${aed.longitude.toFixed(4)}`
             : '좌표 정보 없음'}
         </Text>
       </View>
 
-      <Text className="text-sm text-slate-600">{location.buildPlace || '-'}</Text>
-      <Text className="mt-1 text-sm text-slate-500">{location.buildAddress || '-'}</Text>
-      <Text className="mt-1 text-sm text-slate-500">{location.org || '-'}</Text>
+      <Text className="text-sm font-semibold text-slate-900">{aed.name || 'AED'}</Text>
+      <Text className="mt-1 text-sm text-slate-600">{aed.address?.trim() || '주소 정보 없음'}</Text>
+      {aed.location?.trim() ? (
+        <Text className="mt-1 text-sm text-slate-500">설치 위치: {aed.location}</Text>
+      ) : null}
 
       <View className="mt-4 flex-row gap-3">
-        <InfoTile icon="navigate" label="거리" value={`${location.distanceM}m`} />
-        <InfoTile icon="walk" label="도보" value={`${location.walkMin}분`} />
         <InfoTile
-          icon="checkmark-circle"
-          label="운영"
-          value={location.available24h ? '24시간' : '시간 제한'}
-          valueColor={location.available24h ? '#22c55e' : '#f97316'}
+          icon="navigate"
+          label="거리"
+          value={formatDistanceMeters(aed.distanceM ?? 0, distanceUnitMode)}
+          onPress={onDistanceUnitToggle}
+        />
+        <InfoTile icon="walk" label="도보" value={`${aed.walkMin ?? 0}분`} />
+        <InfoTile
+          icon="hardware-chip"
+          label="모델"
+          value={aed.model?.trim() || '-'}
         />
       </View>
 
-      <Text className="mt-4 text-xs text-slate-500">
-        모델: {location.model || '-'} · 제조사: {location.manufacturer || '-'}
-      </Text>
-      <Text className="mt-1 text-xs text-slate-500">
-        연락처: {location.clerkTel || location.managerTel || '-'}
-      </Text>
-      <Text className="mt-1 text-xs text-slate-500">
-        관리자: {location.managerTel || '-'}
-      </Text>
+      {phone ? (
+        <Pressable
+          className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+          onPress={() => confirmPhoneCall(aed.name || 'AED', phone)}
+        >
+          <Text className="text-xs text-slate-500">관리자 연락처</Text>
+          <Text className="text-sm font-bold text-blue-700">{phone}</Text>
+        </Pressable>
+      ) : (
+        <Text className="mt-4 text-xs text-slate-500">관리자 연락처: -</Text>
+      )}
+      <Text className="mt-1 text-xs text-slate-400">로컬 내장 데이터 · 즉시 표시</Text>
     </View>
   );
 }
 
-function PharmacyModule({ active }: { active: boolean }) {
-  const [query, setQuery] = useState('');
-  const [markers, setMarkers] = useState<PharmacyMarkerShell[]>([]);
+function PediatricModule({
+  active,
+  locationSnapshot,
+  facilitySearch,
+  distanceUnitMode,
+  onDistanceUnitModeChange,
+}: {
+  active: boolean;
+  locationSnapshot: LocationSnapshot;
+  facilitySearch: FacilitySearchState;
+} & MapModuleSharedProps) {
+  const [hospitals, setHospitals] = useState<HospitalFinderItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedMarker, setSelectedMarker] = useState<PharmacyMarkerShell | null>(null);
-  const [detail, setDetail] = useState<PharmacyInfo | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<HospitalFinderItem | null>(null);
+  const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
+  const fetchRef = useRef(0);
 
-  const loadMarkerShells = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const items = await fetchPharmacyMarkerShells({ maxResults: 40, holidayKeeper: true });
-      setMarkers(items);
-    } catch (err) {
-      const message =
-        err instanceof EmergencyApiError ? err.message : '약국 정보를 불러오지 못했습니다.';
-      setError(message);
-      setMarkers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    mode,
+    sido,
+    sigungu,
+    gpsLoading,
+    searchParams,
+    statusLabel,
+    activateGpsSearch,
+    handleSidoChange,
+    handleSigunguChange,
+  } = facilitySearch;
+
+  const apiRegion = useMemo(
+    () => resolveErLiveApiRegion(searchParams, locationSnapshot),
+    [searchParams, locationSnapshot],
+  );
+
+  const mapPoints = useMemo(() => toPediatricHospitalMapPoints(hospitals), [hospitals]);
+  const moonlightCount = useMemo(
+    () => hospitals.filter((item) => item.isMoonlightHospital).length,
+    [hospitals],
+  );
 
   useEffect(() => {
-    if (!active) return;
-    void loadMarkerShells();
-  }, [active, loadMarkerShells]);
+    if (!active) return undefined;
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return markers;
-    return markers.filter((p) => p.name.toLowerCase().includes(q));
-  }, [markers, query]);
+    const seq = ++fetchRef.current;
+    const timer = setTimeout(() => {
+      void (async () => {
+        setLoading(true);
+        const result = await fetchPediatricHospitals({
+          coordinate: locationSnapshot.coordinate,
+          region: apiRegion,
+        });
+        if (seq !== fetchRef.current) return;
+        const merged = mergeCustomHospitalsIntoPediatricList(
+          result.items,
+          locationSnapshot.coordinate,
+          { stage1: apiRegion.stage1, stage2: apiRegion.stage2 },
+        );
+        setHospitals(merged);
+        setErrorMessage(result.success ? null : result.errorMessage ?? '조회에 실패했습니다.');
+        setLoading(false);
+      })();
+    }, 300);
 
-  const loadDetail = useCallback(async (marker: PharmacyMarkerShell) => {
-    setDetailLoading(true);
-    setDetailError(null);
-    setDetail(null);
+    return () => clearTimeout(timer);
+  }, [
+    active,
+    apiRegion.stage1,
+    apiRegion.stage2,
+    apiRegion.label,
+    locationSnapshot.coordinate.latitude,
+    locationSnapshot.coordinate.longitude,
+  ]);
 
-    try {
-      const result = await fetchPharmacyDetail(marker.hpid, {
-        holidayKeeper: true,
-        markerCoordinate: { latitude: marker.latitude, longitude: marker.longitude },
-      });
-      setDetail(result);
-    } catch (err) {
-      const message =
-        err instanceof EmergencyApiError ? err.message : '약국 상세 정보를 불러오지 못했습니다.';
-      setDetailError(message);
-    } finally {
-      setDetailLoading(false);
+  useEffect(() => {
+    if (selectedPlace) return;
+    const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
+    if (nextCenter) setMapCenter(nextCenter);
+  }, [locationSnapshot, selectedPlace]);
+
+  const handleMarkerPress = (place: HospitalFinderItem) => {
+    setSelectedPlace(place);
+    if (place.latitude && place.longitude) {
+      setMapCenter({ latitude: place.latitude, longitude: place.longitude });
     }
-  }, []);
-
-  const handleMarkerPress = (marker: PharmacyMarkerShell) => {
-    setSelectedMarker(marker);
-    void loadDetail(marker);
   };
 
-  const handleCloseSheet = () => {
-    setSelectedMarker(null);
-    setDetail(null);
-    setDetailError(null);
+  const resync = () => {
+    const seq = ++fetchRef.current;
+    void (async () => {
+      setLoading(true);
+      const result = await fetchPediatricHospitals({
+        coordinate: locationSnapshot.coordinate,
+        region: apiRegion,
+      });
+      if (seq !== fetchRef.current) return;
+      const merged = mergeCustomHospitalsIntoPediatricList(
+        result.items,
+        locationSnapshot.coordinate,
+        { stage1: apiRegion.stage1, stage2: apiRegion.stage2 },
+      );
+      setHospitals(merged);
+      setErrorMessage(result.success ? null : result.errorMessage ?? '조회에 실패했습니다.');
+      setLoading(false);
+    })();
   };
 
   return (
     <View className="flex-1">
-      <View className="px-4 py-3">
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder="약국명 검색"
+      <View className="h-[42%] min-h-[220px] border-b border-slate-200">
+        <EmergencyMapView
+          points={mapPoints}
+          kind="pediatric"
+          selectedId={selectedPlace?.hpid}
           loading={loading}
+          center={mapCenter}
+          onMarkerPress={(point: { payload: HospitalFinderItem }) => handleMarkerPress(point.payload)}
         />
-        {error ? (
-          <View className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3">
-            <Text className="text-sm text-red-700">{error}</Text>
-            <Pressable
-              className="mt-2 self-start rounded-lg bg-red-600 px-3 py-1.5"
-              onPress={() => void loadMarkerShells()}
-            >
-              <Text className="text-xs font-semibold text-white">다시 시도</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Text className="mt-2 text-xs text-slate-400">
-            마커 고속 로딩 · 탭 시 주소·전화·진료시간 상세 조회
-          </Text>
-        )}
       </View>
 
-      <FlatList
-        data={filtered}
+      <FlashList
+        style={{ flex: 1 }}
+        data={hospitals}
+        estimatedItemSize={LIST_ESTIMATED_ITEM_SIZE + 56}
         keyExtractor={(item) => item.hpid}
-        contentContainerClassName="px-4 pb-4 gap-3"
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        ListHeaderComponent={
+          <View className="mb-2 gap-3">
+            <FacilitySearchBarComponent
+              facilityLabel="소아 의료기관"
+              mode={mode}
+              sido={sido}
+              sigungu={sigungu}
+              gpsLoading={gpsLoading}
+              statusLabel={statusLabel}
+              resultCount={hospitals.length}
+              onActivateGps={() => void activateGpsSearch()}
+              onSidoChange={handleSidoChange}
+              onSigunguChange={handleSigunguChange}
+            />
+            <View className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
+              <Text className="text-xs font-semibold text-indigo-900">
+                {apiRegion.label} · 🌙 달빛어린이병원 {moonlightCount}곳 우선 표시
+              </Text>
+              <Text className="mt-0.5 text-[11px] text-indigo-700">
+                국립중앙의료원 병·의원 찾기 API · 진료시간은 방문 전 전화 확인 권장
+              </Text>
+            </View>
+            {loading ? <ActivityIndicator size="small" color="#7c3aed" /> : null}
+            {errorMessage ? (
+              <View className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <Text className="text-sm text-amber-800">{errorMessage}</Text>
+                <Pressable className="mt-2 self-start rounded-lg bg-amber-600 px-3 py-1.5" onPress={resync}>
+                  <Text className="text-xs font-semibold text-white">다시 시도</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        }
         ListEmptyComponent={
-          loading ? null : (
-            <EmptyState message="주변 약국을 찾을 수 없습니다" hint="다른 키워드로 검색해 보세요" />
-          )
+          !loading ? (
+            <EmptyState
+              message={
+                searchParams.regionFilter
+                  ? `${statusLabel} 소아 의료기관을 찾을 수 없습니다`
+                  : '소아 의료기관 정보가 없습니다'
+              }
+              hint="시·도 또는 시·군·구를 선택해 보세요"
+            />
+          ) : null
         }
         renderItem={({ item }) => (
-          <MapMarkerShellCard
-            name={item.name}
-            distanceM={item.distanceM}
-            walkMin={item.walkMin}
-            icon="medical"
-            selected={selectedMarker?.hpid === item.hpid}
+          <PediatricHospitalCard
+            hospital={item}
+            selected={selectedPlace?.hpid === item.hpid}
+            expanded={selectedPlace?.hpid === item.hpid}
+            distanceUnitMode={distanceUnitMode}
+            onDistanceUnitModeChange={onDistanceUnitModeChange}
             onPress={() => handleMarkerPress(item)}
           />
         )}
       />
 
       <MapMarkerDetailSheet
-        visible={selectedMarker !== null}
-        title={detail?.name || selectedMarker?.name || '약국'}
-        loading={detailLoading}
-        error={detailError}
-        onClose={handleCloseSheet}
-        onRetry={selectedMarker ? () => void loadDetail(selectedMarker) : undefined}
+        visible={selectedPlace !== null}
+        title={selectedPlace?.name || '소아 의료기관'}
+        loading={false}
+        onClose={() => setSelectedPlace(null)}
       >
-        {detail ? <PharmacyDetailContent pharmacy={detail} /> : null}
+        {selectedPlace ? (
+          <PediatricHospitalDetailContent
+            hospital={selectedPlace}
+            distanceUnitMode={distanceUnitMode}
+            onDistanceUnitToggle={() =>
+              onDistanceUnitModeChange(cycleDistanceUnitMode(distanceUnitMode))
+            }
+          />
+        ) : null}
       </MapMarkerDetailSheet>
     </View>
   );
 }
 
-function PharmacyDetailContent({ pharmacy }: { pharmacy: PharmacyInfo }) {
+function PediatricHospitalDetailContent({
+  hospital,
+  distanceUnitMode,
+  onDistanceUnitToggle,
+}: {
+  hospital: HospitalFinderItem;
+  distanceUnitMode: DistanceUnitMode;
+  onDistanceUnitToggle: () => void;
+}) {
+  const phone = hospital.phone?.trim();
+
   return (
     <View>
-      <Text className="text-sm text-slate-600">{pharmacy.address || '-'}</Text>
-      <View className="mt-4 flex-row flex-wrap items-center gap-3">
+      {hospital.isMoonlightHospital ? (
+        <View className="mb-2">
+          <MoonlightHospitalBadge />
+        </View>
+      ) : hospital.isPartner ? (
+        <View className="mb-2">
+          <PartnerHospitalBadge />
+        </View>
+      ) : null}
+
+      <View className="mb-2 flex-row items-center justify-between">
+        <Text className="text-sm font-semibold text-slate-900">{hospital.name}</Text>
         <View
-          className="rounded-full px-2 py-0.5"
-          style={{ backgroundColor: pharmacy.isOpenNow ? '#dcfce7' : '#f1f5f9' }}
+          className={`rounded-full px-2.5 py-1 ${
+            hospital.isOpenNow ? 'bg-green-100' : 'bg-slate-200'
+          }`}
         >
           <Text
-            className="text-xs font-semibold"
-            style={{ color: pharmacy.isOpenNow ? '#16a34a' : '#64748b' }}
+            className={`text-[10px] font-bold ${
+              hospital.isOpenNow ? 'text-green-700' : 'text-slate-600'
+            }`}
           >
-            {pharmacy.isOpenNow ? '운영 중' : '시간 확인'}
+            {hospital.openStatusLabel}
           </Text>
         </View>
-        <View className="flex-row items-center">
-          <Ionicons name="walk-outline" size={14} color="#64748b" />
-          <Text className="ml-1 text-sm text-slate-600">
-            {pharmacy.distanceM}m · {pharmacy.walkMin}분
-          </Text>
-        </View>
-        <View className="flex-row items-center">
-          <Ionicons name="time-outline" size={14} color="#64748b" />
-          <Text className="ml-1 text-sm text-slate-600">
-            {pharmacy.treatmentDayLabel} {pharmacy.dutyTimeStart}~{pharmacy.dutyTimeEnd}
-          </Text>
-        </View>
-        {pharmacy.phone ? (
-          <View className="flex-row items-center">
-            <Ionicons name="call-outline" size={14} color="#64748b" />
-            <Text className="ml-1 text-sm text-slate-600">{pharmacy.phone}</Text>
-          </View>
-        ) : null}
       </View>
+
+      <Text className="text-sm text-slate-600">{hospital.address}</Text>
+      {hospital.customMemo ? (
+        <Text className="mt-2 text-xs leading-5 text-amber-800">{hospital.customMemo}</Text>
+      ) : null}
+      <Text className="mt-1 text-xs text-slate-500">{hospital.facilityType}</Text>
+
+      <View className="mt-3">
+        <Text className="mb-2 text-xs font-bold text-slate-700">진료 과목</Text>
+        <HospitalSpecialtyTags specialties={hospital.specialties} maxTags={12} />
+      </View>
+
+      <View className="mt-4">
+        <Text className="mb-2 text-xs font-bold text-slate-700">요일별 진료시간</Text>
+        <HospitalWeeklyHours schedule={hospital.weeklySchedule} />
+      </View>
+
+      <View className="mt-4 flex-row gap-3">
+        <InfoTile
+          icon="navigate"
+          label="거리"
+          value={formatDistanceMeters(hospital.distanceM ?? 0, distanceUnitMode)}
+          onPress={onDistanceUnitToggle}
+        />
+        <InfoTile icon="walk" label="도보" value={`${hospital.walkMin ?? 0}분`} />
+        <InfoTile
+          icon="call"
+          label="전화"
+          value={phone && phone !== '-' ? phone : '-'}
+          onPress={phone && phone !== '-' ? () => confirmPhoneCall(hospital.name, phone) : undefined}
+          valueColor={phone && phone !== '-' ? '#1d4ed8' : '#0f172a'}
+        />
+      </View>
+
+      {hospital.description ? (
+        <Text className="mt-3 text-xs leading-5 text-slate-500">{hospital.description}</Text>
+      ) : null}
     </View>
   );
 }
 
-function ErModule({ active }: { active: boolean }) {
-  const [query, setQuery] = useState('');
-  const [markers, setMarkers] = useState<HospitalMarkerShell[]>([]);
-  const [regionLabel, setRegionLabel] = useState(() => getLocationWithRegionImmediate().region.label);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [initialLoaded, setInitialLoaded] = useState(false);
-  const [selectedMarker, setSelectedMarker] = useState<HospitalMarkerShell | null>(null);
-  const [detail, setDetail] = useState<HospitalDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
+function PharmacyModule({
+  locationSnapshot,
+  facilitySearch,
+  distanceUnitMode,
+  onDistanceUnitModeChange,
+}: {
+  locationSnapshot: LocationSnapshot;
+  facilitySearch: FacilitySearchState;
+} & MapModuleSharedProps) {
+  const [selectedPlace, setSelectedPlace] = useState<LocalPharmacyMarker | null>(null);
+  const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
 
-  const loadMarkerShells = useCallback(async (snapshot = getLocationWithRegionImmediate()) => {
-    setLoading(true);
-    setError(null);
-    setRegionLabel(snapshot.region.label);
+  const {
+    mode,
+    sido,
+    sigungu,
+    gpsLoading,
+    searchParams,
+    statusLabel,
+    activateGpsSearch,
+    handleSidoChange,
+    handleSigunguChange,
+  } = facilitySearch;
 
-    try {
-      const items = await fetchHospitalMarkerShells({
-        coordinate: snapshot.coordinate,
-        region: snapshot.region,
-        maxResults: 50,
-      });
-      setMarkers(items);
-    } catch (err) {
-      const message =
-        err instanceof EmergencyApiError
-          ? err.message
-          : '응급실 정보를 불러오지 못했습니다.';
-      setError(message);
-      setMarkers([]);
-    } finally {
-      setLoading(false);
-      setInitialLoaded(true);
-    }
-  }, []);
+  const { data: markers = [], isFetching } = useFacilityMarkersQuery('pharmacy', searchParams);
+
+  const mapPoints = useMemo(() => toLocalPharmacyMapPoints(markers), [markers]);
 
   useEffect(() => {
-    if (!active) return undefined;
-    void loadMarkerShells();
-    return subscribeToLocationUpdates((snapshot) => {
-      if (snapshot.permissionGranted) {
-        void loadMarkerShells(snapshot);
-      }
-    });
-  }, [active, loadMarkerShells]);
+    if (selectedPlace) return;
+    const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
+    if (nextCenter) setMapCenter(nextCenter);
+  }, [locationSnapshot, selectedPlace]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return markers;
-    return markers.filter((item) => item.name.toLowerCase().includes(q));
-  }, [markers, query]);
-
-  const stats = useMemo(() => {
-    const totalAvailable = filtered.reduce(
-      (sum, item) => sum + (Number.isFinite(item.availableErBeds) ? item.availableErBeds : 0),
-      0,
-    );
-    return {
-      totalAvailable,
-      pediatricCount: filtered.filter((item) => item.isPediatricPriority).length,
-      availableCount: filtered.filter((item) => safeErStatus(item.status) === 'available').length,
-      congestedCount: filtered.filter((item) => safeErStatus(item.status) === 'congested').length,
-      fullCount: filtered.filter((item) => safeErStatus(item.status) === 'full').length,
-    };
-  }, [filtered]);
-
-  const loadDetail = useCallback(async (marker: HospitalMarkerShell) => {
-    setDetailLoading(true);
-    setDetailError(null);
-    setDetail(null);
-
-    try {
-      const result = await fetchHospitalDetail(marker.hpid);
-      setDetail(result);
-    } catch (err) {
-      const message =
-        err instanceof EmergencyApiError
-          ? err.message
-          : '응급실 상세 정보를 불러오지 못했습니다.';
-      setDetailError(message);
-    } finally {
-      setDetailLoading(false);
-    }
-  }, []);
-
-  const handleMarkerPress = (marker: HospitalMarkerShell) => {
-    setSelectedMarker(marker);
-    void loadDetail(marker);
+  const handleMarkerPress = (place: LocalPharmacyMarker) => {
+    setSelectedPlace(place);
+    setMapCenter({ latitude: place.lat, longitude: place.lng });
   };
 
   const handleCloseSheet = () => {
-    setSelectedMarker(null);
-    setDetail(null);
-    setDetailError(null);
+    setSelectedPlace(null);
   };
 
   return (
     <View className="flex-1">
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.hpid}
-        contentContainerClassName="p-4 pb-8 gap-3"
+      <View className="h-[42%] min-h-[220px] border-b border-slate-200">
+        <EmergencyMapView
+          points={mapPoints}
+          kind="pharmacy"
+          selectedId={selectedPlace?.i}
+          loading={false}
+          center={mapCenter}
+          onMarkerPress={(point: { payload: LocalPharmacyMarker }) => handleMarkerPress(point.payload)}
+        />
+      </View>
+
+      <View className="px-4 py-3">
+        <FacilitySearchBarComponent
+          facilityLabel="약국"
+          mode={mode}
+          sido={sido}
+          sigungu={sigungu}
+          gpsLoading={gpsLoading}
+          statusLabel={statusLabel}
+          resultCount={markers.length}
+          onActivateGps={() => void activateGpsSearch()}
+          onSidoChange={handleSidoChange}
+          onSigunguChange={handleSigunguChange}
+        />
+        {isFetching ? (
+          <ActivityIndicator size="small" color="#64748b" className="mt-1" />
+        ) : null}
+      </View>
+
+      <FlashList
+        style={{ flex: 1 }}
+        data={markers}
+        estimatedItemSize={LIST_ESTIMATED_ITEM_SIZE}
+        keyExtractor={(item) => item.i}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+        ListEmptyComponent={
+          <EmptyState
+            message={
+              searchParams.regionFilter
+                ? `${statusLabel} 약국을 찾을 수 없습니다`
+                : '주변 약국을 찾을 수 없습니다'
+            }
+            hint="시·도 또는 시·군·구를 선택해 보세요"
+          />
+        }
+        renderItem={({ item }) => {
+          const openStatus = getPharmacyOpenStatus(item);
+          return (
+            <MapMarkerShellCard
+              name={item.n || '약국'}
+              distanceM={item.distanceM}
+              walkMin={item.walkMin}
+              icon="medical"
+              selected={selectedPlace?.i === item.i}
+              distanceUnitMode={distanceUnitMode}
+              onDistanceUnitModeChange={onDistanceUnitModeChange}
+              statusBadge={
+                openStatus.hasHours ? <PharmacyOpenBadge status={openStatus} compact /> : null
+              }
+              subtitle={
+                openStatus.hasHours
+                  ? `${openStatus.dayLabel} ${openStatus.hoursLabel}`
+                  : undefined
+              }
+              onPress={() => handleMarkerPress(item)}
+            />
+          );
+        }}
+      />
+
+      <MapMarkerDetailSheet
+        visible={selectedPlace !== null}
+        title={selectedPlace?.n || '약국'}
+        loading={false}
+        onClose={handleCloseSheet}
+      >
+        {selectedPlace ? (
+          <PharmacyLocalDetailContent
+            place={selectedPlace}
+            distanceUnitMode={distanceUnitMode}
+            onDistanceUnitToggle={() =>
+              onDistanceUnitModeChange(cycleDistanceUnitMode(distanceUnitMode))
+            }
+          />
+        ) : null}
+      </MapMarkerDetailSheet>
+    </View>
+  );
+}
+
+function PharmacyLocalDetailContent({
+  place,
+  distanceUnitMode,
+  onDistanceUnitToggle,
+}: {
+  place: LocalPharmacyMarker;
+  distanceUnitMode: DistanceUnitMode;
+  onDistanceUnitToggle: () => void;
+}) {
+  const hasCoords =
+    Number.isFinite(place.lat) &&
+    Number.isFinite(place.lng) &&
+    !(place.lat === 0 && place.lng === 0);
+  const openStatus = getPharmacyOpenStatus(place);
+  const phone = place.p?.trim();
+
+  return (
+    <View>
+      <Text className="text-sm font-semibold text-slate-900">{place.n || '약국'}</Text>
+      <Text className="mt-1 text-sm text-slate-600">{place.a?.trim() || '주소 정보 없음'}</Text>
+
+      {openStatus.hasHours ? (
+        <View className="mt-3">
+          <PharmacyOpenBadge status={openStatus} />
+          <Text className="mt-2 text-sm text-slate-600">
+            {openStatus.dayLabel} 영업시간: {openStatus.hoursLabel}
+          </Text>
+        </View>
+      ) : (
+        <Text className="mt-2 text-xs text-slate-400">심야약국 운영시간 데이터 없음</Text>
+      )}
+
+      <View className="mt-4 flex-row gap-3">
+        <InfoTile
+          icon="navigate"
+          label="거리"
+          value={formatDistanceMeters(place.distanceM ?? 0, distanceUnitMode)}
+          onPress={onDistanceUnitToggle}
+        />
+        <InfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
+        <InfoTile
+          icon="call"
+          label="전화"
+          value={phone || '-'}
+          onPress={phone ? () => confirmPhoneCall(place.n || '약국', phone) : undefined}
+          valueColor={phone ? '#1d4ed8' : '#0f172a'}
+        />
+      </View>
+
+      {hasCoords ? (
+        <Text className="mt-3 text-xs text-slate-400">
+          좌표: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
+        </Text>
+      ) : null}
+      <Text className="mt-1 text-xs text-slate-400">로컬 내장 데이터 · 즉시 표시</Text>
+    </View>
+  );
+}
+
+function ErModule({
+  active,
+  locationSnapshot,
+  facilitySearch,
+  distanceUnitMode,
+  onDistanceUnitModeChange,
+}: {
+  active: boolean;
+  locationSnapshot: LocationSnapshot;
+  facilitySearch: FacilitySearchState;
+} & MapModuleSharedProps) {
+  const [regionLabel, setRegionLabel] = useState(locationSnapshot.region.label);
+  const [liveOverlay, setLiveOverlay] = useState<ErLiveOverlayResult | null>(null);
+  const [liveSyncing, setLiveSyncing] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<LocalHospitalMarkerWithLive | null>(null);
+  const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
+  const [metadataIndex, setMetadataIndex] = useState<Map<string, HospitalMetadataEntry> | null>(null);
+  const liveSyncRef = useRef(0);
+  const metadataSyncRef = useRef(0);
+
+  const {
+    mode,
+    sido,
+    sigungu,
+    gpsLoading,
+    searchParams,
+    statusLabel,
+    activateGpsSearch,
+    handleSidoChange,
+    handleSigunguChange,
+  } = facilitySearch;
+
+  const { data: baseMarkers = [], isFetching: markersFetching } = useFacilityMarkersQuery(
+    'hospital',
+    searchParams,
+    { erOnly: false },
+  );
+
+  const liveApiRegion = useMemo(
+    () => resolveErLiveApiRegion(searchParams, locationSnapshot),
+    [searchParams, locationSnapshot],
+  );
+
+  const allMarkers = useMemo(() => {
+    const merged = applyErLiveOverlayToLocal(baseMarkers, liveOverlay);
+    const enriched = enrichErMarkersWithMetadata(merged, metadataIndex);
+    return sortErTabHospitals(enriched);
+  }, [baseMarkers, liveOverlay, metadataIndex]);
+
+  const mapPoints = useMemo(() => toLocalHospitalMapPoints(allMarkers), [allMarkers]);
+
+  useEffect(() => {
+    if (selectedPlace) return;
+    const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
+    if (nextCenter) setMapCenter(nextCenter);
+  }, [locationSnapshot, selectedPlace]);
+
+  useEffect(() => {
+    setRegionLabel(liveApiRegion.label);
+  }, [liveApiRegion.label]);
+
+  useEffect(() => {
+    if (!active) return undefined;
+
+    const seq = ++metadataSyncRef.current;
+    const timer = setTimeout(() => {
+      void (async () => {
+        const index = await fetchRegionalHospitalMetadataIndex(liveApiRegion);
+        if (seq !== metadataSyncRef.current) return;
+        setMetadataIndex(index);
+      })();
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    active,
+    liveApiRegion.stage1,
+    liveApiRegion.stage2,
+    liveApiRegion.label,
+  ]);
+
+  useEffect(() => {
+    if (!active) return undefined;
+
+    const seq = ++liveSyncRef.current;
+    const timer = setTimeout(() => {
+      void (async () => {
+        setLiveSyncing(true);
+        const overlay = await fetchErLiveOverlay(liveApiRegion);
+        if (seq !== liveSyncRef.current) return;
+        setLiveOverlay(overlay);
+        setLiveSyncing(false);
+      })();
+    }, 350);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    active,
+    liveApiRegion.stage1,
+    liveApiRegion.stage2,
+    liveApiRegion.label,
+  ]);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    return subscribeToLocationUpdates((snapshot) => {
+      if (!snapshot.permissionGranted) return;
+      if (searchParams.mode !== 'gps' || searchParams.textQuery) return;
+      const seq = ++liveSyncRef.current;
+      void (async () => {
+        const overlay = await fetchErLiveOverlay(resolveErLiveApiRegion(searchParams, snapshot));
+        if (seq !== liveSyncRef.current) return;
+        setLiveOverlay(overlay);
+      })();
+    });
+  }, [active, searchParams]);
+
+  const dashboardStats = useMemo(() => {
+    if (liveOverlay?.success) {
+      return {
+        ...liveOverlay.stats,
+        ready: true,
+      };
+    }
+    return {
+      totalHospitals: 0,
+      totalAvailableBeds: 0,
+      availableCount: 0,
+      congestedCount: 0,
+      fullCount: 0,
+      pediatricCount: 0,
+      ready: false,
+    };
+  }, [liveOverlay]);
+
+  const pediatricCount = dashboardStats.ready
+    ? dashboardStats.pediatricCount
+    : allMarkers.filter((item) => item.isPediatricPriority).length;
+
+  const erPriorityCount = allMarkers.filter((item) => item.isErPriority).length;
+
+  const handleMarkerPress = (place: LocalHospitalMarkerWithLive) => {
+    setSelectedPlace(place);
+    setMapCenter({ latitude: place.lat, longitude: place.lng });
+  };
+
+  const handleCloseSheet = () => {
+    setSelectedPlace(null);
+  };
+
+  const resyncLive = () => {
+    const seq = ++liveSyncRef.current;
+    void (async () => {
+      setLiveSyncing(true);
+      const overlay = await fetchErLiveOverlay(liveApiRegion);
+      if (seq !== liveSyncRef.current) return;
+      setLiveOverlay(overlay);
+      setLiveSyncing(false);
+    })();
+  };
+
+  return (
+    <View className="flex-1">
+      <View className="h-[42%] min-h-[220px] border-b border-slate-200">
+        <EmergencyMapView
+          points={mapPoints}
+          kind="er"
+          selectedId={selectedPlace?.i}
+          loading={liveSyncing}
+          center={mapCenter}
+          onMarkerPress={(point: { payload: LocalHospitalMarkerWithLive }) =>
+            handleMarkerPress(point.payload)
+          }
+        />
+      </View>
+
+      <FlashList
+        style={{ flex: 1 }}
+        data={allMarkers}
+        estimatedItemSize={LIST_ESTIMATED_ITEM_SIZE + 40}
+        keyExtractor={(item) => item.i}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         ListHeaderComponent={
           <View className="mb-2 gap-3">
-            <SearchBar
-              value={query}
-              onChangeText={setQuery}
-              placeholder="병원명 검색"
-              loading={loading}
+            <FacilitySearchBarComponent
+              facilityLabel="병원"
+              mode={mode}
+              sido={sido}
+              sigungu={sigungu}
+              gpsLoading={gpsLoading}
+              statusLabel={statusLabel}
+              resultCount={allMarkers.length}
+              onActivateGps={() => void activateGpsSearch()}
+              onSidoChange={handleSidoChange}
+              onSigunguChange={handleSigunguChange}
             />
-            {error ? (
-              <View className="rounded-xl border border-red-200 bg-red-50 p-3">
-                <Text className="text-sm text-red-700">{error}</Text>
+            {markersFetching ? (
+              <ActivityIndicator size="small" color="#64748b" />
+            ) : null}
+            <ErDashboardSummary
+              regionLabel={
+                searchParams.mode === 'gps' && !searchParams.textQuery
+                  ? `${regionLabel} · 🚨응급실 ${erPriorityCount}곳 · 👶소아 ${pediatricCount}곳 · GPS 거리순`
+                  : `${liveApiRegion.label} · 🚨응급실 ${erPriorityCount}곳 · 👶소아 ${pediatricCount}곳`
+              }
+              totalHospitals={dashboardStats.totalHospitals}
+              totalAvailableBeds={dashboardStats.totalAvailableBeds}
+              availableCount={dashboardStats.availableCount}
+              congestedCount={dashboardStats.congestedCount}
+              fullCount={dashboardStats.fullCount}
+              loading={liveSyncing && !dashboardStats.ready}
+              unavailable={!liveSyncing && liveOverlay !== null && !liveOverlay.success}
+            />
+            {liveOverlay && !liveOverlay.success ? (
+              <View className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <Text className="text-sm text-amber-800">{LIVE_STATUS_FALLBACK_MESSAGE}</Text>
                 <Pressable
-                  className="mt-2 self-start rounded-lg bg-red-600 px-3 py-1.5"
-                  onPress={() => void loadMarkerShells()}
+                  className="mt-2 self-start rounded-lg bg-amber-600 px-3 py-1.5"
+                  onPress={resyncLive}
                 >
-                  <Text className="text-xs font-semibold text-white">다시 시도</Text>
+                  <Text className="text-xs font-semibold text-white">실시간 정보 다시 시도</Text>
                 </Pressable>
               </View>
-            ) : (
-              <ErDashboardSummary
-                regionLabel={`${regionLabel} · 👶소아우선 ${stats.pediatricCount}곳 · GPS 거리순`}
-                totalHospitals={filtered.length}
-                totalAvailableBeds={stats.totalAvailable}
-                availableCount={stats.availableCount}
-                congestedCount={stats.congestedCount}
-                fullCount={stats.fullCount}
-              />
-            )}
+            ) : liveSyncing ? (
+              <Text className="text-xs text-slate-400">실시간 병상 정보 동기화 중...</Text>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
-          loading && !initialLoaded ? null : (
-            <EmptyState
-              message={error ? '응급실 정보를 불러올 수 없습니다' : '응급실 정보가 없습니다'}
-              hint={error ? '네트워크 연결을 확인해 주세요' : '병원명으로 검색해 보세요'}
-            />
-          )
+          <EmptyState
+            message={
+              searchParams.textQuery || searchParams.regionFilter
+                ? `'${searchParams.textQuery || statusLabel}' 검색 결과가 없습니다`
+                : '주변 응급실 정보가 없습니다'
+            }
+            hint="시·도 또는 시·군·구를 선택해 보세요"
+          />
         }
         renderItem={({ item }) => (
           <ErMarkerCard
-            marker={item}
-            selected={selectedMarker?.hpid === item.hpid}
+            place={item}
+            selected={selectedPlace?.i === item.i}
+            distanceUnitMode={distanceUnitMode}
+            onDistanceUnitModeChange={onDistanceUnitModeChange}
             onPress={() => handleMarkerPress(item)}
           />
         )}
       />
 
       <MapMarkerDetailSheet
-        visible={selectedMarker !== null}
-        title={detail?.hospitalName || selectedMarker?.name || '응급실'}
-        loading={detailLoading}
-        error={detailError}
+        visible={selectedPlace !== null}
+        title={selectedPlace?.n || '응급실'}
+        loading={false}
         onClose={handleCloseSheet}
-        onRetry={selectedMarker ? () => void loadDetail(selectedMarker) : undefined}
       >
-        {detail ? <ErDetailContent room={detail} /> : null}
+        {selectedPlace ? (
+          <ErLocalDetailContent
+            place={selectedPlace}
+            liveOverlay={liveOverlay}
+            liveApiRegion={liveApiRegion}
+            coordinate={locationSnapshot.coordinate}
+            distanceUnitMode={distanceUnitMode}
+            onDistanceUnitToggle={() =>
+              onDistanceUnitModeChange(cycleDistanceUnitMode(distanceUnitMode))
+            }
+          />
+        ) : null}
       </MapMarkerDetailSheet>
     </View>
   );
 }
 
 function ErMarkerCard({
-  marker,
+  place,
   selected,
+  distanceUnitMode,
+  onDistanceUnitModeChange,
   onPress,
 }: {
-  marker: HospitalMarkerShell;
+  place: LocalHospitalMarkerWithLive;
   selected: boolean;
+  distanceUnitMode: DistanceUnitMode;
+  onDistanceUnitModeChange: (mode: DistanceUnitMode) => void;
   onPress: () => void;
 }) {
-  const status = safeErStatus(marker.status);
-  const availableErBeds = Number.isFinite(marker.availableErBeds) ? marker.availableErBeds : 0;
+  const status = safeErStatus(place.status);
+  const availableErBeds = Number.isFinite(place.availableErBeds) ? place.availableErBeds : 0;
+  const isMoonlight = isMoonlightChildrenHospital(place.n);
+  const todayCode = getTreatmentDayCode();
+  const todaySchedule = place.weeklySchedule?.find((day) => day.dayCode === todayCode) ?? null;
+
+  const borderClass = place.isErPriority
+    ? selected
+      ? 'border-red-400 bg-red-50'
+      : 'border-red-200'
+    : isMoonlight
+      ? selected
+        ? 'border-indigo-400 bg-indigo-50'
+        : 'border-indigo-200'
+      : place.isPediatricPriority
+        ? selected
+          ? 'border-pink-400 bg-pink-50'
+          : 'border-pink-200'
+        : selected
+          ? 'border-slate-300 bg-slate-50'
+          : 'border-slate-200';
 
   return (
-    <Pressable
-      className={`rounded-2xl border bg-white p-4 ${
-        marker.isPediatricPriority
-          ? selected
-            ? 'border-pink-400 bg-pink-50'
-            : 'border-pink-200'
-          : selected
-            ? 'border-red-300 bg-red-50'
-            : 'border-slate-200'
-      }`}
-      onPress={onPress}
-    >
-      {marker.isPediatricPriority ? (
+    <Pressable className={`mb-3 rounded-2xl border bg-white p-4 ${borderClass}`} onPress={onPress}>
+      {place.isPartner ? (
+        <View className="mb-2">
+          <PartnerHospitalBadge compact />
+        </View>
+      ) : null}
+      {place.isErPriority ? (
+        <View className="mb-2 self-start rounded-full bg-red-100 px-2.5 py-1">
+          <Text className="text-xs font-bold text-red-700">🚨 응급실 운영</Text>
+        </View>
+      ) : isMoonlight ? (
+        <View className="mb-2">
+          <MoonlightHospitalBadge compact />
+        </View>
+      ) : place.isPediatricPriority ? (
         <View className="mb-2 self-start rounded-full bg-pink-100 px-2.5 py-1">
           <Text className="text-xs font-bold text-pink-700">👶 소아 특화</Text>
         </View>
       ) : null}
+
       <View className="flex-row items-start justify-between">
-        <Text className="flex-1 text-base font-bold text-slate-900">{marker.name}</Text>
-        <View
-          className="rounded-full px-3 py-1"
-          style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
-        >
-          <Text className="text-xs font-bold" style={{ color: ER_STATUS_COLORS[status] }}>
-            {ER_STATUS_LABELS[status]}
-          </Text>
+        <Text className="flex-1 pr-2 text-base font-bold text-slate-900">{place.n || '병원'}</Text>
+        <View className="flex-row items-center gap-1.5">
+          {place.openStatusLabel !== '확인 필요' ? (
+            <View
+              className={`rounded-full px-2 py-0.5 ${
+                place.isOpenNow ? 'bg-green-100' : 'bg-slate-200'
+              }`}
+            >
+              <Text
+                className={`text-[10px] font-bold ${
+                  place.isOpenNow ? 'text-green-700' : 'text-slate-600'
+                }`}
+              >
+                {place.openStatusLabel}
+              </Text>
+            </View>
+          ) : null}
+          <View
+            className="rounded-full px-3 py-1"
+            style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
+          >
+            <Text className="text-xs font-bold" style={{ color: ER_STATUS_COLORS[status] }}>
+              {place.liveSynced ? ER_STATUS_LABELS[status] : '확인중'}
+            </Text>
+          </View>
         </View>
       </View>
+
+      {place.customMemo ? (
+        <Text className="mt-2 text-xs leading-5 text-slate-500">{place.customMemo}</Text>
+      ) : null}
+
+      {place.specialties && place.specialties.length > 0 ? (
+        <View className="mt-2">
+          <HospitalSpecialtyTags specialties={place.specialties} maxTags={4} />
+        </View>
+      ) : null}
+
+      {todaySchedule ? (
+        <Text className="mt-2 text-xs text-slate-500">
+          오늘:{' '}
+          {todaySchedule.closed || (!todaySchedule.start && !todaySchedule.end)
+            ? '휴무'
+            : `${todaySchedule.start} ~ ${todaySchedule.end}`}
+        </Text>
+      ) : null}
+
       <View className="mt-3">
         <BedAvailabilityBar available={availableErBeds} status={status} />
       </View>
+      {place.specs || getHospitalErOverride(place.i) ? (
+        <ErHospitalSpecsPanel
+          specs={mergeSpecsWithErOverride(place.specs, getHospitalErOverride(place.i))}
+          hospitalName={place.n || '병원'}
+          compact
+        />
+      ) : null}
+      {place.liveFailed ? (
+        <Text className="mt-2 text-xs text-amber-700">{LIVE_STATUS_FALLBACK_MESSAGE}</Text>
+      ) : null}
       <View className="mt-3 flex-row items-center gap-3">
-        {marker.distanceM > 0 ? (
+        {place.distanceM > 0 ? (
           <View className="flex-row items-center">
             <Ionicons name="walk-outline" size={14} color="#64748b" />
-            <Text className="ml-1 text-sm text-slate-600">
-              {marker.distanceM}m · {marker.walkMin}분
-            </Text>
+            <DistanceText
+              distanceM={place.distanceM}
+              walkMin={place.walkMin}
+              unitMode={distanceUnitMode}
+              onUnitModeChange={onDistanceUnitModeChange}
+              textStyle={{ fontSize: 14, color: '#475569' }}
+            />
           </View>
         ) : (
           <Text className="text-xs text-slate-400">탭하여 주소·전화·상세 병상 확인</Text>
         )}
-        {marker.availablePediatricErBeds > 0 ? (
+        {place.availablePediatricErBeds > 0 ? (
           <Text className="text-xs font-semibold text-pink-700">
-            소아 {marker.availablePediatricErBeds}병상
+            소아 {place.availablePediatricErBeds}병상
           </Text>
         ) : null}
       </View>
@@ -680,48 +1266,238 @@ function ErMarkerCard({
   );
 }
 
-function ErDetailContent({ room }: { room: HospitalDetail }) {
-  const equipment = getEquipmentLabels(room);
-  const status = safeErStatus(room.status);
-  const availableErBeds = Number.isFinite(room.availableErBeds) ? room.availableErBeds : 0;
-  const availablePediatricBeds = Number.isFinite(room.availablePediatricErBeds)
-    ? room.availablePediatricErBeds
+function ErLocalDetailContent({
+  place,
+  liveOverlay,
+  liveApiRegion,
+  coordinate,
+  distanceUnitMode,
+  onDistanceUnitToggle,
+}: {
+  place: LocalHospitalMarkerWithLive;
+  liveOverlay?: ErLiveOverlayResult | null;
+  liveApiRegion: LocationRegion;
+  coordinate: { latitude: number; longitude: number };
+  distanceUnitMode: DistanceUnitMode;
+  onDistanceUnitToggle: () => void;
+}) {
+  const [detail, setDetail] = useState<HospitalDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDetail(null);
+    setDetailError(null);
+
+    if (!place.i) return undefined;
+
+    void (async () => {
+      setDetailLoading(true);
+      const result = await fetchErHospitalFullDetail(place.i, {
+        coordinate,
+        region: liveApiRegion,
+      });
+
+      if (cancelled) return;
+
+      if (result) {
+        setDetail(result);
+      } else {
+        const fallback = getHybridHospitalDetailFromStore(place.i, coordinate, liveOverlay ?? null);
+        if (fallback) {
+          setDetail({
+            ...fallback,
+            specialties: place.specialties?.length ? place.specialties : fallback.specialties,
+            weeklySchedule: place.weeklySchedule?.length
+              ? place.weeklySchedule
+              : fallback.weeklySchedule,
+            isOpenNow: place.openStatusLabel !== '확인 필요' ? place.isOpenNow : fallback.isOpenNow,
+            openStatusLabel:
+              place.openStatusLabel !== '확인 필요'
+                ? place.openStatusLabel
+                : fallback.openStatusLabel,
+          });
+        } else {
+          setDetailError('상세 정보를 불러오지 못했습니다. 아래 기본 정보를 참고해 주세요.');
+        }
+      }
+      setDetailLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [place.i, liveApiRegion.stage1, liveApiRegion.stage2, liveApiRegion.label]);
+
+  const status = safeErStatus(detail?.status ?? place.status);
+  const availableErBeds = Number.isFinite(detail?.availableErBeds ?? place.availableErBeds)
+    ? (detail?.availableErBeds ?? place.availableErBeds)
     : 0;
-  const showPediatricTag = isPediatricPriorityHospital(room);
+  const availablePediatricBeds = Number.isFinite(
+    detail?.availablePediatricErBeds ?? place.availablePediatricErBeds,
+  )
+    ? (detail?.availablePediatricErBeds ?? place.availablePediatricErBeds)
+    : 0;
+  const liveFailed = liveOverlay !== undefined && liveOverlay !== null && !liveOverlay.success;
+  const hasCoords =
+    Number.isFinite(place.lat) &&
+    Number.isFinite(place.lng) &&
+    !(place.lat === 0 && place.lng === 0);
+  const phone = (detail?.phone || place.p)?.trim();
+  const erPhone = (detail?.erPhone || detail?.erDoctorPhone || place.p)?.trim();
+  const callPhone =
+    [erPhone, phone].find((value) => value && value !== '-') ?? null;
+  const isMoonlight = isMoonlightChildrenHospital(place.n);
+  const specialties = detail?.specialties?.length ? detail.specialties : place.specialties ?? [];
+  const weeklySchedule = detail?.weeklySchedule?.length ? detail.weeklySchedule : place.weeklySchedule ?? [];
+  const openStatusLabel = detail?.openStatusLabel ?? place.openStatusLabel;
+  const isOpenNow = detail?.isOpenNow ?? place.isOpenNow;
+  const erOverride = getHospitalErOverride(place.i);
+  const hospitalSpecs = (() => {
+    if (detail) {
+      const merged = mergeEmergencyBedWithOverride(detail, erOverride);
+      return mergeSpecsWithErOverride(buildEmergencyHospitalSpecs(merged), erOverride);
+    }
+    return mergeSpecsWithErOverride(place.specs, erOverride);
+  })();
+
+  const bedRows = detail
+    ? [
+        { label: '응급실', value: detail.availableErBeds },
+        { label: '소아응급', value: detail.availablePediatricErBeds },
+        { label: '수술실', value: detail.availableSurgeryBeds },
+        { label: '신경중환자', value: detail.availableNeuroIcuBeds },
+        { label: '신생아중환자', value: detail.availableNeonatalIcuBeds },
+        { label: '흉부중환자', value: detail.availableChestIcuBeds },
+        { label: '일반중환자', value: detail.availableGeneralIcuBeds },
+        { label: '입원실', value: detail.availableInpatientBeds },
+      ].filter((row) => row.value > 0 || row.label === '응급실' || row.label === '소아응급')
+    : [];
 
   return (
     <View>
-      {showPediatricTag ? (
-        <View className="mb-2 self-start rounded-full bg-pink-100 px-2.5 py-1">
-          <Text className="text-xs font-bold text-pink-700">
-            👶 소아 특화{room.isMoonlightHospital ? '/달빛어린이' : ''}
-          </Text>
+      {detailLoading ? (
+        <View className="mb-3 items-center py-4">
+          <ActivityIndicator size="small" color="#64748b" />
+          <Text className="mt-2 text-xs text-slate-400">실시간 병상·기관 정보 불러오는 중...</Text>
         </View>
       ) : null}
 
-      <Text className="text-sm text-slate-500">
-        {safeDisplayText(room.emergencyClassName, '응급의학과')}
-      </Text>
-      {room.address ? (
-        <Text className="mt-1 text-sm text-slate-600">{safeDisplayText(room.address)}</Text>
-      ) : null}
-      {room.description ? (
-        <Text className="mt-2 text-sm text-slate-500">{room.description}</Text>
-      ) : null}
-      {room.onCallDoctor ? (
-        <Text className="mt-1 text-xs text-slate-400">
-          당직의: {safeDisplayText(room.onCallDoctor)}
-        </Text>
+      {detailError ? (
+        <View className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <Text className="text-sm text-amber-800">{detailError}</Text>
+        </View>
       ) : null}
 
-      <View className="mt-3 flex-row items-center justify-between">
+      {liveFailed ? (
+        <View className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <Text className="text-sm text-amber-800">{LIVE_STATUS_FALLBACK_MESSAGE}</Text>
+        </View>
+      ) : null}
+
+      {place.isPartner ? (
+        <View className="mb-2">
+          <PartnerHospitalBadge compact />
+        </View>
+      ) : null}
+
+      {place.isErPriority ? (
+        <View className="mb-2 self-start rounded-full bg-red-100 px-2.5 py-1">
+          <Text className="text-xs font-bold text-red-700">🚨 응급실 운영</Text>
+        </View>
+      ) : isMoonlight ? (
+        <View className="mb-2">
+          <MoonlightHospitalBadge compact />
+        </View>
+      ) : place.isPediatricPriority ? (
+        <View className="mb-2 self-start rounded-full bg-pink-100 px-2.5 py-1">
+          <Text className="text-xs font-bold text-pink-700">👶 소아 특화</Text>
+        </View>
+      ) : null}
+
+      <ErDutyContactButtons
+        specs={hospitalSpecs}
+        hospitalName={detail?.hospitalName || place.n || '병원'}
+      />
+
+      <View className="flex-row items-start gap-3">
+        <View className="flex-1">
+          <Text className="text-sm font-semibold text-slate-900">
+            {detail?.hospitalName || place.n || '병원'}
+          </Text>
+          <Text className="mt-1 text-sm text-slate-600">
+            {detail?.address?.trim() || place.a?.trim() || '주소 정보 없음'}
+          </Text>
+          {(detail?.emergencyClassName || place.td)?.trim() ? (
+            <Text className="mt-1 text-sm text-slate-500">
+              {detail?.emergencyClassName || place.td}
+            </Text>
+          ) : null}
+          {place.sg?.trim() ? (
+            <Text className="mt-1 text-xs text-slate-400">{place.sg}</Text>
+          ) : null}
+          {openStatusLabel !== '확인 필요' ? (
+            <View
+              className={`mt-2 self-start rounded-full px-2.5 py-1 ${
+                isOpenNow ? 'bg-green-100' : 'bg-slate-200'
+              }`}
+            >
+              <Text
+                className={`text-[10px] font-bold ${
+                  isOpenNow ? 'text-green-700' : 'text-slate-600'
+                }`}
+              >
+                {openStatusLabel}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {callPhone ? (
+          <Pressable
+            className="items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 shadow-sm"
+            onPress={() => confirmPhoneCall(place.n || '병원', callPhone)}
+            accessibilityRole="button"
+            accessibilityLabel="전화하기"
+          >
+            <Ionicons name="call" size={22} color="#ffffff" />
+            <Text className="mt-1 text-xs font-bold text-white">전화하기</Text>
+            {erPhone && erPhone === callPhone ? (
+              <Text className="mt-0.5 text-[10px] text-blue-100">응급실</Text>
+            ) : null}
+          </Pressable>
+        ) : null}
+      </View>
+
+      <ErHospitalSpecsPanel
+        specs={hospitalSpecs}
+        hospitalName={detail?.hospitalName || place.n || '병원'}
+        showDutyContacts={false}
+      />
+
+      {specialties.length > 0 ? (
+        <View className="mt-3">
+          <Text className="mb-2 text-xs font-bold text-slate-700">진료 과목</Text>
+          <HospitalSpecialtyTags specialties={specialties} maxTags={12} />
+        </View>
+      ) : null}
+
+      {weeklySchedule.length > 0 ? (
+        <View className="mt-4">
+          <Text className="mb-2 text-xs font-bold text-slate-700">요일별 진료시간</Text>
+          <HospitalWeeklyHours schedule={weeklySchedule} />
+        </View>
+      ) : null}
+
+      <View className="mt-4 flex-row items-center justify-between">
         <Text className="text-sm font-semibold text-slate-700">응급실 병상</Text>
         <View
           className="rounded-full px-3 py-1"
           style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
         >
           <Text className="text-xs font-bold" style={{ color: ER_STATUS_COLORS[status] }}>
-            {ER_STATUS_LABELS[status]}
+            {place.liveSynced || detail ? ER_STATUS_LABELS[status] : '확인중'}
           </Text>
         </View>
       </View>
@@ -730,7 +1506,17 @@ function ErDetailContent({ room }: { room: HospitalDetail }) {
         <BedAvailabilityBar available={availableErBeds} status={status} />
       </View>
 
-      {availablePediatricBeds > 0 ? (
+      {bedRows.length > 0 ? (
+        <View className="mt-3 rounded-xl bg-slate-50 p-3">
+          <Text className="mb-2 text-xs font-bold text-slate-700">가용 병상 현황</Text>
+          {bedRows.map((row) => (
+            <View key={row.label} className="flex-row items-center justify-between py-1">
+              <Text className="text-xs text-slate-600">{row.label}</Text>
+              <Text className="text-xs font-semibold text-slate-900">{row.value}병상</Text>
+            </View>
+          ))}
+        </View>
+      ) : availablePediatricBeds > 0 ? (
         <View className="mt-2 rounded-lg bg-pink-50 px-3 py-2">
           <Text className="text-xs font-semibold text-pink-700">
             소아 응급 가용 병상: {formatCount(availablePediatricBeds, '0')}병상
@@ -738,42 +1524,42 @@ function ErDetailContent({ room }: { room: HospitalDetail }) {
         </View>
       ) : null}
 
-      {equipment.length > 0 ? (
-        <View className="mt-3 flex-row flex-wrap gap-2">
-          {equipment.map((label) => (
-            <View key={label} className="rounded-full bg-slate-100 px-2.5 py-1">
-              <Text className="text-xs text-slate-600">{label}</Text>
-            </View>
-          ))}
+      {detail?.onCallDoctor?.trim() ? (
+        <Text className="mt-3 text-xs text-slate-500">
+          당직의: {detail.onCallDoctor}
+        </Text>
+      ) : null}
+
+      {detail?.updatedAt ? (
+        <Text className="mt-1 text-xs text-slate-400">
+          갱신: {formatEmergencyUpdatedAt(detail.updatedAt)}
+        </Text>
+      ) : null}
+
+      {detail?.description?.trim() ? (
+        <Text className="mt-3 text-xs leading-5 text-slate-500">{detail.description}</Text>
+      ) : null}
+
+      {place.customMemo ? (
+        <View className="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-3">
+          <Text className="text-xs font-semibold text-amber-800">안내</Text>
+          <Text className="mt-1 text-xs leading-5 text-amber-900">{place.customMemo}</Text>
         </View>
       ) : null}
 
-      <View className="mt-3 flex-row flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
-        <View className="flex-row items-center">
-          <Ionicons name="location-outline" size={14} color="#64748b" />
-          <Text className="ml-1 text-sm text-slate-600">
-            {formatCount(room.distanceKm, '-')}km
-          </Text>
-        </View>
-        <View className="flex-row items-center">
-          <Ionicons name="walk-outline" size={14} color="#64748b" />
-          <Text className="ml-1 text-sm text-slate-600">
-            {formatCount(room.walkMin, '-')}분
-          </Text>
-        </View>
-        <View className="flex-row items-center">
-          <Ionicons name="call-outline" size={14} color="#64748b" />
-          <Text className="ml-1 text-sm text-slate-600">
-            {safeDisplayText(
-              room.erPhone && room.erPhone !== '-' ? room.erPhone : room.erDoctorPhone,
-              '-',
-            )}
-          </Text>
-        </View>
+      <View className="mt-4 flex-row gap-3">
+        <InfoTile
+          icon="navigate"
+          label="거리"
+          value={formatDistanceMeters(place.distanceM ?? 0, distanceUnitMode)}
+          onPress={onDistanceUnitToggle}
+        />
+        <InfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
       </View>
-      {room.updatedAt ? (
-        <Text className="mt-2 text-xs text-slate-400">
-          갱신: {formatEmergencyUpdatedAt(room.updatedAt)}
+
+      {hasCoords ? (
+        <Text className="mt-3 text-xs text-slate-400">
+          좌표: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
         </Text>
       ) : null}
     </View>
@@ -785,19 +1571,35 @@ function InfoTile({
   label,
   value,
   valueColor = '#0f172a',
+  onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
   valueColor?: string;
+  onPress?: () => void;
 }) {
-  return (
-    <View className="flex-1 rounded-xl bg-slate-50 p-3">
+  const content = (
+    <>
       <Ionicons name={icon} size={18} color="#64748b" />
       <Text className="mt-1 text-xs text-slate-500">{label}</Text>
       <Text className="text-sm font-bold" style={{ color: valueColor }}>
         {value}
       </Text>
-    </View>
+    </>
+  );
+
+  if (!onPress) {
+    return <View className="flex-1 rounded-xl bg-slate-50 p-3">{content}</View>;
+  }
+
+  return (
+    <Pressable
+      className="flex-1 rounded-xl bg-slate-50 p-3"
+      onPress={onPress}
+      accessibilityRole="button"
+    >
+      {content}
+    </Pressable>
   );
 }

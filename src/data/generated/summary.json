@@ -1,0 +1,81 @@
+{
+  "generatedAt": "2026-07-21T08:25:37.300Z",
+  "hospitalCount": 2968,
+  "pharmacyCount": 25560,
+  "hospitalSample": [
+    {
+      "i": "JDQ4MTAxMiM1MSMkMSMkMCMkOTkkNTgxOTYxIzExIyQxIyQzIyQ4OSQyNjEwMDIjNTEjJDEjJDYjJDgz",
+      "n": "(복지)예사랑병원",
+      "a": "부산광역시 서구 옥천로130번길 38, (아미동2가)",
+      "p": "248-9000",
+      "lng": 129.0133103,
+      "lat": 35.0973247,
+      "x": 129.0133103,
+      "y": 35.0973247,
+      "sg": "부산서구",
+      "td": "정신병원",
+      "er": 0
+    },
+    {
+      "i": "JDQ4MTYyMiM4MSMkMSMkNCMkOTkkMzgxMzUxIzExIyQxIyQ3IyQ5MiQzNjE4MzIjNDEjJDEjJDgjJDgz",
+      "n": "(의) 내경의료재단 울산제일병원",
+      "a": "울산광역시 남구 남산로354번길 26, (신정동)",
+      "p": "052-220-3300",
+      "lng": 129.307013,
+      "lat": 35.548283,
+      "x": 129.307013,
+      "y": 35.548283,
+      "sg": "울산남구",
+      "td": "병원",
+      "er": 0
+    },
+    {
+      "i": "JDQ4MTg4MSM1MSMkMSMkMCMkOTkkMzgxMzUxIzQxIyQxIyQ3IyQwMyQ0NjEwMDIjNTEjJDEjJDIjJDgz",
+      "n": "(의)가산의료재단 광동병원",
+      "a": "서울특별시 강남구 봉은사로 612, (삼성동)",
+      "p": "2222-4888",
+      "lng": 127.0621662,
+      "lat": 37.5142863,
+      "x": 127.0621662,
+      "y": 37.5142863,
+      "sg": "강남구",
+      "td": "병원",
+      "er": 0
+    }
+  ],
+  "pharmacySample": [
+    {
+      "i": "JDQ4MTYyMiM2MSMkMSMkMiMkMDMkNDgxMzUxIzQxIyQxIyQ3IyQ5MiQyNjEwMDIjNjEjJDEjJDQjJDgz",
+      "n": "(새)지곡백화점약국",
+      "a": "충청남도 서산시 지곡면 충의로 1192, (지곡면)",
+      "p": "",
+      "lng": 126.4381326,
+      "lat": 36.8739362,
+      "x": 126.4381326,
+      "y": 36.8739362,
+      "sg": "서산시"
+    },
+    {
+      "i": "JDU4MTI3MSM1MSMkMSMkMCMkMDMkMzgxMTkxIzIxIyQyIyQxIyQwMCQ0NjE0ODEjNTEjJDEjJDIjJDgz",
+      "n": "1,2,3약국",
+      "a": "경기도 남양주시 오남읍 양지로 47-63, (오남읍)",
+      "p": "031-529-8099",
+      "lng": 127.2033555,
+      "lat": 37.6826923,
+      "x": 127.2033555,
+      "y": 37.6826923,
+      "sg": "남양주시"
+    },
+    {
+      "i": "JDQ4MTYyMiM1MSMkMSMkMCMkMDMkNTgxMzUxIzMxIyQxIyQzIyQxMyQyNjE4MzIjNjEjJDEjJDAjJDgz",
+      "n": "1(일)약국",
+      "a": "경기도 안양시 만안구 박달로 518, (박달동)",
+      "p": "031-468-3354",
+      "lng": 126.9102181,
+      "lat": 37.4024396,
+      "x": 126.9102181,
+      "y": 37.4024396,
+      "sg": "안양만안구"
+    }
+  ]
+}

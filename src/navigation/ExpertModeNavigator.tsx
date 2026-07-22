@@ -2,6 +2,7 @@ import { useUserRole } from '@/contexts/UserRoleContext';
 import { ExpertModeBackHandler } from '@/components/navigation/ExpertModeBackHandler';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 import { PendingApprovalScreen } from '@/screens/PrivateEmsCallScreen';
+import { V1_HIDE_HOSPITAL_CHANNEL } from '@/constants/releaseFlags';
 import { isExpertRole } from '@/utils/roleAccess';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
@@ -37,6 +38,27 @@ function ExpertAccessDenied() {
   );
 }
 
+function HospitalChannelDisabledScreen() {
+  const { exitExpertMode } = useUserRole();
+
+  return (
+    <View className="flex-1 bg-slate-50">
+      <ExpertModeBackHandler />
+      <SafeAreaView className="flex-1 items-center justify-center px-8">
+        <Ionicons name="business-outline" size={48} color="#94a3b8" />
+        <Text className="mt-4 text-center text-xl font-bold text-slate-900">병원 관계자 채널</Text>
+        <Text className="mt-2 text-center text-sm leading-6 text-slate-500">
+          병원 관계자 전용 기능은 v1 출시 범위에서 제외되었습니다.{'\n'}
+          응급·의료 정보는 [지도] 탭에서 이용해 주세요.
+        </Text>
+        <Text className="mt-6 text-sm font-semibold text-blue-600" onPress={exitExpertMode}>
+          일반 모드로 돌아가기
+        </Text>
+      </SafeAreaView>
+    </View>
+  );
+}
+
 export function ExpertModeNavigator() {
   const { role, isApproved, exitExpertMode } = useUserRole();
 
@@ -53,12 +75,20 @@ export function ExpertModeNavigator() {
     );
   }
 
+  if (role === 'hospital' && V1_HIDE_HOSPITAL_CHANNEL) {
+    return <HospitalChannelDisabledScreen />;
+  }
+
   return (
     <>
       <ExpertModeBackHandler />
       {role === 'private_ems' ? <PrivateEmsTabNavigator /> : null}
       {role === 'paramedic' ? <ParamedicTabNavigator /> : null}
-      {role === 'hospital' ? <HospitalTabNavigator /> : null}
+      {/*
+       * v1 출시 제외 — 병원관계자 탭
+       * {role === 'hospital' ? <HospitalTabNavigator /> : null}
+       */}
+      {!V1_HIDE_HOSPITAL_CHANNEL && role === 'hospital' ? <HospitalTabNavigator /> : null}
     </>
   );
 }

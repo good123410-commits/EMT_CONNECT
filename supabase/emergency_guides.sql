@@ -72,6 +72,21 @@ CREATE POLICY "emergency_guides_authenticated_delete"
     TO authenticated
     USING (true);
 
+DROP POLICY IF EXISTS "emergency_guides_authenticated_update" ON emergency_guides;
+CREATE POLICY "emergency_guides_authenticated_update"
+    ON emergency_guides
+    FOR UPDATE
+    TO authenticated
+    USING (true)
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "emergency_guides_public_update" ON emergency_guides;
+CREATE POLICY "emergency_guides_public_update"
+    ON emergency_guides
+    FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
+
 DROP POLICY IF EXISTS "emergency_guides_public_delete" ON emergency_guides;
 CREATE POLICY "emergency_guides_public_delete"
     ON emergency_guides

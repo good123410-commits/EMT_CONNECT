@@ -39,7 +39,9 @@ export async function uploadVerificationDocument(
 
   if (error) throw error;
 
-  const { data } = supabase.storage.from(VERIFICATIONS_BUCKET).getPublicUrl(path);
+  const { data } = supabase.storage.from(VERIFICATIONS_BUCKET).getPublicUrl(path, {
+    transform: { width: 300, quality: 75, resize: 'contain' },
+  });
   return data.publicUrl;
 }
 

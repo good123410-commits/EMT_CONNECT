@@ -65,6 +65,10 @@ export type CreateEmergencyGuideInput = {
   fontSize?: GuideFontSize;
 };
 
+export type UpdateEmergencyGuideInput = CreateEmergencyGuideInput & {
+  id: string;
+};
+
 type EmergencyGuideRow = {
   id: string;
   title: string;
@@ -248,6 +252,90 @@ export async function createEmergencyGuide(
   }
 
   return normalizeGuideRow(result.data as EmergencyGuideRow);
+}
+
+async function persistEmergencyGuideUpdate(
+  id: string,
+  payloadWithTypography: Record<string, unknown>,
+  payloadWithMetaContent: Record<string, unknown>,
+  payloadMinimal: Record<string, unknown>,
+): Promise<EmergencyGuide> {
+  const applyUpdate = async (payload: Record<string, unknown>) => {
+    return supabase.from(EMERGENCY_GUIDES_TABLE).update(payload).eq('id', id).select('*');
+  };
+
+  let result = await applyUpdate(payloadWithTypography);
+
+  if (result.error && isMissingColumnError(result.error.message, 'font_id')) {
+    result = await applyUpdate(payloadWithMetaContent);
+  }
+
+  if (result.error && isMissingColumnError(result.error.message, 'severity')) {
+    result = await applyUpdate(payloadMinimal);
+  }
+
+  if (result.error) {
+    const code = result.error.code ?? '';
+    if (code === 'PGRST116' || result.error.message.includes('0 rows')) {
+      throw new Error(
+        '가이드가 수정되지 않았습니다. Supabase SQL Editor에서 migration_v7_emergency_guides_update.sql을 실행해 주세요.',
+      );
+    }
+    throw new Error(`가이드 수정 실패: ${result.error.message}`);
+  }
+
+  const rows = (result.data ?? []) as EmergencyGuideRow[];
+  if (!rows.length) {
+    throw new Error(
+      '가이드가 수정되지 않았습니다. Supabase SQL Editor에서 migration_v7_emergency_guides_update.sql을 실행해 주세요.',
+    );
+  }
+
+  return normalizeGuideRow(rows[0]);
+}
+
+export async function updateEmergencyGuide(
+  input: UpdateEmergencyGuideInput,
+): Promise<EmergencyGuide> {
+  const id = input.id.trim();
+  const title = input.title.trim();
+  const category = input.category.trim();
+  const content = input.content.trim();
+
+  if (!id) {
+    throw new Error('수정할 가이드를 찾을 수 없습니다.');
+  }
+
+  if (!title || !content) {
+    throw new Error('제목과 내용을 입력해 주세요.');
+  }
+
+  if (!category) {
+    throw new Error('분류를 선택해 주세요.');
+  }
+
+  const fontId = input.fontId?.trim() || DEFAULT_GUIDE_FONT_ID;
+  const fontSize = normalizeGuideFontSize(input.fontSize ?? DEFAULT_GUIDE_FONT_SIZE);
+  const serializedContent = serializeGuideContent(content, { fontId, fontSize });
+
+  return persistEmergencyGuideUpdate(
+    id,
+    {
+      title,
+      category,
+      content: serializedContent,
+      severity: input.severity,
+      font_id: fontId,
+      font_size: fontSize,
+    },
+    {
+      title,
+      category,
+      content: serializedContent,
+      severity: input.severity,
+    },
+    { title, category, content: serializedContent },
+  );
 }
 
 export async function deleteEmergencyGuide(id: string): Promise<void> {

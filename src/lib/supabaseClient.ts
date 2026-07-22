@@ -1,13 +1,52 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/constants/env';
+
+/** 웹에서는 localStorage, 네이티브에서는 AsyncStorage */
+const authStorage =
+  Platform.OS === 'web'
+    ? {
+        getItem: (key: string) => {
+          try {
+            return Promise.resolve(
+              typeof globalThis.localStorage !== 'undefined'
+                ? globalThis.localStorage.getItem(key)
+                : null,
+            );
+          } catch {
+            return Promise.resolve(null);
+          }
+        },
+        setItem: (key: string, value: string) => {
+          try {
+            if (typeof globalThis.localStorage !== 'undefined') {
+              globalThis.localStorage.setItem(key, value);
+            }
+          } catch {
+            // ignore quota errors
+          }
+          return Promise.resolve();
+        },
+        removeItem: (key: string) => {
+          try {
+            if (typeof globalThis.localStorage !== 'undefined') {
+              globalThis.localStorage.removeItem(key);
+            }
+          } catch {
+            // ignore
+          }
+          return Promise.resolve();
+        },
+      }
+    : AsyncStorage;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: AsyncStorage,
+    storage: authStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });
 
@@ -28,6 +67,7 @@ export type UserProfile = {
   company_name: string | null;
   invitation_code: string | null;
   is_approved: boolean;
+  is_blocked?: boolean;
   wallet_balance: number;
   created_at: string;
 };
@@ -83,3 +123,28 @@ export const HIDDEN_POSTS_TABLE = 'hidden_posts';
 export const PRIVATE_EMS_CALLS_TABLE = 'private_ems_calls';
 export const EMERGENCY_GUIDES_TABLE = 'emergency_guides';
 export const GUIDE_CATEGORIES_TABLE = 'guide_categories';
+export const QUESTIONS_TABLE = 'questions';
+export const ANSWERS_TABLE = 'answers';
+
+export type QuestionStatus = 'pending' | 'answered';
+
+export type UserQuestion = {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  status: QuestionStatus;
+  created_at: string;
+};
+
+export type ParamedicAnswer = {
+  id: string;
+  question_id: string;
+  paramedic_id: string;
+  content: string;
+  created_at: string;
+};
+
+export type UserQuestionWithAnswer = UserQuestion & {
+  answer?: ParamedicAnswer | null;
+};

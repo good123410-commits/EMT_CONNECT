@@ -15,7 +15,8 @@ module.exports = function (api) {
           },
         },
       ],
-      require.resolve('react-native-reanimated/plugin'),
+      // Reanimated 4 delegates to worklets — must remain the final Babel plugin.
+      require.resolve('react-native-worklets/plugin'),
     ],
   };
 };

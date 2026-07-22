@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-07-17T09:08:01.722Z",
+  "hospitalCount": 2968,
+  "pharmacyCount": 18372,
+  "hospitalSample": [
+    {
+      "i": "JDQ4MTAxMiM1MSMkMSMkMCMkOTkkNTgxOTYxIzExIyQxIyQzIyQ4OSQyNjEwMDIjNTEjJDEjJDYjJDgz",
+      "n": "(복지)예사랑병원",
+      "a": "부산광역시 서구 옥천로130번길 38, (아미동2가)",
+      "p": "248-9000",
+      "lng": 129.0133103,
+      "lat": 35.0973247,
+      "sg": "부산서구",
+      "td": "정신병원",
+      "er": 0
+    },
+    {
+      "i": "JDQ4MTYyMiM4MSMkMSMkNCMkOTkkMzgxMzUxIzExIyQxIyQ3IyQ5MiQzNjE4MzIjNDEjJDEjJDgjJDgz",
+      "n": "(의) 내경의료재단 울산제일병원",
+      "a": "울산광역시 남구 남산로354번길 26, (신정동)",
+      "p": "052-220-3300",
+      "lng": 129.307013,
+      "lat": 35.548283,
+      "sg": "울산남구",
+      "td": "병원",
+      "er": 0
+    },
+    {
+      "i": "JDQ4MTg4MSM1MSMkMSMkMCMkOTkkMzgxMzUxIzQxIyQxIyQ3IyQwMyQ0NjEwMDIjNTEjJDEjJDIjJDgz",
+      "n": "(의)가산의료재단 광동병원",
+      "a": "서울특별시 강남구 봉은사로 612, (삼성동)",
+      "p": "2222-4888",
+      "lng": 127.0621662,
+      "lat": 37.5142863,
+      "sg": "강남구",
+      "td": "병원",
+      "er": 0
+    }
+  ],
+  "pharmacySample": [
+    {
+      "i": "JDU4MTI3MSM1MSMkMSMkMCMkMDMkMzgxMTkxIzIxIyQyIyQxIyQwMCQ0NjE0ODEjNTEjJDEjJDIjJDgz",
+      "n": "1,2,3약국",
+      "a": "12048",
+      "p": "경기도 남양주시 오남읍 양지로 47-63, (오남읍)",
+      "lng": 127.2033555,
+      "lat": 37.6826923,
+      "sg": "남양주시"
+    },
+    {
+      "i": "JDQ4MTYyMiM1MSMkMSMkMCMkMDMkNTgxMzUxIzMxIyQxIyQzIyQxMyQyNjE4MzIjNjEjJDEjJDAjJDgz",
+      "n": "1(일)약국",
+      "a": "14009",
+      "p": "경기도 안양시 만안구 박달로 518, (박달동)",
+      "lng": 126.9102181,
+      "lat": 37.4024396,
+      "sg": "안양만안구"
+    },
+    {
+      "i": "JDU4MTI3MSM1MSMkMSMkMCMkMDMkNDgxMzUxIzIxIyQxIyQ5IyQ3MiQ0NjE0ODEjNDEjJDEjJDgjJDgz",
+      "n": "1004 약국",
+      "a": "10598",
+      "p": "경기도 고양시 덕양구 동세로 19, 아카메디 105호 (동산동)",
+      "lng": 126.8863524,
+      "lat": 37.6445654,
+      "sg": "고양덕양구"
+    }
+  ]
+}

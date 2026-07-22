@@ -14,8 +14,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { GuideAdminCodeModal } from '@/components/guides/GuideAdminCodeModal';
 import { GuideCategoryManageModal } from '@/components/guides/GuideCategoryManageModal';
 import { buildGuideTextStyle } from '@/components/guides/GuideTypographyToolbar';
-import { GuideWriteModal } from '@/components/guides/GuideWriteModal';
+import { GuideWriteModal, type GuideWriteDraft } from '@/components/guides/GuideWriteModal';
 import { EmptyState } from '@/components/EmptyState';
+import { KemiBlogSection } from '@/components/blog/KemiBlogSection';
+import { SegmentControl } from '@/components/SegmentControl';
 import { SearchBar } from '@/components/SearchBar';
 import { GUIDE_SEVERITY_COLORS } from '@/constants/guideSeverity';
 import { resolveGuideIcon, type GuideIconId } from '@/constants/guideIcons';
@@ -87,11 +89,39 @@ export function HomeScreen() {
           <Text className="text-sm text-slate-500">Supabase 실시간 · 일상 속 응급상황 대처법</Text>
         </Pressable>
       </SafeAreaView>
-      <GeneralEmergencyModule />
+      <HomeContentTabs />
       <GuideAdminCodeModal
         visible={adminCodeModalVisible}
         onClose={() => setAdminCodeModalVisible(false)}
       />
+    </View>
+  );
+}
+
+type HomeTab = 'blog' | 'manual';
+
+function HomeContentTabs() {
+  const [tab, setTab] = useState<HomeTab>('blog');
+
+  return (
+    <View className="flex-1">
+      <View className="border-b border-slate-200 bg-white px-4 py-2">
+        <SegmentControl
+          options={[
+            { value: 'blog', label: '생활 응급처치' },
+            { value: 'manual', label: '응급 매뉴얼' },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
+      </View>
+      {tab === 'blog' ? (
+        <ScrollView className="flex-1 px-4 py-3" contentContainerStyle={{ paddingBottom: 24 }}>
+          <KemiBlogSection />
+        </ScrollView>
+      ) : (
+        <GeneralEmergencyModule />
+      )}
     </View>
   );
 }
@@ -107,7 +137,51 @@ function GeneralEmergencyModule() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<GuideDisplay | null>(null);
   const [writeModalVisible, setWriteModalVisible] = useState(false);
+  const [editingDraft, setEditingDraft] = useState<GuideWriteDraft | null>(null);
   const [manageCategoryVisible, setManageCategoryVisible] = useState(false);
+
+  const toWriteDraft = useCallback((guide: GuideDisplay): GuideWriteDraft => {
+    return {
+      id: guide.id,
+      title: guide.title,
+      category: guide.category,
+      content: guide.rawContent,
+      severity: guide.severity,
+      fontId: guide.fontId,
+      fontSize: guide.fontSize,
+    };
+  }, []);
+
+  const openCreateModal = () => {
+    setEditingDraft(null);
+    setWriteModalVisible(true);
+  };
+
+  const openEditModal = (guide: GuideDisplay) => {
+    setEditingDraft(toWriteDraft(guide));
+    setWriteModalVisible(true);
+  };
+
+  const handleGuideSaved = useCallback(async () => {
+    const editingId = editingDraft?.id;
+    setLoading(true);
+    try {
+      const results = await fetchGuideList(query, selectedCategory);
+      setCategories(results.categories);
+      setGuides(results.guides);
+      if (editingId && selected?.id === editingId) {
+        const updated = results.guides.find((item) => item.id === editingId);
+        if (updated) setSelected(updated);
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : '응급처치 가이드를 불러오지 못했습니다.';
+      setError(message);
+    } finally {
+      setLoading(false);
+      setEditingDraft(null);
+    }
+  }, [editingDraft?.id, query, selected?.id, selectedCategory]);
 
   const loadGuides = useCallback(async (text: string, category: string) => {
     setLoading(true);
@@ -175,96 +249,100 @@ function GeneralEmergencyModule() {
     [loadGuides, query, selected?.id, selectedCategory],
   );
 
-  if (selected) {
-    return (
-      <GuideDetail
-        guide={selected}
-        isGuideAdmin={isGuideAdmin}
-        onBack={() => setSelected(null)}
-        onDeleted={() => {
-          const deletedId = selected?.id;
-          setSelected(null);
-          if (deletedId) {
-            setGuides((prev) => prev.filter((item) => item.id !== deletedId));
-          }
-          void loadGuides(query, selectedCategory);
-        }}
-      />
-    );
-  }
-
   return (
-    <View className="flex-1">
-      <View className="px-4 py-3">
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder="제목, 분류, 내용 검색..."
-          loading={loading}
-        />
-        <GuideCategoryFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+    <>
+      {selected ? (
+        <GuideDetail
+          guide={selected}
           isGuideAdmin={isGuideAdmin}
-          onManageCategories={() => setManageCategoryVisible(true)}
+          onBack={() => setSelected(null)}
+          onEdit={() => openEditModal(selected)}
+          onDeleted={() => {
+            const deletedId = selected.id;
+            setSelected(null);
+            setGuides((prev) => prev.filter((item) => item.id !== deletedId));
+            void loadGuides(query, selectedCategory);
+          }}
         />
-      </View>
-
-      {error ? (
-        <View className="mx-4 rounded-xl border border-red-200 bg-red-50 p-4">
-          <Text className="text-sm text-red-700">{error}</Text>
-          <Pressable
-            className="mt-3 self-start rounded-lg bg-red-600 px-3 py-1.5"
-            onPress={() => void loadGuides(query, selectedCategory)}
-          >
-            <Text className="text-xs font-semibold text-white">다시 시도</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {loading && guides.length === 0 && !error ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#0f172a" />
-        </View>
       ) : (
-        <FlatList
-          data={guides}
-          keyExtractor={(item) => item.id}
-          contentContainerClassName="p-4 gap-3"
-          contentContainerStyle={{ paddingBottom: isGuideAdmin ? 88 : 16 }}
-          ListEmptyComponent={
-            <EmptyState
-              message="가이드가 없습니다"
-              hint={error ? 'Supabase 테이블 설정을 확인해 주세요' : '다른 키워드로 검색해 보세요'}
+        <View className="flex-1">
+          <View className="px-4 py-3">
+            <SearchBar
+              value={query}
+              onChangeText={setQuery}
+              placeholder="제목, 분류, 내용 검색..."
+              loading={loading}
             />
-          }
-          renderItem={({ item }) => (
-            <GuideCard
-              guide={item}
+            <GuideCategoryFilter
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
               isGuideAdmin={isGuideAdmin}
-              onPress={() => setSelected(item)}
-              onDelete={() => void handleDeleteGuide(item)}
+              onManageCategories={() => setManageCategoryVisible(true)}
+            />
+          </View>
+
+          {error ? (
+            <View className="mx-4 rounded-xl border border-red-200 bg-red-50 p-4">
+              <Text className="text-sm text-red-700">{error}</Text>
+              <Pressable
+                className="mt-3 self-start rounded-lg bg-red-600 px-3 py-1.5"
+                onPress={() => void loadGuides(query, selectedCategory)}
+              >
+                <Text className="text-xs font-semibold text-white">다시 시도</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {loading && guides.length === 0 && !error ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#0f172a" />
+            </View>
+          ) : (
+            <FlatList
+              data={guides}
+              keyExtractor={(item) => item.id}
+              contentContainerClassName="p-4 gap-3"
+              contentContainerStyle={{ paddingBottom: isGuideAdmin ? 88 : 16 }}
+              ListEmptyComponent={
+                <EmptyState
+                  message="가이드가 없습니다"
+                  hint={error ? 'Supabase 테이블 설정을 확인해 주세요' : '다른 키워드로 검색해 보세요'}
+                />
+              }
+              renderItem={({ item }) => (
+                <GuideCard
+                  guide={item}
+                  isGuideAdmin={isGuideAdmin}
+                  onPress={() => setSelected(item)}
+                  onEdit={() => openEditModal(item)}
+                  onDelete={() => void handleDeleteGuide(item)}
+                />
+              )}
             />
           )}
-        />
-      )}
 
-      {isGuideAdmin ? (
-        <Pressable
-          accessibilityLabel="가이드 글쓰기"
-          style={[fabStyles.button, { bottom: insets.bottom + 16 }]}
-          onPress={() => setWriteModalVisible(true)}
-        >
-          <Text style={fabStyles.label}>📝</Text>
-          <Text style={fabStyles.caption}>글쓰기</Text>
-        </Pressable>
-      ) : null}
+          {isGuideAdmin ? (
+            <Pressable
+              accessibilityLabel="가이드 글쓰기"
+              style={[fabStyles.button, { bottom: insets.bottom + 16 }]}
+              onPress={() => openCreateModal()}
+            >
+              <Text style={fabStyles.label}>📝</Text>
+              <Text style={fabStyles.caption}>글쓰기</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
 
       <GuideWriteModal
         visible={writeModalVisible}
-        onClose={() => setWriteModalVisible(false)}
-        onSaved={() => void loadGuides(query, selectedCategory)}
+        editingGuide={editingDraft}
+        onClose={() => {
+          setWriteModalVisible(false);
+          setEditingDraft(null);
+        }}
+        onSaved={() => void handleGuideSaved()}
       />
 
       <GuideCategoryManageModal
@@ -280,7 +358,7 @@ function GeneralEmergencyModule() {
           void loadGuides(query, wasSelected ? '' : selectedCategory);
         }}
       />
-    </View>
+    </>
   );
 }
 
@@ -364,11 +442,13 @@ function GuideCard({
   guide,
   isGuideAdmin,
   onPress,
+  onEdit,
   onDelete,
 }: {
   guide: GuideDisplay;
   isGuideAdmin: boolean;
   onPress: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const severity = GUIDE_SEVERITY_COLORS[guide.severity];
@@ -405,13 +485,22 @@ function GuideCard({
         </View>
       </Pressable>
       {isGuideAdmin ? (
-        <Pressable
-          className="absolute right-3 top-3 rounded-full bg-red-50 p-2"
-          onPress={onDelete}
-          hitSlop={8}
-        >
-          <Ionicons name="trash-outline" size={16} color="#dc2626" />
-        </Pressable>
+        <View className="absolute right-3 top-3 flex-row gap-1">
+          <Pressable
+            className="rounded-full bg-slate-100 p-2"
+            onPress={onEdit}
+            hitSlop={8}
+          >
+            <Ionicons name="create-outline" size={16} color="#475569" />
+          </Pressable>
+          <Pressable
+            className="rounded-full bg-red-50 p-2"
+            onPress={onDelete}
+            hitSlop={8}
+          >
+            <Ionicons name="trash-outline" size={16} color="#dc2626" />
+          </Pressable>
+        </View>
       ) : null}
     </View>
   );
@@ -421,11 +510,13 @@ function GuideDetail({
   guide,
   isGuideAdmin,
   onBack,
+  onEdit,
   onDeleted,
 }: {
   guide: GuideDisplay;
   isGuideAdmin: boolean;
   onBack: () => void;
+  onEdit: () => void;
   onDeleted: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -511,8 +602,16 @@ function GuideDetail({
       {isGuideAdmin ? (
         <View
           className="border-t border-slate-200 bg-white px-4 pt-3"
-          style={{ paddingBottom: insets.bottom + 12 }}
+          style={{ paddingBottom: insets.bottom + 12, gap: 10 }}
         >
+          <Pressable
+            className="flex-row items-center justify-center rounded-xl border border-slate-200 bg-slate-50 py-4"
+            onPress={onEdit}
+            disabled={deleting}
+          >
+            <Ionicons name="create-outline" size={18} color="#334155" />
+            <Text className="ml-2 text-sm font-bold text-slate-700">수정하기</Text>
+          </Pressable>
           <Pressable
             className={`flex-row items-center justify-center rounded-xl border border-red-200 py-4 ${
               deleting ? 'bg-red-100' : 'bg-red-50'

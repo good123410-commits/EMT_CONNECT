@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -12,6 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { ReportContentButton } from '@/components/community/ReportContentButton';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
@@ -62,12 +64,15 @@ function JobCard({ post }: { post: JobPost }) {
       <View className="mt-3 rounded-xl bg-slate-50 p-3">
         <Text className="text-xs leading-5 text-slate-600">{post.requirements}</Text>
       </View>
+      <View className="mt-3 flex-row justify-end border-t border-slate-100 pt-2">
+        <ReportContentButton contentId={post.id} contentType="job" preview={post.title} />
+      </View>
     </View>
   );
 }
 
 export function ParamedicJobsScreen() {
-  const { jobPosts, postJobSeek } = useParamedicCommunity();
+  const { jobPosts, postJobSeek, loading, error } = useParamedicCommunity();
   const [showWriteForm, setShowWriteForm] = useState(false);
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -84,22 +89,29 @@ export function ParamedicJobsScreen() {
     return false;
   }, showWriteForm);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) {
       Alert.alert('입력 필요', '제목과 내용을 입력해 주세요.');
       return;
     }
-    postJobSeek(title.trim(), content.trim(), location.trim() || '전국');
-    setTitle('');
-    setLocation('');
-    setContent('');
-    setShowWriteForm(false);
-    Alert.alert('등록 완료', '구직 글이 등록되었습니다.');
+    try {
+      await postJobSeek(title.trim(), content.trim(), location.trim() || '전국');
+      setTitle('');
+      setLocation('');
+      setContent('');
+      setShowWriteForm(false);
+      Alert.alert('등록 완료', '구직 글이 등록되었습니다.');
+    } catch (err) {
+      Alert.alert(
+        '등록 실패',
+        err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
+      );
+    }
   };
 
   return (
     <View className="flex-1 bg-slate-100">
-      <ParamedicHeader subtitle="구인/구직 · 대원 전용 취업 정보" />
+      <ParamedicHeader subtitle="구인구직 · 응급구조사 전용" />
 
       <View className="border-b border-slate-200 bg-white px-4 py-3">
         <View className="flex-row items-center justify-between">
@@ -131,11 +143,24 @@ export function ParamedicJobsScreen() {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerClassName="p-4 pb-28"
+        ListHeaderComponent={
+          error ? (
+            <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
+              <Text className="text-sm text-red-700">{error}</Text>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
+          loading ? (
+            <View className="items-center py-16">
+              <ActivityIndicator color="#15803d" />
+            </View>
+          ) : (
           <View className="items-center py-16">
             <Ionicons name="briefcase-outline" size={48} color="#94a3b8" />
             <Text className="mt-4 text-base font-semibold text-slate-600">등록된 공고가 없습니다</Text>
           </View>
+          )
         }
         renderItem={({ item }) => <JobCard post={item} />}
       />
@@ -181,7 +206,7 @@ export function ParamedicJobsScreen() {
                 textAlignVertical="top"
               />
 
-              <Pressable className="items-center rounded-xl bg-green-700 py-4" onPress={handleSubmit}>
+              <Pressable className="items-center rounded-xl bg-green-700 py-4" onPress={() => void handleSubmit()}>
                 <Text className="font-bold text-white">구직 글 등록</Text>
               </Pressable>
             </ScrollView>

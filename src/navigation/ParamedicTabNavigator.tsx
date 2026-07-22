@@ -2,16 +2,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ParamedicCommunityProvider } from '@/contexts/ParamedicCommunityContext';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
-import { ParamedicBambooForestScreen } from '@/screens/expert/paramedic/ParamedicBambooForestScreen';
-import { ParamedicGroupBuyScreen } from '@/screens/expert/paramedic/ParamedicGroupBuyScreen';
+import { EmsCaseStudyScreen } from '@/screens/emsCommunity/EmsCaseStudyScreen';
+import { EmsChatRoomsScreen } from '@/screens/emsCommunity/EmsChatRoomsScreen';
+import { EmsResourcesScreen } from '@/screens/emsCommunity/EmsResourcesScreen';
 import { ParamedicJobsScreen } from '@/screens/expert/paramedic/ParamedicJobsScreen';
-import { ParamedicSurveyScreen } from '@/screens/expert/paramedic/ParamedicSurveyScreen';
+import { ParamedicAnswerInboxScreen } from '@/screens/questions/ParamedicAnswerInboxScreen';
 
 export type ParamedicTabParamList = {
-  BambooForest: undefined;
+  AnswerInbox: undefined;
+  CaseStudy: undefined;
+  ChatRooms: undefined;
+  Resources: undefined;
   Jobs: undefined;
-  Survey: undefined;
-  GroupBuy: undefined;
 };
 
 const Tab = createBottomTabNavigator<ParamedicTabParamList>();
@@ -23,8 +25,8 @@ function TabBarIcon({ name, color }: { name: TabIconName; color: string }) {
 }
 
 /**
- * 구급대원(paramedic) 전용 Root Tab Navigator.
- * 일반인용 탭과 완전 분리 — 4개 전용 탭만 존재.
+ * EMS 커뮤니티(미래회) — 승인된 paramedic 전용 4개 서브 탭.
+ * 설문/후원·공동구매 등 앱 내 결제 기능은 제외 (자료실 외부 링크만).
  */
 export function ParamedicTabNavigator() {
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
@@ -32,42 +34,50 @@ export function ParamedicTabNavigator() {
     inactiveTintColor: '#64748b',
     backgroundColor: '#14532d',
     borderTopColor: '#14532d',
-    labelFontSize: 10,
+    labelFontSize: 9,
   });
 
   return (
     <ParamedicCommunityProvider>
       <Tab.Navigator screenOptions={screenOptions} safeAreaInsets={safeAreaInsets}>
         <Tab.Screen
-          name="BambooForest"
-          component={ParamedicBambooForestScreen}
+          name="AnswerInbox"
+          component={ParamedicAnswerInboxScreen}
           options={{
-            tabBarLabel: '비밀 대나무숲',
-            tabBarIcon: ({ color }) => <TabBarIcon name="leaf-outline" color={color} />,
+            tabBarLabel: '답변함',
+            tabBarIcon: ({ color }) => <TabBarIcon name="mail-unread-outline" color={color} />,
+          }}
+        />
+        <Tab.Screen
+          name="CaseStudy"
+          component={EmsCaseStudyScreen}
+          options={{
+            tabBarLabel: '케이스',
+            tabBarIcon: ({ color }) => <TabBarIcon name="book-outline" color={color} />,
+          }}
+        />
+        <Tab.Screen
+          name="ChatRooms"
+          component={EmsChatRoomsScreen}
+          options={{
+            tabBarLabel: '소통창',
+            tabBarIcon: ({ color }) => <TabBarIcon name="chatbubbles-outline" color={color} />,
+          }}
+        />
+        <Tab.Screen
+          name="Resources"
+          component={EmsResourcesScreen}
+          options={{
+            tabBarLabel: '자료실',
+            tabBarIcon: ({ color }) => <TabBarIcon name="folder-open-outline" color={color} />,
           }}
         />
         <Tab.Screen
           name="Jobs"
           component={ParamedicJobsScreen}
           options={{
-            tabBarLabel: '구인/구직',
+            tabBarLabel: '구인구직',
             tabBarIcon: ({ color }) => <TabBarIcon name="briefcase-outline" color={color} />,
-          }}
-        />
-        <Tab.Screen
-          name="Survey"
-          component={ParamedicSurveyScreen}
-          options={{
-            tabBarLabel: '설문/후원',
-            tabBarIcon: ({ color }) => <TabBarIcon name="clipboard-outline" color={color} />,
-          }}
-        />
-        <Tab.Screen
-          name="GroupBuy"
-          component={ParamedicGroupBuyScreen}
-          options={{
-            tabBarLabel: '공동구매',
-            tabBarIcon: ({ color }) => <TabBarIcon name="cart-outline" color={color} />,
           }}
         />
       </Tab.Navigator>

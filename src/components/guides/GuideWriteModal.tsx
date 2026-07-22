@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -34,15 +34,37 @@ import {
   fetchGuideCategories,
   type GuideCategory,
 } from '@/services/guideCategoryService';
-import { createEmergencyGuide } from '@/services/guideService';
+import { createEmergencyGuide, updateEmergencyGuide } from '@/services/guideService';
+
+export type GuideWriteDraft = {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  severity: GuideSeverity;
+  fontId: string;
+  fontSize: GuideFontSize;
+};
 
 type GuideWriteModalProps = {
   visible: boolean;
   onClose: () => void;
   onSaved: () => void;
+  /** 있으면 수정 모드 */
+  editingGuide?: GuideWriteDraft | null;
 };
 
-export function GuideWriteModal({ visible, onClose, onSaved }: GuideWriteModalProps) {
+function showGuideAlert(title: string, message: string) {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}\n\n${message}`);
+    return;
+  }
+  Alert.alert(title, message);
+}
+
+export function GuideWriteModal({ visible, onClose, onSaved, editingGuide }: GuideWriteModalProps) {
+  const isEditing = Boolean(editingGuide?.id);
+  const editingIdRef = useRef<string | null>(null);
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -53,6 +75,7 @@ export function GuideWriteModal({ visible, onClose, onSaved }: GuideWriteModalPr
   const [fontId, setFontId] = useState(DEFAULT_GUIDE_FONT_ID);
   const [fontSize, setFontSize] = useState<GuideFontSize>(DEFAULT_GUIDE_FONT_SIZE);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
   const { fontFamily, loading: fontLoading } = useGuideFont(fontId);
   useGuideFontCatalog(visible);
   const [addCategoryVisible, setAddCategoryVisible] = useState(false);
@@ -78,17 +101,18 @@ export function GuideWriteModal({ visible, onClose, onSaved }: GuideWriteModalPr
     [bodyTypography],
   );
 
-  const loadCategories = useCallback(async () => {
+  const loadCategories = useCallback(async (preferredCategory?: string) => {
     setLoadingCategories(true);
     try {
       const results = await fetchGuideCategories();
       setCategories(results);
       setSelectedCategory((prev) => {
-        if (prev && results.some((item) => item.name === prev)) return prev;
+        const candidate = preferredCategory?.trim() || prev;
+        if (candidate && results.some((item) => item.name === candidate)) return candidate;
         return results[0]?.name ?? '';
       });
     } catch (err) {
-      Alert.alert(
+      showGuideAlert(
         '분류 불러오기 실패',
         err instanceof Error ? err.message : '다시 시도해 주세요.',
       );
@@ -98,9 +122,29 @@ export function GuideWriteModal({ visible, onClose, onSaved }: GuideWriteModalPr
   }, []);
 
   useEffect(() => {
+    if (!visible) {
+      editingIdRef.current = null;
+      setSaveStatus('');
+      return;
+    }
+    void loadCategories(editingGuide?.category);
+  }, [visible, loadCategories, editingGuide?.category]);
+
+  useEffect(() => {
     if (!visible) return;
-    void loadCategories();
-  }, [visible, loadCategories]);
+    if (editingGuide?.id) {
+      editingIdRef.current = editingGuide.id;
+      setTitle(editingGuide.title);
+      setSelectedCategory(editingGuide.category);
+      setSeverity(editingGuide.severity);
+      setContent(editingGuide.content);
+      setFontId(editingGuide.fontId);
+      setFontSize(editingGuide.fontSize);
+      return;
+    }
+    editingIdRef.current = null;
+    resetForm();
+  }, [visible, editingGuide?.id]);
 
   const resetForm = () => {
     setTitle('');
@@ -113,27 +157,61 @@ export function GuideWriteModal({ visible, onClose, onSaved }: GuideWriteModalPr
 
   const handleClose = () => {
     if (saving) return;
-    resetForm();
+    if (!isEditing) resetForm();
     onClose();
   };
 
   const handleSave = async () => {
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+    const category = selectedCategory.trim();
+    const editId = editingIdRef.current ?? editingGuide?.id ?? null;
+
+    if (!trimmedTitle || !trimmedContent) {
+      showGuideAlert('입력 필요', '제목과 본문을 입력해 주세요.');
+      return;
+    }
+    if (!category) {
+      showGuideAlert('분류 필요', '분류를 선택하거나 분류를 추가해 주세요.');
+      return;
+    }
+
     setSaving(true);
+    setSaveStatus(isEditing ? '수정 저장 중…' : '게시 중…');
     try {
-      await createEmergencyGuide({
-        title,
-        category: selectedCategory,
-        content,
-        severity,
-        fontId,
-        fontSize,
-      });
-      resetForm();
-      onSaved();
-      onClose();
-      Alert.alert('저장 완료', '글이 등록되었습니다.');
+      if (editId) {
+        await updateEmergencyGuide({
+          id: editId,
+          title: trimmedTitle,
+          category,
+          content: trimmedContent,
+          severity,
+          fontId,
+          fontSize,
+        });
+        setSaveStatus('수정이 완료되었습니다.');
+        showGuideAlert('저장 완료', '글이 수정되었습니다.');
+        onSaved();
+        onClose();
+      } else {
+        await createEmergencyGuide({
+          title: trimmedTitle,
+          category,
+          content: trimmedContent,
+          severity,
+          fontId,
+          fontSize,
+        });
+        resetForm();
+        setSaveStatus('등록이 완료되었습니다.');
+        showGuideAlert('저장 완료', '글이 등록되었습니다.');
+        onSaved();
+        onClose();
+      }
     } catch (err) {
-      Alert.alert('저장 실패', err instanceof Error ? err.message : '다시 시도해 주세요.');
+      const message = err instanceof Error ? err.message : '다시 시도해 주세요.';
+      setSaveStatus(message);
+      showGuideAlert('저장 실패', message);
     } finally {
       setSaving(false);
     }
@@ -178,7 +256,7 @@ export function GuideWriteModal({ visible, onClose, onSaved }: GuideWriteModalPr
               <Pressable onPress={handleClose} hitSlop={12} disabled={saving}>
                 <Ionicons name="close" size={24} color="#64748b" />
               </Pressable>
-              <Text style={styles.headerTitle}>글쓰기</Text>
+              <Text style={styles.headerTitle}>{isEditing ? '수정하기' : '글쓰기'}</Text>
               <View style={styles.headerSpacer} />
             </View>
           </View>
@@ -290,15 +368,20 @@ export function GuideWriteModal({ visible, onClose, onSaved }: GuideWriteModalPr
           </ScrollView>
 
           <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+            {saveStatus ? (
+              <Text style={styles.saveStatusText} numberOfLines={3}>
+                {saveStatus}
+              </Text>
+            ) : null}
             <Pressable
               style={[styles.submitButton, saving && styles.submitButtonDisabled]}
-              onPress={handleSave}
+              onPress={() => void handleSave()}
               disabled={saving}
             >
               {saving ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitButtonText}>게시하기</Text>
+                <Text style={styles.submitButtonText}>{isEditing ? '수정 저장' : '게시하기'}</Text>
               )}
             </Pressable>
           </View>
@@ -478,6 +561,12 @@ const styles = StyleSheet.create({
     borderTopColor: '#e2e8f0',
     paddingHorizontal: 16,
     paddingTop: 12,
+  },
+  saveStatusText: {
+    marginBottom: 10,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#64748b',
   },
   submitButton: {
     alignItems: 'center',

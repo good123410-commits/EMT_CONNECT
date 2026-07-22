@@ -1,17 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { createBottomTabNavigator, type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
-import { PlatformPressable } from '@react-navigation/elements';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
-import { useUserRole } from '@/contexts/UserRoleContext';
-import { isExpertRole } from '@/utils/roleAccess';
 
 export type MainTabParamList = {
   Home: undefined;
   Chemical: undefined;
   Map: undefined;
   EmsCall: undefined;
-  Rewards: undefined;
-  Hidden: undefined;
+  Paramedic: undefined;
+  Settings: undefined;
 };
 
 /** @deprecated MainTabParamList 사용 */
@@ -25,34 +23,29 @@ function TabBarIcon({ name, color }: { name: TabIconName; color: string }) {
   return <Ionicons name={name} size={24} color={color} />;
 }
 
-function HiddenTabBarButton(props: BottomTabBarButtonProps) {
-  const { enterExpertMode } = useUserRole();
-
-  return (
-    <PlatformPressable
-      {...props}
-      onPress={() => {
-        enterExpertMode();
-      }}
-    />
-  );
-}
-
 const HomeScreen = createDeferredScreen(() => require('@/screens/HomeScreen').HomeScreen);
 const ChemicalScreen = createDeferredScreen(() => require('@/screens/ChemicalScreen').ChemicalScreen);
 const MapScreen = createDeferredScreen(() => require('@/screens/MapScreen').MapScreen);
 const PrivateEmsCallScreen = createDeferredScreen(
   () => require('@/screens/PrivateEmsCallScreen').PrivateEmsCallScreen,
 );
-const RewardsScreen = createDeferredScreen(() => require('@/screens/RewardsScreen').RewardsScreen);
-const HiddenChannelEntryScreen = createDeferredScreen(
-  () => require('@/screens/HiddenChannelEntryScreen').HiddenChannelEntryScreen,
+const SettingsStackNavigator = createDeferredScreen(
+  () => require('@/navigation/SettingsStackNavigator').SettingsStackNavigator,
+);
+const ParamedicGateScreen = createDeferredScreen(
+  () => require('@/screens/ParamedicGateScreen').ParamedicGateScreen,
 );
 
-export function MainTabNavigator() {
-  const { role } = useUserRole();
-  const showHiddenTab = isExpertRole(role);
+/*
+ * v1 스토어 심사: 리워드·히든 통합 탭 제거 → EMS 커뮤니티 탭 + 승인 게이트(ParamedicGateScreen)
+ * 병원관계자 채널: ExpertModeNavigator에서 주석 처리
+ * 구 설문/후원·공동구매 탭은 제거 — 외부 웹 링크만 자료실에서 제공
+ *
+ * <Tab.Screen name="Rewards" component={RewardsScreen} ... />
+ * <Tab.Screen name="Hidden" component={HiddenChannelEntryScreen} ... />
+ */
 
+export function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -94,27 +87,25 @@ export function MainTabNavigator() {
         name="EmsCall"
         component={PrivateEmsCallScreen}
         options={{
-          tabBarLabel: '구급차',
+          tabBarLabel: '민간 구급차',
           tabBarIcon: ({ color }) => <TabBarIcon name="car-outline" color={color} />,
         }}
       />
       <Tab.Screen
-        name="Rewards"
-        component={RewardsScreen}
+        name="Paramedic"
+        component={ParamedicGateScreen}
         options={{
-          tabBarLabel: '리워드',
-          tabBarIcon: ({ color }) => <TabBarIcon name="gift-outline" color={color} />,
+          tabBarLabel: EMS_COMMUNITY_TAB_LABEL,
+          tabBarIcon: ({ color }) => <TabBarIcon name="people-outline" color={color} />,
+          tabBarActiveTintColor: '#15803d',
         }}
       />
       <Tab.Screen
-        name="Hidden"
-        component={HiddenChannelEntryScreen}
+        name="Settings"
+        component={SettingsStackNavigator}
         options={{
-          tabBarLabel: '히든',
-          tabBarIcon: ({ color }) => <TabBarIcon name="lock-closed-outline" color={color} />,
-          tabBarActiveTintColor: '#7c3aed',
-          tabBarItemStyle: showHiddenTab ? undefined : styles.hiddenTabItem,
-          tabBarButton: showHiddenTab ? HiddenTabBarButton : () => null,
+          tabBarLabel: '설정',
+          tabBarIcon: ({ color }) => <TabBarIcon name="settings-outline" color={color} />,
         }}
       />
     </Tab.Navigator>
@@ -123,12 +114,3 @@ export function MainTabNavigator() {
 
 /** @deprecated MainTabNavigator 사용 */
 export const PublicTabNavigator = MainTabNavigator;
-
-const styles = {
-  hiddenTabItem: {
-    display: 'none' as const,
-    width: 0,
-    height: 0,
-    overflow: 'hidden' as const,
-  },
-};

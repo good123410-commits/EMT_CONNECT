@@ -1,4 +1,5 @@
 import 'react-native-gesture-handler';
+import 'react-native-worklets';
 import 'react-native-reanimated';
 import { enableScreens } from 'react-native-screens';
 import { registerRootComponent } from 'expo';

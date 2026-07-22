@@ -1,0 +1,10 @@
+# EMS Connect — Supabase CLI (Edge Functions 배포용)
+# 프로젝트: https://cdkyoeskhrwrpxgbmpqu.supabase.co
+
+project_id = "cdkyoeskhrwrpxgbmpqu"
+
+[api]
+enabled = true
+
+[functions.send-invitation-email]
+verify_jwt = true

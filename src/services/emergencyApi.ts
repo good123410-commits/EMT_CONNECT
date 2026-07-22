@@ -1,3 +1,5 @@
+import type { HospitalDutyDay } from '@/utils/hospitalHours';
+import { parseWeeklyDutySchedule, resolveHospitalOpenStatus } from '@/utils/hospitalHours';
 import { PORTAL_API_KEY } from '@/constants/env';
 import type { ErStatus } from '@/mockData/aedAndEmergency';
 import { searchHazardousMaterials } from '@/mockData/hazardousMaterials';
@@ -19,6 +21,7 @@ const TOXIC_BASE = 'http://apis.data.go.kr/1480802/iciskischem';
 
 const EMERGENCY_BED_ENDPOINT = `${ERMCT_BASE}/getEmrrmRltmUsefulSckbdInfoInqire`;
 const HOSPITAL_LOCATION_ENDPOINT = `${ERMCT_BASE}/getEgytListInfoInqire`;
+const HOSPITAL_BASIS_ENDPOINT = `${ERMCT_BASE}/getEgytBassInfoInqire`;
 const AED_LOCATION_ENDPOINT = `${AED_BASE}/getAedLcinfoInqire`;
 const DRUG_SEARCH_ENDPOINT = `${DRUG_BASE}/getDrbEasyDrugList`;
 const PHARMACY_LIST_ENDPOINT = `${PHARMACY_BASE}/getParmacyListInfoInqire`;
@@ -39,8 +42,8 @@ export type EmergencyBedQuery = {
 
 export const DEFAULT_EMERGENCY_REGION = {
   stage1: '서울특별시',
-  stage2: '중구',
-  label: '서울특별시 중구',
+  stage2: '',
+  label: '서울특별시',
 } as const;
 
 export type EmergencyBedItem = {
@@ -67,6 +70,16 @@ export type EmergencyBedItem = {
   erDoctorPhone: string;
   pediatricDoctorPhone: string;
   status: ErStatus;
+  icuInternalMedicineBeds: number;
+  icuSurgeryBeds: number;
+  icuOrthopedicBeds: number;
+  icuNeurologyBeds: number;
+  icuNeurosurgeryBeds: number;
+  icuToxicologyBeds: number;
+  icuBurnBeds: number;
+  icuTraumaBeds: number;
+  pediatricVentilatorAvailable: boolean;
+  incubatorAvailable: boolean;
 };
 
 export type HospitalLocationItem = {
@@ -112,6 +125,7 @@ export type MedicineInfo = {
   itemName: string;
   entpName: string;
   itemSeq: string;
+  itemImage: string;
   efficacy: string;
   usage: string;
   warningBeforeUse: string;
@@ -120,6 +134,12 @@ export type MedicineInfo = {
   sideEffects: string;
   storage: string;
   updatedAt: string;
+};
+
+export type MedicineBrowseOptions = {
+  pageNo?: number;
+  numOfRows?: number;
+  itemName?: string;
 };
 
 export type EmergencyBedResponse = {
@@ -143,6 +163,8 @@ export type AedListOptions = {
   region?: LocationRegion;
   /** 지역명 검색 (예: '목포', '서울') — 있으면 GPS 대신 주소 기반 조회 */
   addressQuery?: string;
+  /** 클릭한 마커 좌표 — 상세 조회 시 해당 지역 API 페이지 탐색에 사용 */
+  markerCoordinate?: GeoCoordinate;
   radiusMeters?: number;
   maxResults?: number;
 };
@@ -305,7 +327,69 @@ function parseNumeric(value: string | number | undefined | null, fallback = 0): 
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function parseYesNo(value: string | undefined | null): boolean {
+/** 응급실 API 병상 수 — 미신고/센티널 값(999 등)은 0으로 처리 */
+export function parseBedCount(value: string | number | undefined | null): number {
+  if (value == null) return 0;
+  const trimmed = String(value).trim();
+  if (!trimmed || trimmed === '-' || trimmed === '미신고' || trimmed === 'null') return 0;
+
+  const parsed = parseNumeric(value, -1);
+  if (parsed < 0 || parsed === 999 || parsed === 9999 || parsed === 99) return 0;
+  return Math.floor(parsed);
+}
+
+/** E-Gen API STAGE1/STAGE2 파라미터 정규화 */
+export function normalizeEmergencyApiRegion(region: LocationRegion): LocationRegion {
+  const stage1 = normalizeSido(region.stage1?.trim() || DEFAULT_EMERGENCY_REGION.stage1);
+  let stage2 = region.stage2?.trim() || '';
+
+  if (stage2.startsWith(stage1)) {
+    stage2 = stage2.slice(stage1.length).trim();
+  }
+
+  if (stage1 === '세종특별자치시' && !stage2) {
+    stage2 = '세종특별자치시';
+  }
+
+  const label = stage2 ? `${stage1} ${stage2}` : stage1;
+  return { stage1, stage2, label };
+}
+
+function normalizeSido(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return DEFAULT_EMERGENCY_REGION.stage1;
+
+  const SIDO_SUFFIXES = ['특별자치도', '특별자치시', '특별시', '광역시', '자치시', '도'] as const;
+  if (SIDO_SUFFIXES.some((suffix) => trimmed.endsWith(suffix))) return trimmed;
+
+  const SIDO_ALIAS_MAP: Record<string, string> = {
+    서울: '서울특별시',
+    부산: '부산광역시',
+    대구: '대구광역시',
+    인천: '인천광역시',
+    광주: '광주광역시',
+    대전: '대전광역시',
+    울산: '울산광역시',
+    세종: '세종특별자치시',
+    경기: '경기도',
+    강원: '강원특별자치도',
+    충북: '충청북도',
+    충남: '충청남도',
+    전북: '전북특별자치도',
+    전남: '전라남도',
+    경북: '경상북도',
+    경남: '경상남도',
+    제주: '제주특별자치도',
+  };
+
+  for (const [key, value] of Object.entries(SIDO_ALIAS_MAP)) {
+    if (trimmed.startsWith(key)) return value;
+  }
+
+  return trimmed;
+}
+
+export function parseYesNo(value: string | undefined | null): boolean {
   if (value == null) return false;
   const normalized = String(value).trim().toUpperCase();
   return normalized === 'Y' || normalized === 'Y1';
@@ -443,7 +527,7 @@ function parsePortalPayload(rawText: string, contentType: string | null): unknow
 }
 
 function sanitizeEmergencyBedItem(item: EmergencyBedItem): EmergencyBedItem {
-  const availableErBeds = parseNumeric(item.availableErBeds);
+  const availableErBeds = parseBedCount(item.availableErBeds);
   return {
     ...item,
     rnum: parseNumeric(item.rnum),
@@ -453,13 +537,13 @@ function sanitizeEmergencyBedItem(item: EmergencyBedItem): EmergencyBedItem {
     erPhone: item.erPhone || '',
     updatedAt: item.updatedAt || '',
     availableErBeds,
-    availablePediatricErBeds: parseNumeric(item.availablePediatricErBeds),
-    availableSurgeryBeds: parseNumeric(item.availableSurgeryBeds),
-    availableNeuroIcuBeds: parseNumeric(item.availableNeuroIcuBeds),
-    availableNeonatalIcuBeds: parseNumeric(item.availableNeonatalIcuBeds),
-    availableChestIcuBeds: parseNumeric(item.availableChestIcuBeds),
-    availableGeneralIcuBeds: parseNumeric(item.availableGeneralIcuBeds),
-    availableInpatientBeds: parseNumeric(item.availableInpatientBeds),
+    availablePediatricErBeds: parseBedCount(item.availablePediatricErBeds),
+    availableSurgeryBeds: parseBedCount(item.availableSurgeryBeds),
+    availableNeuroIcuBeds: parseBedCount(item.availableNeuroIcuBeds),
+    availableNeonatalIcuBeds: parseBedCount(item.availableNeonatalIcuBeds),
+    availableChestIcuBeds: parseBedCount(item.availableChestIcuBeds),
+    availableGeneralIcuBeds: parseBedCount(item.availableGeneralIcuBeds),
+    availableInpatientBeds: parseBedCount(item.availableInpatientBeds),
     onCallDoctor: item.onCallDoctor || '',
     ctAvailable: Boolean(item.ctAvailable),
     mriAvailable: Boolean(item.mriAvailable),
@@ -469,6 +553,16 @@ function sanitizeEmergencyBedItem(item: EmergencyBedItem): EmergencyBedItem {
     erDoctorPhone: item.erDoctorPhone || '',
     pediatricDoctorPhone: item.pediatricDoctorPhone || '',
     status: deriveErStatus(availableErBeds),
+    icuInternalMedicineBeds: parseBedCount(item.icuInternalMedicineBeds),
+    icuSurgeryBeds: parseBedCount(item.icuSurgeryBeds),
+    icuOrthopedicBeds: parseBedCount(item.icuOrthopedicBeds),
+    icuNeurologyBeds: parseBedCount(item.icuNeurologyBeds),
+    icuNeurosurgeryBeds: parseBedCount(item.icuNeurosurgeryBeds),
+    icuToxicologyBeds: parseBedCount(item.icuToxicologyBeds),
+    icuBurnBeds: parseBedCount(item.icuBurnBeds),
+    icuTraumaBeds: parseBedCount(item.icuTraumaBeds),
+    pediatricVentilatorAvailable: Boolean(item.pediatricVentilatorAvailable),
+    incubatorAvailable: Boolean(item.incubatorAvailable),
   };
 }
 
@@ -480,23 +574,35 @@ function mapEmergencyBedBlock(block: string): EmergencyBedItem {
     hospitalName: readXmlTag(block, 'dutyName') ?? readXmlTag(block, 'dutyname') ?? '',
     erPhone: readXmlTag(block, 'dutyTel3') ?? readXmlTag(block, 'dutytel3') ?? '',
     updatedAt: readXmlTag(block, 'hvidate') ?? '',
-    availableErBeds: parseNumeric(readXmlTag(block, 'hvec')),
-    availablePediatricErBeds: parseNumeric(readXmlTag(block, 'hvle')),
-    availableSurgeryBeds: parseNumeric(readXmlTag(block, 'hvoc')),
-    availableNeuroIcuBeds: parseNumeric(readXmlTag(block, 'hvcc')),
-    availableNeonatalIcuBeds: parseNumeric(readXmlTag(block, 'hvncc')),
-    availableChestIcuBeds: parseNumeric(readXmlTag(block, 'hvccc')),
-    availableGeneralIcuBeds: parseNumeric(readXmlTag(block, 'hvicc')),
-    availableInpatientBeds: parseNumeric(readXmlTag(block, 'hvgc')),
+    availableErBeds: parseBedCount(readXmlTag(block, 'hvec')),
+    availablePediatricErBeds: parseBedCount(readXmlTag(block, 'hvle')),
+    availableSurgeryBeds: parseBedCount(readXmlTag(block, 'hvoc')),
+    availableNeuroIcuBeds: parseBedCount(readXmlTag(block, 'hvcc')),
+    availableNeonatalIcuBeds: parseBedCount(readXmlTag(block, 'hvncc')),
+    availableChestIcuBeds: parseBedCount(readXmlTag(block, 'hvccc')),
+    availableGeneralIcuBeds: parseBedCount(readXmlTag(block, 'hvicc')),
+    availableInpatientBeds: parseBedCount(readXmlTag(block, 'hvgc')),
     onCallDoctor: readXmlTag(block, 'hvdnm') ?? '',
     ctAvailable: parseYesNo(readXmlTag(block, 'hvctayn')),
     mriAvailable: parseYesNo(readXmlTag(block, 'hvmriayn')),
     angioAvailable: parseYesNo(readXmlTag(block, 'hvangioayn')),
     ventilatorAvailable: parseYesNo(readXmlTag(block, 'hvventiayn')),
     ambulanceAvailable: parseYesNo(readXmlTag(block, 'hvamyn')),
-    erDoctorPhone: readXmlTag(block, 'hv1') ?? '',
-    pediatricDoctorPhone: readXmlTag(block, 'hv12') ?? '',
+    erDoctorPhone:
+      readXmlTag(block, 'hv120') ?? readXmlTag(block, 'hv1') ?? '',
+    pediatricDoctorPhone:
+      readXmlTag(block, 'hv122') ?? readXmlTag(block, 'hv12') ?? '',
     status: 'full',
+    icuInternalMedicineBeds: parseBedCount(readXmlTag(block, 'hv2')),
+    icuSurgeryBeds: parseBedCount(readXmlTag(block, 'hv3')),
+    icuOrthopedicBeds: parseBedCount(readXmlTag(block, 'hv4')),
+    icuNeurologyBeds: parseBedCount(readXmlTag(block, 'hv5')),
+    icuNeurosurgeryBeds: parseBedCount(readXmlTag(block, 'hv6')),
+    icuToxicologyBeds: parseBedCount(readXmlTag(block, 'hv7')),
+    icuBurnBeds: parseBedCount(readXmlTag(block, 'hv8')),
+    icuTraumaBeds: parseBedCount(readXmlTag(block, 'hv9')),
+    pediatricVentilatorAvailable: parseYesNo(readXmlTag(block, 'hv10')),
+    incubatorAvailable: parseYesNo(readXmlTag(block, 'hv11')),
   });
 }
 
@@ -508,23 +614,35 @@ function mapEmergencyBedRecord(record: Record<string, unknown>): EmergencyBedIte
     hospitalName: readJsonString(record, 'dutyName', 'dutyname'),
     erPhone: readJsonString(record, 'dutyTel3', 'dutytel3'),
     updatedAt: readJsonString(record, 'hvidate'),
-    availableErBeds: parseNumeric(readJsonString(record, 'hvec')),
-    availablePediatricErBeds: parseNumeric(readJsonString(record, 'hvle')),
-    availableSurgeryBeds: parseNumeric(readJsonString(record, 'hvoc')),
-    availableNeuroIcuBeds: parseNumeric(readJsonString(record, 'hvcc')),
-    availableNeonatalIcuBeds: parseNumeric(readJsonString(record, 'hvncc')),
-    availableChestIcuBeds: parseNumeric(readJsonString(record, 'hvccc')),
-    availableGeneralIcuBeds: parseNumeric(readJsonString(record, 'hvicc')),
-    availableInpatientBeds: parseNumeric(readJsonString(record, 'hvgc')),
+    availableErBeds: parseBedCount(readJsonString(record, 'hvec')),
+    availablePediatricErBeds: parseBedCount(readJsonString(record, 'hvle')),
+    availableSurgeryBeds: parseBedCount(readJsonString(record, 'hvoc')),
+    availableNeuroIcuBeds: parseBedCount(readJsonString(record, 'hvcc')),
+    availableNeonatalIcuBeds: parseBedCount(readJsonString(record, 'hvncc')),
+    availableChestIcuBeds: parseBedCount(readJsonString(record, 'hvccc')),
+    availableGeneralIcuBeds: parseBedCount(readJsonString(record, 'hvicc')),
+    availableInpatientBeds: parseBedCount(readJsonString(record, 'hvgc')),
     onCallDoctor: readJsonString(record, 'hvdnm'),
     ctAvailable: parseYesNo(readJsonString(record, 'hvctayn')),
     mriAvailable: parseYesNo(readJsonString(record, 'hvmriayn')),
     angioAvailable: parseYesNo(readJsonString(record, 'hvangioayn')),
     ventilatorAvailable: parseYesNo(readJsonString(record, 'hvventiayn')),
     ambulanceAvailable: parseYesNo(readJsonString(record, 'hvamyn')),
-    erDoctorPhone: readJsonString(record, 'hv1'),
-    pediatricDoctorPhone: readJsonString(record, 'hv12'),
+    erDoctorPhone:
+      readJsonString(record, 'hv120', 'hv1') || '',
+    pediatricDoctorPhone:
+      readJsonString(record, 'hv122', 'hv12') || '',
     status: 'full',
+    icuInternalMedicineBeds: parseBedCount(readJsonString(record, 'hv2')),
+    icuSurgeryBeds: parseBedCount(readJsonString(record, 'hv3')),
+    icuOrthopedicBeds: parseBedCount(readJsonString(record, 'hv4')),
+    icuNeurologyBeds: parseBedCount(readJsonString(record, 'hv5')),
+    icuNeurosurgeryBeds: parseBedCount(readJsonString(record, 'hv6')),
+    icuToxicologyBeds: parseBedCount(readJsonString(record, 'hv7')),
+    icuBurnBeds: parseBedCount(readJsonString(record, 'hv8')),
+    icuTraumaBeds: parseBedCount(readJsonString(record, 'hv9')),
+    pediatricVentilatorAvailable: parseYesNo(readJsonString(record, 'hv10')),
+    incubatorAvailable: parseYesNo(readJsonString(record, 'hv11')),
   });
 }
 
@@ -715,6 +833,7 @@ function mapMedicineRecord(record: Record<string, unknown>): MedicineInfo {
     itemName: readJsonString(record, 'itemName'),
     entpName: readJsonString(record, 'entpName'),
     itemSeq: readJsonString(record, 'itemSeq'),
+    itemImage: readJsonString(record, 'itemImage'),
     efficacy: readJsonString(record, 'efcyQesitm'),
     usage: readJsonString(record, 'useMethodQesitm'),
     warningBeforeUse: readJsonString(record, 'atpnWarnQesitm'),
@@ -731,6 +850,7 @@ function mapMedicineBlock(block: string): MedicineInfo {
     itemName: readXmlTag(block, 'itemName') ?? '',
     entpName: readXmlTag(block, 'entpName') ?? '',
     itemSeq: readXmlTag(block, 'itemSeq') ?? '',
+    itemImage: readXmlTag(block, 'itemImage') ?? '',
     efficacy: readXmlTag(block, 'efcyQesitm') ?? '',
     usage: readXmlTag(block, 'useMethodQesitm') ?? '',
     warningBeforeUse: readXmlTag(block, 'atpnWarnQesitm') ?? '',
@@ -901,21 +1021,113 @@ export function formatEmergencyUpdatedAt(raw: string | null | undefined): string
 }
 
 export function getEquipmentLabels(item: EmergencyBedItem): string[] {
-  const labels: string[] = [];
-  if (item.ctAvailable) labels.push('CT');
-  if (item.mriAvailable) labels.push('MRI');
-  if (item.angioAvailable) labels.push('조영촬영');
-  if (item.ventilatorAvailable) labels.push('인공호흡기');
-  if (item.ambulanceAvailable) labels.push('구급차');
-  return labels;
+  return buildEmergencyHospitalSpecs(item).equipment
+    .filter((spec) => spec.available)
+    .map((spec) => spec.label);
+}
+
+export type { EmergencyHospitalSpecs } from '@/utils/emergencyHospitalSpecs';
+export {
+  buildEmergencyHospitalSpecs,
+  resolveErDutyPhone,
+  resolvePediatricDutyPhone,
+} from '@/utils/emergencyHospitalSpecs';
+
+export type ErDashboardStats = {
+  totalHospitals: number;
+  totalAvailableBeds: number;
+  availableCount: number;
+  congestedCount: number;
+  fullCount: number;
+  pediatricCount: number;
+};
+
+export function summarizeEmergencyBedItems(items: EmergencyBedItem[]): ErDashboardStats {
+  const sanitized = items.map(sanitizeEmergencyBedItem);
+  return {
+    totalHospitals: sanitized.length,
+    totalAvailableBeds: sanitized.reduce((sum, item) => sum + item.availableErBeds, 0),
+    availableCount: sanitized.filter((item) => item.status === 'available').length,
+    congestedCount: sanitized.filter((item) => item.status === 'congested').length,
+    fullCount: sanitized.filter((item) => item.status === 'full').length,
+    pediatricCount: sanitized.filter((item) => item.availablePediatricErBeds > 0).length,
+  };
 }
 
 export async function fetchEmergencyBedInfo(
   query: EmergencyBedQuery,
 ): Promise<EmergencyBedResponse> {
-  const url = buildEmergencyBedUrl(query);
+  const normalizedRegion = normalizeEmergencyApiRegion({
+    stage1: query.stage1,
+    stage2: query.stage2,
+    label: `${query.stage1} ${query.stage2}`.trim(),
+  });
+  const url = buildEmergencyBedUrl({
+    ...query,
+    stage1: normalizedRegion.stage1,
+    stage2: normalizedRegion.stage2,
+  });
+
+  if (__DEV__) {
+    console.log('[ER API] fetchEmergencyBedInfo request', {
+      stage1: normalizedRegion.stage1,
+      stage2: normalizedRegion.stage2,
+      pageNo: query.pageNo ?? 1,
+      numOfRows: query.numOfRows ?? DEFAULT_PAGE_SIZE,
+    });
+  }
+
   const { rawText, contentType } = await fetchPortalRaw(url);
-  return parseEmergencyBedResponse(rawText, contentType);
+  const response = parseEmergencyBedResponse(rawText, contentType);
+
+  if (__DEV__) {
+    console.log('[ER API] fetchEmergencyBedInfo response', {
+      resultCode: response.resultCode,
+      resultMsg: response.resultMsg,
+      totalCount: response.totalCount,
+      itemCount: response.items.length,
+      sample: response.items.slice(0, 3).map((item) => ({
+        hpid: item.hpid,
+        name: item.hospitalName,
+        hvec: item.availableErBeds,
+        status: item.status,
+      })),
+    });
+  }
+
+  return response;
+}
+
+/** 지역별 응급실 병상 API — 전체 페이지 조회 */
+export async function fetchAllEmergencyBedInfo(region: LocationRegion): Promise<EmergencyBedItem[]> {
+  const normalized = normalizeEmergencyApiRegion(region);
+
+  if (__DEV__) {
+    console.log('[ER API] fetchAllEmergencyBedInfo start', normalized);
+  }
+
+  const items = await fetchAllPages(
+    (pageNo, numOfRows) =>
+      buildEmergencyBedUrl({
+        stage1: normalized.stage1,
+        stage2: normalized.stage2,
+        pageNo,
+        numOfRows,
+      }),
+    (rawText, contentType) => parseEmergencyBedResponse(rawText, contentType).items,
+    DEFAULT_PAGE_SIZE,
+    10,
+  );
+
+  if (__DEV__) {
+    console.log('[ER API] fetchAllEmergencyBedInfo done', {
+      region: normalized.label,
+      count: items.length,
+      totalBeds: items.reduce((sum, item) => sum + item.availableErBeds, 0),
+    });
+  }
+
+  return items;
 }
 
 async function fetchHospitalLocations(region: LocationRegion): Promise<HospitalLocationItem[]> {
@@ -992,6 +1204,16 @@ function mergeHospitalData(
         erDoctorPhone: '',
         pediatricDoctorPhone: '',
         status: 'full',
+        icuInternalMedicineBeds: 0,
+        icuSurgeryBeds: 0,
+        icuOrthopedicBeds: 0,
+        icuNeurologyBeds: 0,
+        icuNeurosurgeryBeds: 0,
+        icuToxicologyBeds: 0,
+        icuBurnBeds: 0,
+        icuTraumaBeds: 0,
+        pediatricVentilatorAvailable: false,
+        incubatorAvailable: false,
       });
 
       const hospitalName = safeDisplayText(mergedBed.hospitalName || location.hospitalName, '병원명 미상');
@@ -1110,6 +1332,85 @@ export async function fetchAedList(options: AedListOptions = {}): Promise<AedLoc
     .filter((item) => item.distanceM <= radiusMeters)
     .sort((a, b) => a.distanceM - b.distanceM)
     .slice(0, maxResults);
+}
+
+export const DEFAULT_MEDICINE_PAGE_SIZE = 25;
+
+const POPULAR_MEDICINE_SEEDS = [
+  '타이레놀',
+  '게보린',
+  '아스피린',
+  '부루펜',
+  '판콜',
+  '센트룸',
+  '베아제',
+  '마데카솔',
+  '알레그라',
+  '후시딘',
+  '맥시부펜',
+  '우루사',
+];
+
+function dedupeMedicines(items: MedicineInfo[]): MedicineInfo[] {
+  const seen = new Set<string>();
+  const merged: MedicineInfo[] = [];
+
+  for (const item of items) {
+    const key = item.itemSeq || item.itemName;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+  }
+
+  return merged;
+}
+
+export async function fetchMedicineBrowse(
+  options: MedicineBrowseOptions = {},
+): Promise<MedicineInfo[]> {
+  const params: Record<string, string | number | undefined> = {
+    type: 'json',
+    pageNo: options.pageNo ?? 1,
+    numOfRows: options.numOfRows ?? DEFAULT_MEDICINE_PAGE_SIZE,
+  };
+
+  if (options.itemName?.trim()) {
+    params.itemName = options.itemName.trim();
+  }
+
+  const url = buildPortalUrl(DRUG_SEARCH_ENDPOINT, params);
+
+  try {
+    const { rawText, contentType } = await fetchPortalRaw(url);
+    return parseMedicineResponse(rawText, contentType);
+  } catch (error) {
+    if (error instanceof EmergencyApiError && error.statusCode === 403) {
+      throw new EmergencyApiError(
+        'e약은요 API 사용 권한이 없습니다. 공공데이터포털에서 "의약품개요정보(e약은요)" API 활용 신청 후 다시 시도해 주세요.',
+        error.resultCode,
+        error.statusCode,
+      );
+    }
+    throw error;
+  }
+}
+
+export async function fetchInitialMedicines(limit = 30): Promise<MedicineInfo[]> {
+  try {
+    const browse = await fetchMedicineBrowse({ pageNo: 1, numOfRows: limit });
+    if (browse.length > 0) return browse.slice(0, limit);
+  } catch {
+    // browse without itemName may fail — fall through to seed search
+  }
+
+  const seeds = POPULAR_MEDICINE_SEEDS.slice(0, 8);
+  const batches = await Promise.all(
+    seeds.map((name) =>
+      searchMedicine({ itemName: name, numOfRows: 4 }).catch(() => [] as MedicineInfo[]),
+    ),
+  );
+
+  return dedupeMedicines(batches.flat()).slice(0, limit);
 }
 
 export async function searchMedicine(
@@ -1510,6 +1811,8 @@ export async function searchToxicSubstance(
 
 // ─── 지도 마커 지연 로딩 (1단계: 껍데기 / 2단계: 클릭 시 상세) ─────────────
 
+export { filterByMapBounds, regionToBounds, type MapBounds } from '@/utils/mapViewport';
+
 const SHELL_PAGE_SIZE = 100;
 const DETAIL_SEARCH_MAX_PAGES = 8;
 
@@ -1549,7 +1852,163 @@ export type PharmacyMarkerShell = {
 
 export type HospitalDetail = NearbyHospital & {
   description: string;
+  specialties: string[];
+  weeklySchedule: HospitalDutyDay[];
+  isOpenNow: boolean;
+  openStatusLabel: string;
 };
+
+export type EmergencyHospitalBasisInfo = {
+  hpid: string;
+  hospitalName: string;
+  address: string;
+  phone: string;
+  erPhone: string;
+  emergencyClassName: string;
+  description: string;
+  specialties: string[];
+  weeklySchedule: HospitalDutyDay[];
+  isOpenNow: boolean;
+  openStatusLabel: string;
+  latitude: number;
+  longitude: number;
+};
+
+function parseSpecialtyTags(...values: Array<string | null | undefined>): string[] {
+  const tags = new Set<string>();
+  for (const value of values) {
+    const raw = value?.trim();
+    if (!raw) continue;
+    raw
+      .split(/[,/|·]/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((part) => tags.add(part));
+  }
+  return [...tags];
+}
+
+function collectDutyFieldsFromXmlBlock(block: string): Record<string, string | undefined> {
+  const fields: Record<string, string | undefined> = {};
+  for (let dayCode = 1; dayCode <= 8; dayCode += 1) {
+    fields[`dutyTime${dayCode}s`] = readXmlTag(block, `dutyTime${dayCode}s`);
+    fields[`dutyTime${dayCode}c`] = readXmlTag(block, `dutyTime${dayCode}c`);
+  }
+  fields.dutyStart = readXmlTag(block, 'dutyStart');
+  return fields;
+}
+
+function collectDutyFieldsFromJsonRecord(record: Record<string, unknown>): Record<string, string | undefined> {
+  const fields: Record<string, string | undefined> = {};
+  for (let dayCode = 1; dayCode <= 8; dayCode += 1) {
+    fields[`dutyTime${dayCode}s`] = readJsonString(record, `dutyTime${dayCode}s`);
+    fields[`dutyTime${dayCode}c`] = readJsonString(record, `dutyTime${dayCode}c`);
+  }
+  fields.dutyStart = readJsonString(record, 'dutyStart');
+  return fields;
+}
+
+function mapHospitalBasisBlock(block: string): EmergencyHospitalBasisInfo | null {
+  const hpid = readXmlTag(block, 'hpid') ?? '';
+  const hospitalName = readXmlTag(block, 'dutyName') ?? readXmlTag(block, 'dutyname') ?? '';
+  if (!hpid && !hospitalName) return null;
+
+  const dutyFields = collectDutyFieldsFromXmlBlock(block);
+  const weeklySchedule = parseWeeklyDutySchedule(dutyFields);
+  const openStatus = resolveHospitalOpenStatus(weeklySchedule);
+
+  return {
+    hpid,
+    hospitalName: safeDisplayText(hospitalName, '병원'),
+    address: safeDisplayText(readXmlTag(block, 'dutyAddr'), ''),
+    phone: safeDisplayText(readXmlTag(block, 'dutyTel1'), ''),
+    erPhone: safeDisplayText(readXmlTag(block, 'dutyTel3') ?? readXmlTag(block, 'dutytel3'), ''),
+    emergencyClassName: safeDisplayText(readXmlTag(block, 'dutyEmclsName'), ''),
+    description: safeDisplayText(readXmlTag(block, 'dutyInf'), ''),
+    specialties: parseSpecialtyTags(readXmlTag(block, 'dgsbjtCdNm'), readXmlTag(block, 'dutyDivNam')),
+    weeklySchedule,
+    isOpenNow: openStatus.isOpenNow,
+    openStatusLabel: openStatus.label,
+    latitude: parseNumeric(readXmlTag(block, 'wgs84Lat')),
+    longitude: parseNumeric(readXmlTag(block, 'wgs84Lon')),
+  };
+}
+
+function mapHospitalBasisRecord(record: Record<string, unknown>): EmergencyHospitalBasisInfo | null {
+  const hpid = readJsonString(record, 'hpid');
+  const hospitalName = readJsonString(record, 'dutyName', 'dutyname');
+  if (!hpid && !hospitalName) return null;
+
+  const dutyFields = collectDutyFieldsFromJsonRecord(record);
+  const weeklySchedule = parseWeeklyDutySchedule(dutyFields);
+  const openStatus = resolveHospitalOpenStatus(weeklySchedule);
+
+  return {
+    hpid,
+    hospitalName: safeDisplayText(hospitalName, '병원'),
+    address: safeDisplayText(readJsonString(record, 'dutyAddr'), ''),
+    phone: safeDisplayText(readJsonString(record, 'dutyTel1'), ''),
+    erPhone: safeDisplayText(readJsonString(record, 'dutyTel3', 'dutytel3'), ''),
+    emergencyClassName: safeDisplayText(readJsonString(record, 'dutyEmclsName'), ''),
+    description: safeDisplayText(readJsonString(record, 'dutyInf'), ''),
+    specialties: parseSpecialtyTags(
+      readJsonString(record, 'dgsbjtCdNm'),
+      readJsonString(record, 'dutyDivNam'),
+    ),
+    weeklySchedule,
+    isOpenNow: openStatus.isOpenNow,
+    openStatusLabel: openStatus.label,
+    latitude: parseNumeric(readJsonString(record, 'wgs84Lat')),
+    longitude: parseNumeric(readJsonString(record, 'wgs84Lon')),
+  };
+}
+
+function parseHospitalBasisResponse(
+  rawText: string,
+  contentType: string | null,
+): EmergencyHospitalBasisInfo[] {
+  const payload = parsePortalPayload(rawText, contentType);
+
+  if (typeof payload === 'string') {
+    const { resultCode, resultMsg } = readXmlHeader(payload);
+    assertApiSuccess(resultCode, resultMsg, '응급의료기관 기본정보 API');
+    return extractXmlItemBlocks(payload)
+      .map(mapHospitalBasisBlock)
+      .filter((item): item is EmergencyHospitalBasisInfo => item !== null);
+  }
+
+  const { resultCode, resultMsg } = readJsonHeader(payload);
+  assertApiSuccess(resultCode, resultMsg, '응급의료기관 기본정보 API');
+  return unwrapJsonItems(payload)
+    .map(mapHospitalBasisRecord)
+    .filter((item): item is EmergencyHospitalBasisInfo => item !== null);
+}
+
+/** 응급의료기관 기본정보 (진료시간·과목·기관설명) */
+export async function fetchEmergencyHospitalBasis(
+  hpid: string,
+  region: LocationRegion,
+): Promise<EmergencyHospitalBasisInfo | null> {
+  const normalizedRegion = normalizeEmergencyApiRegion(region);
+
+  try {
+    const url = buildPortalUrl(HOSPITAL_BASIS_ENDPOINT, {
+      HPID: hpid,
+      Q0: normalizedRegion.stage1,
+      Q1: normalizedRegion.stage2 || undefined,
+      pageNo: 1,
+      numOfRows: 10,
+    });
+    const { rawText, contentType } = await fetchPortalRaw(url);
+    const items = parseHospitalBasisResponse(rawText, contentType);
+    return items.find((item) => item.hpid === hpid) ?? items[0] ?? null;
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[ER API] fetchEmergencyHospitalBasis failed', { hpid, error });
+    }
+    return null;
+  }
+}
 
 const markerDetailCache = new Map<string, unknown>();
 
@@ -1679,71 +2138,151 @@ export async function fetchAedMarkerShells(
     .slice(0, maxResults);
 }
 
+/** AED 마커 껍데기 → 상세 UI용 최소 레코드 (API 실패 시 Fallback) */
+export function buildAedLocationFromShell(shell: AedMarkerShell): AedLocationItem {
+  return {
+    serialSeq: shell.id,
+    org: shell.name,
+    buildPlace: shell.name,
+    buildAddress: '',
+    latitude: shell.latitude,
+    longitude: shell.longitude,
+    distanceM: shell.distanceM,
+    walkMin: shell.walkMin,
+    model: '',
+    manufacturer: '',
+    managerTel: '',
+    clerkTel: '',
+    available24h: false,
+  };
+}
+
+export function mergeAedDetailWithShell(
+  shell: AedMarkerShell,
+  detail: AedLocationItem | null,
+): AedLocationItem {
+  const preview = buildAedLocationFromShell(shell);
+  if (!detail) return preview;
+
+  return {
+    ...preview,
+    ...detail,
+    org: detail.org || preview.org,
+    buildPlace: detail.buildPlace || preview.buildPlace,
+    buildAddress: detail.buildAddress || preview.buildAddress,
+    latitude: Number.isFinite(detail.latitude) ? detail.latitude : preview.latitude,
+    longitude: Number.isFinite(detail.longitude) ? detail.longitude : preview.longitude,
+    distanceM: shell.distanceM > 0 ? shell.distanceM : detail.distanceM,
+    walkMin: shell.walkMin > 0 ? shell.walkMin : detail.walkMin,
+  };
+}
+
+async function resolveAedDetailRegions(
+  options: AedListOptions = {},
+): Promise<{ coordinate: GeoCoordinate; regions: LocationRegion[] }> {
+  const regions: LocationRegion[] = [];
+  const seen = new Set<string>();
+
+  const pushRegion = (region: LocationRegion | null | undefined) => {
+    if (!region?.stage1) return;
+    const key = `${region.stage1}|${region.stage2 ?? ''}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    regions.push(region);
+  };
+
+  const addressQuery = options.addressQuery?.trim();
+  if (addressQuery) {
+    const candidates = options.region
+      ? [options.region]
+      : await resolveRegionCandidatesFromAddressQuery(addressQuery);
+    for (const candidate of candidates.slice(0, 3)) {
+      pushRegion(candidate);
+    }
+  }
+
+  if (options.markerCoordinate) {
+    pushRegion(await resolveRegionFromCoordinate(options.markerCoordinate));
+  }
+
+  pushRegion(options.region);
+
+  const { coordinate, region } = await resolveSearchContext(options);
+  pushRegion(region);
+
+  return {
+    coordinate: options.markerCoordinate ?? coordinate,
+    regions: regions.length > 0 ? regions : [region],
+  };
+}
+
 /** 2단계 — AED 마커 클릭 시 상세 (ID 기반 개별 조회) */
 export async function fetchAedDetail(
   markerId: string,
   options: AedListOptions = {},
 ): Promise<AedLocationItem> {
-  const cacheKey = `aed:${markerId}`;
+  const cacheKey = `aed:${markerId}:${options.markerCoordinate?.latitude ?? 'x'}:${options.markerCoordinate?.longitude ?? 'x'}`;
   const cached = markerDetailCache.get(cacheKey);
   if (cached) return cached as AedLocationItem;
 
-  const { coordinate, region } = await resolveSearchContext(options);
+  const { coordinate, regions } = await resolveAedDetailRegions(options);
 
-  for (let pageNo = 1; pageNo <= DETAIL_SEARCH_MAX_PAGES; pageNo += 1) {
-    const url = buildPortalUrl(AED_LOCATION_ENDPOINT, {
-      Q0: region.stage1,
-      Q1: region.stage2 || undefined,
-      pageNo,
-      numOfRows: SHELL_PAGE_SIZE,
-    });
-    const { rawText, contentType } = await fetchPortalRaw(url);
-    const payload = parsePortalPayload(rawText, contentType);
-
-    let found: AedLocationItem | null = null;
-
-    if (typeof payload === 'string') {
-      const { resultCode, resultMsg } = readXmlHeader(payload);
-      assertApiSuccess(resultCode, resultMsg, 'AED 상세 API');
-      for (const block of extractXmlItemBlocks(payload)) {
-        const rnum = readXmlTag(block, 'rnum') ?? '';
-        const serialSeq = readXmlTag(block, 'serialSeq') ?? '';
-        if (rnum !== markerId && serialSeq !== markerId) continue;
-        found = mapAedBlock(block);
-        if (found) break;
-      }
-    } else {
-      const { resultCode, resultMsg } = readJsonHeader(payload);
-      assertApiSuccess(resultCode, resultMsg, 'AED 상세 API');
-      for (const record of unwrapJsonItems(payload)) {
-        const rnum = readJsonString(record, 'rnum');
-        const serialSeq = readJsonString(record, 'serialSeq');
-        if (rnum !== markerId && serialSeq !== markerId) continue;
-        found = mapAedRecord(record);
-        if (found) break;
-      }
-    }
-
-    if (found) {
-      const distanceM = calculateDistanceMeters(coordinate, {
-        latitude: found.latitude,
-        longitude: found.longitude,
+  for (const region of regions) {
+    for (let pageNo = 1; pageNo <= DETAIL_SEARCH_MAX_PAGES; pageNo += 1) {
+      const url = buildPortalUrl(AED_LOCATION_ENDPOINT, {
+        Q0: region.stage1,
+        Q1: region.stage2 || undefined,
+        pageNo,
+        numOfRows: SHELL_PAGE_SIZE,
       });
-      const detail: AedLocationItem = {
-        ...found,
-        org: found.org || found.buildPlace,
-        distanceM,
-        walkMin: estimateWalkMinutes(distanceM),
-      };
-      markerDetailCache.set(cacheKey, detail);
-      return detail;
-    }
+      const { rawText, contentType } = await fetchPortalRaw(url);
+      const payload = parsePortalPayload(rawText, contentType);
 
-    const pageCount =
-      typeof payload === 'string'
-        ? extractXmlItemBlocks(payload).length
-        : unwrapJsonItems(payload).length;
-    if (pageCount < SHELL_PAGE_SIZE) break;
+      let found: AedLocationItem | null = null;
+
+      if (typeof payload === 'string') {
+        const { resultCode, resultMsg } = readXmlHeader(payload);
+        assertApiSuccess(resultCode, resultMsg, 'AED 상세 API');
+        for (const block of extractXmlItemBlocks(payload)) {
+          const rnum = readXmlTag(block, 'rnum') ?? '';
+          const serialSeq = readXmlTag(block, 'serialSeq') ?? '';
+          if (rnum !== markerId && serialSeq !== markerId) continue;
+          found = mapAedBlock(block);
+          if (found) break;
+        }
+      } else {
+        const { resultCode, resultMsg } = readJsonHeader(payload);
+        assertApiSuccess(resultCode, resultMsg, 'AED 상세 API');
+        for (const record of unwrapJsonItems(payload)) {
+          const rnum = readJsonString(record, 'rnum');
+          const serialSeq = readJsonString(record, 'serialSeq');
+          if (rnum !== markerId && serialSeq !== markerId) continue;
+          found = mapAedRecord(record);
+          if (found) break;
+        }
+      }
+
+      if (found) {
+        const distanceM = calculateDistanceMeters(coordinate, {
+          latitude: found.latitude,
+          longitude: found.longitude,
+        });
+        const detail: AedLocationItem = {
+          ...found,
+          org: found.org || found.buildPlace,
+          distanceM,
+          walkMin: estimateWalkMinutes(distanceM),
+        };
+        markerDetailCache.set(cacheKey, detail);
+        return detail;
+      }
+
+      const pageCount =
+        typeof payload === 'string'
+          ? extractXmlItemBlocks(payload).length
+          : unwrapJsonItems(payload).length;
+      if (pageCount < SHELL_PAGE_SIZE) break;
+    }
   }
 
   throw new EmergencyApiError('AED 상세 정보를 불러오지 못했습니다.');
@@ -1978,6 +2517,16 @@ function buildHospitalDetail(
       erDoctorPhone: '',
       pediatricDoctorPhone: '',
       status: 'full',
+      icuInternalMedicineBeds: 0,
+      icuSurgeryBeds: 0,
+      icuOrthopedicBeds: 0,
+      icuNeurologyBeds: 0,
+      icuNeurosurgeryBeds: 0,
+      icuToxicologyBeds: 0,
+      icuBurnBeds: 0,
+      icuTraumaBeds: 0,
+      pediatricVentilatorAvailable: false,
+      incubatorAvailable: false,
     });
 
   const hospitalName = safeDisplayText(mergedBed.hospitalName || location.hospitalName, '병원명 미상');
@@ -1990,6 +2539,7 @@ function buildHospitalDetail(
     longitude: lon,
     hospitalName,
     erPhone: safeDisplayText(mergedBed.erPhone || location.erPhone, '-'),
+    phone: safeDisplayText(location.phone, '-'),
     emergencyClassName: safeDisplayText(location.emergencyClassName, '응급의학과'),
     address: safeDisplayText(location.address, '-'),
     distanceM,
@@ -1998,42 +2548,78 @@ function buildHospitalDetail(
     isMoonlightHospital: isMoonlight,
     isPediatricPriority: isMoonlight || parseNumeric(mergedBed.availablePediatricErBeds) > 0,
     description: location.description ?? '',
+    specialties: parseSpecialtyTags(location.emergencyClassName, location.description),
+    weeklySchedule: [],
+    isOpenNow: false,
+    openStatusLabel: '확인 필요',
   };
 }
 
-/** 2단계 — 응급실 마커 클릭 시 상세 (hpid 기반 병상+위치 병합) */
+function mergeHospitalDetailWithBasis(
+  detail: HospitalDetail,
+  basis: EmergencyHospitalBasisInfo | null,
+): HospitalDetail {
+  if (!basis) return detail;
+
+  return {
+    ...detail,
+    hospitalName: safeDisplayText(basis.hospitalName, detail.hospitalName),
+    address: basis.address || detail.address,
+    phone: basis.phone || detail.phone,
+    erPhone: basis.erPhone || detail.erPhone,
+    emergencyClassName: basis.emergencyClassName || detail.emergencyClassName,
+    description: basis.description || detail.description,
+    specialties: basis.specialties.length ? basis.specialties : detail.specialties,
+    weeklySchedule: basis.weeklySchedule.length ? basis.weeklySchedule : detail.weeklySchedule,
+    isOpenNow: basis.isOpenNow,
+    openStatusLabel: basis.openStatusLabel,
+    latitude: basis.latitude || detail.latitude,
+    longitude: basis.longitude || detail.longitude,
+  };
+}
+
+/** 2단계 — 응급실 마커 클릭 시 상세 (hpid 기반 병상+위치+기본정보 병합) */
 export async function fetchHospitalDetail(
   hpid: string,
   options: NearbyHospitalOptions = {},
 ): Promise<HospitalDetail> {
-  const cacheKey = `er:${hpid}`;
+  const cacheKey = `er:${hpid}:detail`;
   const cached = markerDetailCache.get(cacheKey);
   if (cached) return cached as HospitalDetail;
 
   const { coordinate, region } = await resolveSearchContext(options);
 
-  const bedResponse = await fetchEmergencyBedInfo({
-    stage1: region.stage1,
-    stage2: region.stage2,
-    pageNo: 1,
-    numOfRows: DEFAULT_PAGE_SIZE,
-  });
-  const bed = bedResponse.items.find((item) => item.hpid === hpid) ?? null;
+  let bed: EmergencyBedItem | null = null;
+  try {
+    const bedResponse = await fetchEmergencyBedInfo({
+      stage1: region.stage1,
+      stage2: region.stage2,
+      pageNo: 1,
+      numOfRows: DEFAULT_PAGE_SIZE,
+    });
+    bed = bedResponse.items.find((item) => item.hpid === hpid) ?? null;
+  } catch (error) {
+    console.error('[ER API] fetchHospitalDetail bed lookup failed', { hpid, error });
+  }
 
   let location: HospitalLocationItem | null = null;
 
-  for (let pageNo = 1; pageNo <= DETAIL_SEARCH_MAX_PAGES; pageNo += 1) {
-    const url = buildPortalUrl(HOSPITAL_LOCATION_ENDPOINT, {
-      Q0: region.stage1,
-      Q1: region.stage2,
-      pageNo,
-      numOfRows: SHELL_PAGE_SIZE,
-    });
-    const { rawText, contentType } = await fetchPortalRaw(url);
-    const items = parseHospitalLocationResponse(rawText, contentType);
-    location = items.find((item) => item.hpid === hpid) ?? null;
-    if (location) break;
-    if (items.length < SHELL_PAGE_SIZE) break;
+  try {
+    for (let pageNo = 1; pageNo <= DETAIL_SEARCH_MAX_PAGES; pageNo += 1) {
+      const url = buildPortalUrl(HOSPITAL_LOCATION_ENDPOINT, {
+        Q0: region.stage1,
+        Q1: region.stage2,
+        pageNo,
+        numOfRows: SHELL_PAGE_SIZE,
+      });
+      const { rawText, contentType } = await fetchPortalRaw(url);
+      const items = parseHospitalLocationResponse(rawText, contentType);
+      location = items.find((item) => item.hpid === hpid) ?? null;
+      if (location) break;
+      if (items.length < SHELL_PAGE_SIZE) break;
+    }
+  } catch (error) {
+    console.error('[ER API] fetchHospitalDetail location lookup failed', { hpid, error });
   }
 
   if (!location && bed) {
@@ -2055,7 +2641,11 @@ export async function fetchHospitalDetail(
     throw new EmergencyApiError('응급실 상세 정보를 불러오지 못했습니다.');
   }
 
-  const detail = buildHospitalDetail(location, bed, coordinate);
+  const basis = await fetchEmergencyHospitalBasis(hpid, region);
+  const detail = mergeHospitalDetailWithBasis(
+    buildHospitalDetail(location, bed, coordinate),
+    basis,
+  );
   markerDetailCache.set(cacheKey, detail);
   return detail;
 }

@@ -11,15 +11,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { useExpertTabBarHeight } from '@/navigation/expertTabBarOptions';
 import type { UserRole } from '@/lib/supabaseClient';
+import { V1_STORE_BUILD } from '@/constants/releaseFlags';
 import { getRoleLabel } from '@/utils/roleAccess';
 
-const DEV_ROLES: { role: UserRole; label: string; color: string }[] = [
+const ALL_DEV_ROLES: { role: UserRole; label: string; color: string }[] = [
   { role: 'user', label: '일반', color: '#64748b' },
   { role: 'admin', label: '관리', color: '#7c3aed' },
   { role: 'private_ems', label: '사설', color: '#dc2626' },
   { role: 'paramedic', label: '구급', color: '#2563eb' },
   { role: 'hospital', label: '병원', color: '#059669' },
 ];
+
+/** v1: 구급대원·병원관계자·사설구급차 진입 버튼 숨김 */
+const DEV_ROLES = V1_STORE_BUILD
+  ? ALL_DEV_ROLES.filter((item) => item.role === 'user' || item.role === 'admin')
+  : ALL_DEV_ROLES;
 
 const TRIPLE_TAP_WINDOW_MS = 900;
 const SECRET_ZONE_SIZE = 44;
@@ -67,7 +73,7 @@ export function DevRoleCheatMenu() {
     closeMenu();
   };
 
-  if (!__DEV__) return null;
+  if (!__DEV__ || V1_STORE_BUILD) return null;
 
   return (
     <>

@@ -20,6 +20,22 @@ export function canAccessHiddenChannel(role: UserRole, isApproved: boolean): boo
   return isExpertRole(role) && isApproved;
 }
 
+/** 구급대원(응급구조사) 채널 — role=paramedic + 관리자 승인 */
+export function isApprovedParamedic(role: UserRole, isApproved: boolean): boolean {
+  return role === 'paramedic' && isApproved;
+}
+
+/** 구급대원(응급구조사) 채널 — paramedic+승인, DB admin+승인, 운영 관리자 코드 */
+export function canAccessParamedicChannel(
+  role: UserRole,
+  isApproved: boolean,
+  opsAdminVerified = false,
+): boolean {
+  if (opsAdminVerified) return true;
+  if (isApproved && role === 'admin') return true;
+  return isApprovedParamedic(role, isApproved);
+}
+
 /** 역할별 조회/작성 가능한 target_role 목록 */
 export function getAllowedTargetRoles(role: UserRole): HiddenPostTargetRole[] {
   switch (role) {

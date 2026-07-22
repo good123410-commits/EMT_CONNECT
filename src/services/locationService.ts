@@ -31,8 +31,8 @@ const DEFAULT_COORDINATE: GeoCoordinate = {
 
 const DEFAULT_REGION: LocationRegion = {
   stage1: '서울특별시',
-  stage2: '중구',
-  label: '서울특별시 중구',
+  stage2: '',
+  label: '서울특별시',
 };
 
 const LOCATION_CACHE_TTL_MS = 60_000;
@@ -269,6 +269,24 @@ export function getDefaultCoordinate(): GeoCoordinate {
 
 export function getDefaultRegion(): LocationRegion {
   return { ...DEFAULT_REGION };
+}
+
+/** 수동 지역 선택 시 거리 정렬용 중심 좌표 */
+export async function getRegionCenterCoordinate(region: LocationRegion): Promise<GeoCoordinate> {
+  const label = region.label?.trim() || `${region.stage1} ${region.stage2}`.trim();
+  if (!label) return getDefaultCoordinate();
+
+  try {
+    const results = await Location.geocodeAsync(`${label}, 대한민국`);
+    const first = results[0];
+    if (first?.latitude != null && first?.longitude != null) {
+      return { latitude: first.latitude, longitude: first.longitude };
+    }
+  } catch {
+    // geocode 실패 시 기본 좌표
+  }
+
+  return getDefaultCoordinate();
 }
 
 /** 전국 지역명 검색용 — 시도/시군구 매핑 (AED·응급실 주소 검색) */
