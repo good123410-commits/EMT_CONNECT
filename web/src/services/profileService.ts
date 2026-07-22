@@ -81,6 +81,90 @@ export function getCommunityDisplayName(profile: UserProfile | null, email?: str
   return '웹 회원';
 }
 
+function isMissingColumnError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('schema cache') ||
+    lower.includes('could not find the') ||
+    lower.includes('does not exist') ||
+    lower.includes('column')
+  );
+}
+
+function mapProfileSetupError(message: string): string {
+  if (message.includes('nickname_taken')) {
+    return '이미 사용 중인 별명입니다. 다른 별명을 입력해 주세요.';
+  }
+  if (message.includes('nickname_length_invalid')) {
+    return '별명은 2~20자로 입력해 주세요.';
+  }
+  if (isMissingColumnError(message)) {
+    return '프로필 DB 스키마가 최신이 아닙니다. Supabase SQL Editor에서 migration_v43_user_profiles_onboarding_fix.sql을 실행해 주세요.';
+  }
+  return message || '프로필 저장에 실패했습니다.';
+}
+
+/** PostgREST 스키마에 없는 컬럼은 제거하고 upsert 재시도 */
+async function upsertUserProfileRow(payload: Record<string, unknown>): Promise<UserProfile> {
+  let current: Record<string, unknown> = { ...payload };
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const { data, error } = await supabase
+      .from(USER_PROFILES_TABLE)
+      .upsert(current, { onConflict: 'id' })
+      .select('*')
+      .single();
+
+    if (!error && data) {
+      return mapProfileRow(data as Record<string, unknown>);
+    }
+
+    if (!error) break;
+
+    if (!isMissingColumnError(error.message)) {
+      throw new Error(mapProfileSetupError(error.message));
+    }
+
+    const match = error.message.match(/Could not find the '([^']+)' column|"([^"]+)" of relation/);
+    const missingKey = match?.[1] ?? match?.[2];
+    if (!missingKey || !(missingKey in current)) {
+      throw new Error(mapProfileSetupError(error.message));
+    }
+
+    const next = { ...current };
+    delete next[missingKey];
+    current = next;
+
+    if (!('id' in current)) {
+      throw new Error('프로필 id가 필요합니다.');
+    }
+  }
+
+  throw new Error(
+    '프로필 저장에 실패했습니다. Supabase에서 migration_v43_user_profiles_onboarding_fix.sql을 실행해 주세요.',
+  );
+}
+
+async function completeProfileSetupDirect(input: ProfileSetupInput): Promise<UserProfile> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error('로그인이 필요합니다.');
+
+  await supabase.rpc('ensure_my_user_profile');
+
+  return upsertUserProfileRow({
+    id: userId,
+    nickname: input.nickname.trim(),
+    name: input.name?.trim() || null,
+    phone: input.phone?.trim() || null,
+    role: input.role,
+    company_name: input.company_name?.trim() || null,
+    profile_completed: true,
+  });
+}
+
 export async function completeProfileSetup(input: ProfileSetupInput): Promise<UserProfile> {
   const { data, error } = await supabase.rpc('complete_my_profile', {
     p_nickname: input.nickname.trim(),
@@ -90,17 +174,15 @@ export async function completeProfileSetup(input: ProfileSetupInput): Promise<Us
     p_company_name: input.company_name?.trim() || null,
   });
 
-  if (error) {
-    if (error.message.includes('nickname_taken')) {
-      throw new Error('이미 사용 중인 별명입니다. 다른 별명을 입력해 주세요.');
-    }
-    if (error.message.includes('nickname_length_invalid')) {
-      throw new Error('별명은 2~20자로 입력해 주세요.');
-    }
-    throw new Error(error.message || '프로필 저장에 실패했습니다.');
+  if (!error && data) {
+    return mapProfileRow(data as Record<string, unknown>);
   }
 
-  return mapProfileRow(data as Record<string, unknown>);
+  if (error && isMissingColumnError(error.message)) {
+    return completeProfileSetupDirect(input);
+  }
+
+  throw new Error(mapProfileSetupError(error?.message ?? ''));
 }
 
 export async function findEmailHintByNickname(nickname: string): Promise<string | null> {

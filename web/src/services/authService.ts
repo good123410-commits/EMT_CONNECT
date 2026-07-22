@@ -74,13 +74,31 @@ export function getLinkedAuthProviders(user: User | null): LinkedAuthProvider[] 
   return rows;
 }
 
+function isSchemaRpcError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('does not exist') ||
+    lower.includes('could not find') ||
+    lower.includes('schema cache') ||
+    lower.includes('function') && lower.includes('not found')
+  );
+}
+
 export async function reconcileProfileAfterAuth(): Promise<void> {
   const { error } = await supabase.rpc('reconcile_my_profile_on_login');
-  if (error) {
-    const { error: fallbackError } = await supabase.rpc('ensure_my_user_profile');
-    if (fallbackError) {
-      console.warn('[auth] profile reconcile failed:', error.message, fallbackError.message);
+  if (!error) return;
+
+  if (isSchemaRpcError(error.message)) {
+    const { error: ensureError } = await supabase.rpc('ensure_my_user_profile');
+    if (ensureError && !isSchemaRpcError(ensureError.message)) {
+      console.warn('[auth] ensure_my_user_profile failed:', ensureError.message);
     }
+    return;
+  }
+
+  const { error: fallbackError } = await supabase.rpc('ensure_my_user_profile');
+  if (fallbackError) {
+    console.warn('[auth] profile reconcile failed:', error.message, fallbackError.message);
   }
 }
 
