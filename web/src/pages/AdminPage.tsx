@@ -9,14 +9,14 @@ export function AdminPage() {
     <div className="admin-page">
       <h1>관리자 포털</h1>
       <p className="lead">
-        병원 데이터, 응급처치 가이드(블로그), 커뮤니티 콘텐츠는 KEMI 통합 관리자 대시보드에서
+        병원 데이터, 응급처치 가이드(블로그), 커뮤니티 콘텐츠는 KEMIX 통합 관리자 대시보드에서
         관리합니다.
       </p>
 
       <div className="admin-card">
         <h2>접속 방법</h2>
         <ol className="admin-steps">
-          <li>KEMI 모바일 앱을 실행합니다.</li>
+          <li>KEMIX 모바일 앱을 실행합니다.</li>
           <li>설정 → 통합 관리자 대시보드로 이동합니다.</li>
           <li>승인된 관리자 계정으로 로그인합니다.</li>
         </ol>

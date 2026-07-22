@@ -34,7 +34,8 @@ import {
   fetchGuideCategories,
   type GuideCategory,
 } from '@/services/guideCategoryService';
-import { createEmergencyGuide, updateEmergencyGuide } from '@/services/guideService';
+import { createKemiGuide, updateKemiGuide } from '@/services/kemiPostService';
+import { serializeGuideContent } from '@/utils/guideContentFormat';
 
 export type GuideWriteDraft = {
   id: string;
@@ -179,32 +180,29 @@ export function GuideWriteModal({ visible, onClose, onSaved, editingGuide }: Gui
     setSaving(true);
     setSaveStatus(isEditing ? '수정 저장 중…' : '게시 중…');
     try {
+      const serializedContent = serializeGuideContent(trimmedContent, { fontId, fontSize });
       if (editId) {
-        await updateEmergencyGuide({
+        await updateKemiGuide({
           id: editId,
           title: trimmedTitle,
           category,
-          content: trimmedContent,
-          severity,
-          fontId,
-          fontSize,
+          content: serializedContent,
+          isPublished: true,
         });
         setSaveStatus('수정이 완료되었습니다.');
-        showGuideAlert('저장 완료', '글이 수정되었습니다.');
+        showGuideAlert('저장 완료', '글이 수정되었습니다. 웹·앱에 동시 반영됩니다.');
         onSaved();
         onClose();
       } else {
-        await createEmergencyGuide({
+        await createKemiGuide({
           title: trimmedTitle,
           category,
-          content: trimmedContent,
-          severity,
-          fontId,
-          fontSize,
+          content: serializedContent,
+          isPublished: true,
         });
         resetForm();
         setSaveStatus('등록이 완료되었습니다.');
-        showGuideAlert('저장 완료', '글이 등록되었습니다.');
+        showGuideAlert('저장 완료', '글이 등록되었습니다. 웹·앱에 동시 반영됩니다.');
         onSaved();
         onClose();
       }

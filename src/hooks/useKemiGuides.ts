@@ -8,6 +8,8 @@ import {
 
 type Options = {
   limit?: number;
+  category?: string | null;
+  search?: string;
   /** 화면 포커스 시 자동 갱신 (기본 true) */
   refetchOnFocus?: boolean;
   /** Supabase Realtime 구독 (기본 true) */
@@ -15,7 +17,9 @@ type Options = {
 };
 
 export function useKemiGuides(options?: Options) {
-  const limit = options?.limit ?? 30;
+  const limit = options?.limit ?? 50;
+  const category = options?.category ?? null;
+  const search = options?.search ?? '';
   const refetchOnFocus = options?.refetchOnFocus ?? true;
   const realtime = options?.realtime ?? true;
 
@@ -26,18 +30,23 @@ export function useKemiGuides(options?: Options) {
   const reload = useCallback(async () => {
     setError(null);
     try {
-      const rows = await fetchGuides({ limit });
+      const rows = await fetchGuides({ limit, category, search });
       setGuides(rows);
     } catch (err) {
       setError(err instanceof Error ? err.message : '가이드를 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
-  }, [limit]);
+  }, [limit, category, search]);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    const timer = setTimeout(() => {
+      setLoading(true);
+      void reload();
+    }, search ? 250 : 0);
+
+    return () => clearTimeout(timer);
+  }, [reload, search]);
 
   useEffect(() => {
     if (!realtime) return undefined;

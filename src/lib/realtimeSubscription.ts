@@ -97,6 +97,11 @@ export const subscribeKemiPostsTable = createTableSubscription(
   'kemi_posts_live',
 );
 
+export const subscribeKemiPostCategoriesTable = createTableSubscription(
+  'kemix_post_categories',
+  'kemix_post_categories_live',
+);
+
 export function subscribeUserQuestionsChanges(
   userId: string,
   onChange: ChangeListener,

@@ -6,9 +6,9 @@ import {
 } from '../services/guideService';
 
 const FALLBACK: PlatformStats = {
-  hospital_count: 2968,
+  download_count: 0,
   guide_count: 0,
-  active_paramedic_count: 0,
+  community_count: 0,
 };
 
 export function usePlatformStats() {

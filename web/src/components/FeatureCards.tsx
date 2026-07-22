@@ -2,15 +2,15 @@ import { Link } from 'react-router-dom';
 
 const FEATURES = [
   {
-    to: '/facilities',
+    to: '/content/interview',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-        <circle cx="12" cy="12" r="4" />
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
       </svg>
     ),
-    title: '실시간 응급실 정보',
-    description: '공공 API와 KEMI 자체 데이터를 결합해 병상·장비·당직 연락처를 제공합니다.',
+    title: '이달의 인터뷰',
+    description: '응급의료 현장의 혁신가들과의 깊이 있는 대화를 웹에서 만나보세요.',
     tone: 'emerald',
   },
   {
@@ -25,7 +25,7 @@ const FEATURES = [
     tone: 'sky',
   },
   {
-    to: '/facilities',
+    to: '/community/board',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -33,17 +33,27 @@ const FEATURES = [
         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
       </svg>
     ),
-    title: 'EMS 커뮤니티',
-    description: '구급대원·응급의료 종사자를 위한 전문 커뮤니티 앱을 함께 제공합니다.',
+    title: 'KEMIX 커뮤니티',
+    description: '자유게시판, 스킬 테크 트리, 모금 안내까지 응급의료인을 위한 공간입니다.',
     tone: 'violet',
   },
 ] as const;
 
-export function FeatureCards() {
+type FeatureCardsProps = {
+  variant?: 'default' | 'hero';
+};
+
+export function FeatureCards({ variant = 'default' }: FeatureCardsProps) {
+  const isHero = variant === 'hero';
+
   return (
-    <section className="feature-grid">
+    <section className={`feature-grid${isHero ? ' feature-grid--hero' : ''}`} aria-label="바로가기">
       {FEATURES.map((item) => (
-        <Link key={item.title} to={item.to} className={`feature-card feature-card--${item.tone}`}>
+        <Link
+          key={item.title}
+          to={item.to}
+          className={`feature-card feature-card--${item.tone}${isHero ? ' feature-card--glass' : ''}`}
+        >
           <div className="feature-icon">{item.icon}</div>
           <h2>{item.title}</h2>
           <p>{item.description}</p>

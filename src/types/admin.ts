@@ -122,6 +122,8 @@ export type AdminKemiPost = {
   is_published: boolean;
   seo_title: string | null;
   seo_description: string | null;
+  category?: string | null;
+  summary?: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -274,6 +274,7 @@ export function AdminHospitalsPanel() {
         사용자 화면에서 제외됩니다.
       </Text>
 
+      <Text className="mb-1 text-xs font-semibold text-slate-600">시·도</Text>
       <RegionFilterScroller>
         <FilterChip label="전체 시도" active={!sido} onPress={() => { setSido(''); setSigungu(''); }} />
         {sidoOptions.map((opt) => (
@@ -287,12 +288,15 @@ export function AdminHospitalsPanel() {
       </RegionFilterScroller>
 
       {sido ? (
-        <RegionFilterScroller>
+        <>
+          <Text className="mb-1 mt-1 text-xs font-semibold text-slate-600">시·군·구</Text>
+          <RegionFilterScroller>
           <FilterChip label="전체 구군" active={!sigungu} onPress={() => setSigungu('')} />
           {sigunguOptions.map((opt) => (
             <FilterChip key={opt} label={opt} active={sigungu === opt} onPress={() => setSigungu(opt)} />
           ))}
-        </RegionFilterScroller>
+          </RegionFilterScroller>
+        </>
       ) : null}
 
       <AdminFormField
@@ -490,8 +494,10 @@ function RegionFilterScroller({ children }: { children: ReactNode }) {
   return (
     <ScrollView
       horizontal
+      nestedScrollEnabled
       showsHorizontalScrollIndicator={false}
-      style={filterScrollerStyles.scroller}
+      className="mb-2 w-full max-w-full overflow-x-auto [&::-webkit-scrollbar]:hidden"
+      style={[filterScrollerStyles.track, filterScrollerStyles.trackWeb]}
       contentContainerStyle={filterScrollerStyles.content}
     >
       {children}
@@ -510,15 +516,46 @@ function FilterChip({
 }) {
   return (
     <Pressable
-      className={`mr-2 rounded-full px-3 py-1.5 ${active ? 'bg-violet-700' : 'bg-slate-200'}`}
+      style={filterScrollerStyles.chip}
+      className={`rounded-full px-3 py-2 ${active ? 'bg-violet-700' : 'bg-slate-100'}`}
       onPress={onPress}
     >
-      <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-slate-700'}`}>{label}</Text>
+      <Text
+        className={`text-xs font-semibold ${active ? 'text-white' : 'text-slate-700'}`}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 const filterScrollerStyles = StyleSheet.create({
-  scroller: { marginBottom: 8, maxHeight: 44 },
-  content: { paddingRight: 8, alignItems: 'center' },
+  track: {
+    width: '100%',
+    maxWidth: '100%',
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  trackWeb: Platform.select({
+    web: {
+      overflowX: 'auto',
+      overflowY: 'hidden',
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+    },
+    default: {},
+  }),
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
+    paddingRight: 8,
+    paddingVertical: 4,
+    gap: 8,
+  },
+  chip: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
 });

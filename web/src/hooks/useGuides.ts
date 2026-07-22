@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   fetchGuides,
   subscribeGuides,
-  type KemiGuideSummary,
+  type KemixGuideSummary,
 } from '../services/guideService';
 
 export function useGuides(limit = 30) {
-  const [guides, setGuides] = useState<KemiGuideSummary[]>([]);
+  const [guides, setGuides] = useState<KemixGuideSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

@@ -2,7 +2,6 @@ import hospitalData from '@/data/generated/hospital_data.json';
 import { supabase } from '@/lib/supabaseClient';
 import {
   adminListCustomHospitals,
-  type AdminCustomHospital,
 } from '@/services/adminService';
 import {
   calculateDistanceMeters,
@@ -23,6 +22,7 @@ import type {
   CustomHospitalType,
 } from '@/types/customHospital';
 import type { LocalHospitalRecord } from '@/types/localFacility';
+import { getSidoOptions, getSigunguOptionsForSido } from '@/utils/regionOptions';
 import {
   formatOperatingHoursText,
   parseOperatingHoursText,
@@ -400,7 +400,7 @@ function bundledRecordToCatalogItem(record: LocalHospitalRecord): AdminCustomHos
   };
 }
 
-function dbRowToCatalogItem(row: AdminCustomHospital): AdminCustomHospitalCatalogItem {
+function dbRowToCatalogItem(row: AdminCustomHospitalType): AdminCustomHospitalCatalogItem {
   return {
     ...row,
     catalog_id: row.id,
@@ -440,7 +440,7 @@ export async function fetchAdminCustomHospitalCatalog(filters: {
   const bundled = BUNDLED_HOSPITALS.map(bundledRecordToCatalogItem);
   const bundledById = new Map(bundled.map((item) => [item.external_id ?? item.catalog_id, item]));
 
-  let dbRows: AdminCustomHospital[] = [];
+  let dbRows: AdminCustomHospitalType[] = [];
   try {
     dbRows = await adminListCustomHospitals({
       sido: filters.sido,

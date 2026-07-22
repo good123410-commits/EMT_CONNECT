@@ -142,7 +142,7 @@ export function AdminBlogPanel() {
   return (
     <View className="flex-1">
       <Text className="mb-2 text-xs leading-5 text-slate-500">
-        KEMI 공식 홈페이지·앱 가이드 탭에 노출되는 생활 응급처치 블로그입니다. SEO 메타 태그를 설정하면
+        KEMIX 공식 홈페이지·앱 가이드 탭에 노출되는 생활 응급처치 블로그입니다. SEO 메타 태그를 설정하면
         웹 검색 노출에 도움이 됩니다.
       </Text>
 

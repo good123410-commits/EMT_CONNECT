@@ -23,8 +23,8 @@ export function PlatformStatsBar() {
   return (
     <section className="stats-bar" aria-label="플랫폼 실시간 통계">
       <StatItem
-        label="전국 연동 병·의원"
-        value={loading ? '—' : `${formatStatNumber(stats.hospital_count)}+`}
+        label="앱 누적 다운로드"
+        value={loading ? '—' : formatStatNumber(stats.download_count)}
         loading={loading}
       />
       <div className="stats-divider" aria-hidden />
@@ -35,8 +35,8 @@ export function PlatformStatsBar() {
       />
       <div className="stats-divider" aria-hidden />
       <StatItem
-        label="실시간 활성 대원"
-        value={loading ? '—' : formatStatNumber(stats.active_paramedic_count)}
+        label="KEMIX 커뮤니티"
+        value={loading ? '—' : formatStatNumber(stats.community_count)}
         loading={loading}
       />
     </section>

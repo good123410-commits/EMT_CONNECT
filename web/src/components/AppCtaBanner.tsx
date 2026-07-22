@@ -6,8 +6,8 @@ export function AppCtaBanner() {
     <section className="app-cta">
       <div className="app-cta-inner">
         <div className="app-cta-copy">
-          <p className="app-cta-eyebrow">KEMI Mobile App</p>
-          <h2>언제 어디서나, KEMI 모바일 앱으로 더 빠르게 응급실 정보를 확인하세요</h2>
+          <p className="app-cta-eyebrow">KEMIX Mobile App</p>
+          <h2>언제 어디서나, KEMIX 모바일 앱으로 더 빠르게 응급실 정보를 확인하세요</h2>
           <p className="app-cta-desc">
             실시간 병상·장비·당직 연락처, 지도 기반 병·의원 찾기, EMS 커뮤니티까지 한 번에.
           </p>

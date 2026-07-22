@@ -15,16 +15,12 @@ import { AdminFormField } from '@/components/admin/AdminFormField';
 import {
   adminDeleteJobPost,
   adminListJobPosts,
+  adminListKemiPosts,
   adminUpsertJobPost,
   AdminServiceError,
 } from '@/services/adminService';
-import {
-  createEmergencyGuide,
-  deleteEmergencyGuide,
-  fetchEmergencyGuides,
-  type EmergencyGuide,
-} from '@/services/guideService';
-import type { AdminJobPost } from '@/types/admin';
+import { createKemiGuide, deleteKemiGuide } from '@/services/kemiPostService';
+import type { AdminJobPost, AdminKemiPost } from '@/types/admin';
 
 type ContentSection = 'guides' | 'jobs';
 
@@ -54,7 +50,7 @@ const EMPTY_JOB_FORM: {
 
 export function AdminContentPanel() {
   const [section, setSection] = useState<ContentSection>('guides');
-  const [guides, setGuides] = useState<EmergencyGuide[]>([]);
+  const [guides, setGuides] = useState<AdminKemiPost[]>([]);
   const [jobs, setJobs] = useState<AdminJobPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [guideFormVisible, setGuideFormVisible] = useState(false);
@@ -65,14 +61,14 @@ export function AdminContentPanel() {
   const [jobForm, setJobForm] = useState(EMPTY_JOB_FORM);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [deleteJobTarget, setDeleteJobTarget] = useState<AdminJobPost | null>(null);
-  const [deleteGuideTarget, setDeleteGuideTarget] = useState<EmergencyGuide | null>(null);
+  const [deleteGuideTarget, setDeleteGuideTarget] = useState<AdminKemiPost | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
       const [guideRows, jobRows] = await Promise.all([
-        fetchEmergencyGuides(),
+        adminListKemiPosts({ includeUnpublished: true, limit: 100 }).catch(() => [] as AdminKemiPost[]),
         adminListJobPosts().catch(() => [] as AdminJobPost[]),
       ]);
       setGuides(guideRows);
@@ -95,11 +91,11 @@ export function AdminContentPanel() {
     }
     setSubmitting(true);
     try {
-      await createEmergencyGuide({
+      await createKemiGuide({
         title: guideTitle.trim(),
         category: guideCategory.trim() || '기타',
         content: guideContent.trim(),
-        severity: 'moderate',
+        isPublished: true,
       });
       setGuideFormVisible(false);
       setGuideTitle('');
@@ -181,7 +177,7 @@ export function AdminContentPanel() {
     if (!deleteGuideTarget) return;
     setSubmitting(true);
     try {
-      await deleteEmergencyGuide(deleteGuideTarget.id);
+      await deleteKemiGuide(deleteGuideTarget.id);
       setDeleteGuideTarget(null);
       await reload();
       Alert.alert('완료', '가이드가 삭제되었습니다.');
@@ -240,7 +236,9 @@ export function AdminContentPanel() {
           renderItem={({ item }) => (
             <View className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
               <Text className="font-semibold text-slate-900">{item.title}</Text>
-              <Text className="mt-0.5 text-xs text-slate-500">{item.category}</Text>
+              <Text className="mt-0.5 text-xs text-slate-500">
+                {item.category ?? '기타'} · {item.is_published ? '공개' : '비공개'}
+              </Text>
               <Pressable className="mt-2 self-start rounded-lg bg-red-100 px-2.5 py-1" onPress={() => setDeleteGuideTarget(item)}>
                 <Text className="text-[11px] font-bold text-red-700">삭제</Text>
               </Pressable>

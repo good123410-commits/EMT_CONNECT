@@ -37,7 +37,7 @@ export function GuideCategoryManageModal({
     if (!isPersistedGuideCategory(category)) {
       Alert.alert(
         '삭제 불가',
-        '글에서 자동으로 표시되는 분류입니다. Supabase guide_categories에 등록된 분류만 삭제할 수 있습니다.',
+        '글에서 자동으로 표시되는 분류입니다. 등록된 분류만 삭제할 수 있습니다.',
       );
       return;
     }

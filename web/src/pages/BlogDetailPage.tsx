@@ -1,11 +1,39 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AdSenseSlot } from '../components/AdSenseSlot';
-import { fetchGuideBySlug, formatGuideDate, subscribeGuides, type KemiGuide } from '../services/guideService';
+import { useToast } from '../contexts/ToastContext';
+import {
+  fetchGuideBySlug,
+  fetchGuideCategories,
+  formatGuideDate,
+  getGuideCategoryLabel,
+  subscribeGuides,
+  type KemixGuide,
+} from '../services/guideService';
+
+const APP_DEEP_LINK = import.meta.env.VITE_APP_DEEP_LINK ?? 'emtconnect://guide';
+const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL ?? '/download/app';
+
+function renderGuideContent(content: string) {
+  const trimmed = content.trim();
+  if (!trimmed) return <p className="muted">본문이 없습니다.</p>;
+  if (/<[a-z][\s\S]*>/i.test(trimmed)) {
+    return <div className="guide-detail-body" dangerouslySetInnerHTML={{ __html: trimmed }} />;
+  }
+  return (
+    <div className="guide-detail-body">
+      {trimmed.split(/\n\n+/).map((block, i) => (
+        <p key={i}>{block}</p>
+      ))}
+    </div>
+  );
+}
 
 export function BlogDetailPage() {
   const { slug = '' } = useParams();
-  const [post, setPost] = useState<KemiGuide | null>(null);
+  const { showToast } = useToast();
+  const [post, setPost] = useState<KemixGuide | null>(null);
+  const [categorySlug, setCategorySlug] = useState('general');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,8 +45,10 @@ export function BlogDetailPage() {
         const row = await fetchGuideBySlug(slug);
         setPost(row);
         if (row) {
-          document.title = row.seo_title || `${row.title} | KEMI`;
-          const desc = row.seo_description;
+          const cats = await fetchGuideCategories();
+          setCategorySlug(cats.find((c) => c.name === row.category)?.slug ?? 'general');
+          document.title = row.seo_title || `${row.title} | KEMIX`;
+          const desc = row.seo_description ?? row.summary;
           if (desc) {
             let meta = document.querySelector('meta[name="description"]');
             if (!meta) {
@@ -43,48 +73,90 @@ export function BlogDetailPage() {
     return unsubscribe;
   }, [slug]);
 
-  if (loading) return <p className="muted">불러오는 중...</p>;
-  if (error) return <p className="error">{error}</p>;
-  if (!post) {
+  const handleShare = async () => {
+    if (!post) return;
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: post.title, text: post.summary ?? post.seo_description ?? '', url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      showToast('링크가 클립보드에 복사되었습니다.');
+    } catch {
+      showToast('공유에 실패했습니다.', 'error');
+    }
+  };
+
+  if (loading) {
     return (
-      <div>
-        <p>글을 찾을 수 없습니다.</p>
-        <Link to="/blog">목록으로</Link>
+      <div className="guide-detail-read">
+        <p className="muted">불러오는 중…</p>
       </div>
     );
   }
 
-  const blocks = post.content.split(/\n\n+/);
+  if (error) {
+    return (
+      <div className="guide-detail-read">
+        <p className="error">{error}</p>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="guide-detail-read">
+        <p>글을 찾을 수 없습니다.</p>
+        <Link to="/blog" className="guide-back-btn">
+          ← 목록으로 돌아가기
+        </Link>
+      </div>
+    );
+  }
+
+  const categoryLabel = getGuideCategoryLabel(post.category);
 
   return (
-    <article className="blog-detail">
+    <article className="guide-detail-read">
       <AdSenseSlot slotId="blog-detail-top" className="mb-6" />
 
-      <Link to="/blog" className="back-link">
-        ← 목록
+      <Link to="/blog" className="guide-back-btn">
+        ← 목록으로 돌아가기
       </Link>
-      <h1>{post.title}</h1>
-      <p className="meta">
-        {formatGuideDate(post.created_at)} · 조회 {post.views.toLocaleString('ko-KR')}
-      </p>
 
-      <div className="post-body">
-        {blocks.map((block, index) => {
-          if (index === Math.floor(blocks.length / 2) && blocks.length > 2) {
-            return (
-              <div key={`ad-${index}`}>
-                <AdSenseSlot slotId="blog-detail-mid" className="my-8" />
-                <div className="post-block" dangerouslySetInnerHTML={{ __html: block }} />
-              </div>
-            );
-          }
-          return (
-            <div key={index} className="post-block" dangerouslySetInnerHTML={{ __html: block }} />
-          );
-        })}
-      </div>
+      <header className="guide-detail-header">
+        <h1 className="guide-detail-title">{post.title}</h1>
+        <div className="guide-detail-meta">
+          <time>{formatGuideDate(post.created_at)}</time>
+          <span className="guide-detail-meta-sep">·</span>
+          <span>조회 {post.views.toLocaleString('ko-KR')}</span>
+          <span className="guide-detail-meta-sep">·</span>
+          <span className={`guide-detail-category guide-detail-category--${categorySlug}`}>
+            {categoryLabel}
+          </span>
+        </div>
+      </header>
+
+      {post.thumbnail_url ? (
+        <img src={post.thumbnail_url} alt="" className="guide-detail-hero" />
+      ) : null}
+
+      {renderGuideContent(post.content)}
 
       <AdSenseSlot slotId="blog-detail-bottom" className="mt-10" />
+
+      <footer className="guide-detail-actions">
+        <Link to="/blog" className="btn btn-secondary">
+          목록으로
+        </Link>
+        <button type="button" className="btn btn-outline" onClick={() => void handleShare()}>
+          공유하기
+        </button>
+        <a href={APP_STORE_URL !== '#' ? APP_STORE_URL : APP_DEEP_LINK} className="btn btn-primary">
+          앱에서 보기
+        </a>
+      </footer>
     </article>
   );
 }

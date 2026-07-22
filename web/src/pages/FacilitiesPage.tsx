@@ -6,7 +6,7 @@ export function FacilitiesPage() {
     <div className="facilities-page">
       <h1>응급실 · 병·의원 찾기</h1>
       <p className="lead">
-        전국 응급실 실시간 병상, CT/MRI 장비 가용 여부, 당직의 직통 연락처를 KEMI 앱 지도에서
+        전국 응급실 실시간 병상, CT/MRI 장비 가용 여부, 당직의 직통 연락처를 KEMIX 앱 지도에서
         확인할 수 있습니다.
       </p>
 
