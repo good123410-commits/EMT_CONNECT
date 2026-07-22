@@ -31,7 +31,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 function getOAuthRedirectUrl() {
   if (typeof window === 'undefined') return undefined;
-  return `${window.location.origin}/auth/callback`;
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return `${window.location.origin}${base}/auth/callback`;
 }
 
 export function storeAuthReturnPath(path?: string) {

@@ -3,10 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "homepage": "https://good123410-commits.github.io/EMT_CONNECT",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "build": "tsc -b && vite build && node scripts/copy-404.mjs",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
+    "setup:gh-pages": "npm install --save-dev gh-pages"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.1",
@@ -18,6 +22,7 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",
+    "gh-pages": "^6.3.0",
     "typescript": "~5.9.2",
     "vite": "^6.3.5"
   }
