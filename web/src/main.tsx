@@ -27,6 +27,7 @@ import { TrainingListPage } from './pages/content/TrainingListPage';
 import { LandingPage } from './pages/LandingPage';
 import { LegalPage } from './pages/legal/LegalPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 // import { SkillsPage } from './pages/SkillsPage';
 import './styles.css';
 
@@ -38,6 +39,7 @@ createRoot(document.getElementById('root')!).render(
           <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
           <Routes>
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
             <Route element={<Layout />}>
             <Route index element={<LandingPage />} />
 

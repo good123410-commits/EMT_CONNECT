@@ -9,15 +9,28 @@ export type UserRole =
   | 'private_ems'
   | 'admin';
 
+export type ProfileJobRole = 'paramedic' | 'hospital' | 'private_ems' | 'user';
+
 export type UserProfile = {
   id: string;
   email: string | null;
   role: UserRole;
   name: string | null;
+  nickname: string | null;
+  phone: string | null;
   company_name: string | null;
+  profile_completed?: boolean;
   is_approved: boolean;
   is_blocked?: boolean;
   created_at: string;
+};
+
+export type ProfileSetupInput = {
+  nickname: string;
+  name?: string;
+  phone?: string;
+  role: ProfileJobRole;
+  company_name?: string;
 };
 
 export type DonationAccount = {
@@ -55,6 +68,21 @@ export type FaqItem = {
   display_order: number;
   is_published: boolean;
   created_at: string;
+};
+
+export type InquiryStatus = 'pending' | 'answered';
+
+export type KemixInquiry = {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  admin_answer: string | null;
+  status: InquiryStatus;
+  answered_at: string | null;
+  answered_by: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type KemixSchedule = {
@@ -140,6 +168,8 @@ export type CommunityCategory = {
   is_active: boolean;
 };
 
+export type CommunityReaction = 'like' | 'dislike';
+
 export type CommunityPost = {
   id: string;
   post_type: string;
@@ -148,6 +178,7 @@ export type CommunityPost = {
   content: string;
   anonymous_label: string;
   likes: number;
+  dislikes?: number;
   is_hot: boolean;
   author_id: string | null;
   created_at: string;
@@ -157,6 +188,33 @@ export type CommunityPost = {
   category_slug?: string | null;
   category_name?: string | null;
   comment_count?: number;
+  my_reaction?: CommunityReaction | null;
+};
+
+export type CommunityComment = {
+  id: string;
+  post_id: string;
+  parent_id: string | null;
+  author_id: string;
+  anonymous_label: string;
+  content: string;
+  likes: number;
+  dislikes: number;
+  created_at: string;
+  my_reaction: CommunityReaction | null;
+};
+
+export type ReactionCounts = {
+  likes: number;
+  dislikes: number;
+  my_reaction: CommunityReaction | null;
+};
+
+export type PaginatedPosts = {
+  posts: CommunityPost[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
 };
 
 export type SiteSettingKey = 'privacy_policy' | 'terms_of_service' | 'service_info';

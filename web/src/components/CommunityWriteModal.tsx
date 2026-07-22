@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { createCommunityPost } from '../services/communityService';
+import { getCommunityDisplayName } from '../services/profileService';
 import { getCategoryLabel } from '../constants/communityBoard';
 import type { CommunityCategory } from '../types';
 import { RichTextEditor, stripHtml } from './RichTextEditor';
@@ -41,7 +42,7 @@ export function CommunityWriteModal({ open, onClose, categories, onSubmitted }: 
 
   if (!open) return null;
 
-  const authorLabel = profile?.name?.trim() || user?.email?.split('@')[0] || '웹 회원';
+  const authorLabel = getCommunityDisplayName(profile, user?.email);
 
   const handleSubmit = async () => {
     if (!user) return;

@@ -5,6 +5,7 @@ import { AdminAboutItemsPanel } from './AdminAboutItemsPanel';
 import { AdminCommunityPanel } from './AdminCommunityPanel';
 import { AdminDonationsPanel } from './AdminDonationsPanel';
 import { AdminFaqPanel } from './AdminFaqPanel';
+import { AdminInquiriesPanel } from './AdminInquiriesPanel';
 import { AdminGuidesPanel } from './AdminGuidesPanel';
 import { AdminInterviewsPanel } from './AdminInterviewsPanel';
 import { AdminNav } from './AdminNav';
@@ -55,6 +56,7 @@ export function AdminDashboardPage() {
         {tab === 'polls' && <AdminPollsPanel />}
         {tab === 'donations' && <AdminDonationsPanel />}
         {tab === 'faq' && <AdminFaqPanel />}
+        {tab === 'inquiries' && <AdminInquiriesPanel />}
         {tab === 'users' && <AdminUsersPanel />}
         {tab === 'site-settings' && <AdminSiteSettingsPanel />}
       </div>

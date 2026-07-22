@@ -16,6 +16,7 @@ export type AdminTabId =
   | 'skills'
   | 'donations'
   | 'faq'
+  | 'inquiries'
   | 'users'
   | 'site-settings';
 
@@ -66,7 +67,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     id: 'support',
     label: '다운로드 & Q&A',
-    children: [{ id: 'faq', label: 'FAQ & Q&A' }],
+    children: [
+      { id: 'faq', label: '자주 묻는 질문(FAQ)' },
+      { id: 'inquiries', label: '1:1 문의(Q&A)' },
+    ],
   },
   {
     id: 'system',

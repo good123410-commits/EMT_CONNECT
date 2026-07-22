@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ALL_USER_ROLES, getRoleLabel } from '../constants/roles';
+import { AccountLinkingSection } from './AccountLinkingSection';
+import { getRoleLabel } from '../constants/roles';
 import { useAuth } from '../contexts/AuthContext';
+import { getCommunityDisplayName } from '../services/profileService';
 import { useTheme } from '../contexts/ThemeContext';
 
 type SettingsDropdownProps = {
@@ -14,11 +16,7 @@ export function SettingsDropdown({ onLoginClick }: SettingsDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const displayName =
-    profile?.name?.trim() ||
-    (user?.user_metadata?.name as string | undefined) ||
-    user?.email?.split('@')[0] ||
-    '사용자';
+  const displayName = getCommunityDisplayName(profile, user?.email);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -62,6 +60,8 @@ export function SettingsDropdown({ onLoginClick }: SettingsDropdownProps) {
                 >
                   🚪 로그아웃
                 </button>
+                <div className="settings-dropdown-divider" />
+                <AccountLinkingSection />
               </>
             ) : (
               <button

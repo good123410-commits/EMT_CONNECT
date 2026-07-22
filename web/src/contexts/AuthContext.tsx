@@ -1,4 +1,4 @@
-import type { Provider } from '@supabase/supabase-js';
+import type { Provider, Session, User } from '@supabase/supabase-js';
 import {
   createContext,
   useCallback,
@@ -8,53 +8,64 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { ProfileSetupModal } from '../components/ProfileSetupModal';
+import {
+  getLinkedAuthProviders,
+  linkOAuthProvider,
+  reconcileProfileAfterAuth,
+  type LinkedAuthProvider,
+} from '../services/authService';
+import {
+  fetchProfile,
+  isApprovedAdmin,
+  isProfileComplete,
+} from '../services/profileService';
 import { supabase } from '../lib/supabase';
-import { fetchProfile, isApprovedAdmin } from '../services/profileService';
+import {
+  consumeAuthReturnPath,
+  getOAuthRedirectUrl,
+  getPasswordResetRedirectUrl,
+  storeAuthReturnPath,
+} from '../utils/authRedirects';
 import type { UserProfile } from '../types';
-import type { Session, User } from '@supabase/supabase-js';
 
-const AUTH_RETURN_KEY = 'kemix-auth-return-to';
+export {
+  consumeAuthReturnPath,
+  getOAuthRedirectUrl,
+  getPasswordResetRedirectUrl,
+  storeAuthReturnPath,
+};
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
   isAdmin: boolean;
+  needsProfileSetup: boolean;
+  profileLoading: boolean;
+  linkedProviders: LinkedAuthProvider[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ needsEmailConfirmation: boolean }>;
   signInWithOAuth: (provider: Provider) => Promise<void>;
+  linkOAuthProvider: (provider: Provider) => Promise<void>;
+  resetPasswordForEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function getOAuthRedirectUrl() {
-  if (typeof window === 'undefined') return undefined;
-  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-  return `${window.location.origin}${base}/auth/callback`;
-}
-
-export function storeAuthReturnPath(path?: string) {
-  if (typeof window === 'undefined') return;
-  const target = path ?? `${window.location.pathname}${window.location.search}`;
-  sessionStorage.setItem(AUTH_RETURN_KEY, target || '/');
-}
-
-export function consumeAuthReturnPath(): string {
-  if (typeof window === 'undefined') return '/';
-  const path = sessionStorage.getItem(AUTH_RETURN_KEY) || '/';
-  sessionStorage.removeItem(AUTH_RETURN_KEY);
-  return path.startsWith('/') ? path : '/';
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const loadProfile = useCallback(async (userId: string) => {
+    setProfileLoading(true);
     try {
+      await reconcileProfileAfterAuth();
       const p = await fetchProfile(userId);
       if (p?.is_blocked) {
         await supabase.auth.signOut();
@@ -65,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       if (err instanceof Error && err.message.includes('차단')) throw err;
       setProfile(null);
+    } finally {
+      setProfileLoading(false);
     }
   }, []);
 
@@ -85,14 +98,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       if (nextSession?.user) {
         void loadProfile(nextSession.user.id);
       } else {
         setProfile(null);
+        setProfileLoading(false);
       }
       setLoading(false);
+
+      if (event === 'USER_UPDATED' && nextSession?.user) {
+        void loadProfile(nextSession.user.id);
+      }
     });
 
     return () => {
@@ -104,12 +122,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    await reconcileProfileAfterAuth();
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+    });
+    if (error) throw error;
+
+    const needsEmailConfirmation = !data.session;
+    if (data.session?.user) {
+      await reconcileProfileAfterAuth();
+    }
+    return { needsEmailConfirmation };
+  }, []);
+
+  const resetPasswordForEmail = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: getPasswordResetRedirectUrl(),
+    });
+    if (error) throw error;
   }, []);
 
   const signInWithOAuth = useCallback(async (provider: Provider) => {
     storeAuthReturnPath();
 
-    // 카카오 개인 앱: scopes 미지정 — account_email 요청 시 KOE205 발생
     const options: { redirectTo?: string; scopes?: string } = {
       redirectTo: getOAuthRedirectUrl(),
     };
@@ -121,30 +160,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
+  const handleLinkOAuthProvider = useCallback(async (provider: Provider) => {
+    await linkOAuthProvider(provider);
+  }, []);
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setProfile(null);
   }, []);
 
+  const user = session?.user ?? null;
   const isAdmin = isApprovedAdmin(profile);
+  const linkedProviders = useMemo(() => getLinkedAuthProviders(user), [user]);
+  const needsProfileSetup = Boolean(
+    user && !loading && !profileLoading && !isProfileComplete(profile),
+  );
 
   const value = useMemo(
     () => ({
       session,
-      user: session?.user ?? null,
+      user,
       profile,
       isAdmin,
+      needsProfileSetup,
+      profileLoading,
+      linkedProviders,
       loading,
       signIn,
+      signUp,
       signInWithOAuth,
+      linkOAuthProvider: handleLinkOAuthProvider,
+      resetPasswordForEmail,
       signOut,
       refreshProfile,
     }),
-    [session, profile, isAdmin, loading, signIn, signInWithOAuth, signOut, refreshProfile],
+    [
+      session,
+      user,
+      profile,
+      isAdmin,
+      needsProfileSetup,
+      profileLoading,
+      linkedProviders,
+      loading,
+      signIn,
+      signUp,
+      signInWithOAuth,
+      handleLinkOAuthProvider,
+      resetPasswordForEmail,
+      signOut,
+      refreshProfile,
+    ],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <ProfileSetupModal />
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

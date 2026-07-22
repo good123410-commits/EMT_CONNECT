@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { consumeAuthReturnPath } from '../contexts/AuthContext';
+import { reconcileProfileAfterAuth } from '../services/authService';
 import { supabase } from '../lib/supabase';
 
 export function AuthCallbackPage() {
@@ -22,6 +23,8 @@ export function AuthCallbackPage() {
           const { error } = await supabase.auth.getSession();
           if (error) throw error;
         }
+
+        await reconcileProfileAfterAuth();
 
         const returnTo = consumeAuthReturnPath();
         if (!cancelled) {

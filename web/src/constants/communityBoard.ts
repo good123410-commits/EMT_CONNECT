@@ -1,5 +1,8 @@
+export const BOARD_PAGE_SIZE = 15;
+
 export const BOARD_FILTER_TABS = [
   { id: 'all', label: '전체', slug: null },
+  { id: 'daily-best', label: '🔥 일간 베스트 10', slug: null, dailyBest: true },
   { id: 'free', label: '자유', slug: 'free' },
   { id: 'question', label: '질문&답변', slug: 'question' },
   { id: 'field', label: '현장 이야기', slug: 'field' },

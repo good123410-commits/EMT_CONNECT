@@ -62,15 +62,6 @@ export type AdminCommunityPost = {
   created_at: string;
 };
 
-export type AdminQuestion = {
-  id: string;
-  user_id: string;
-  title: string;
-  content: string;
-  status: string;
-  created_at: string;
-};
-
 function rpcError(err: { message: string }) {
   throw new Error(err.message);
 }
@@ -333,22 +324,6 @@ export async function adminUpsertFaq(input: {
 
 export async function adminDeleteFaq(id: string) {
   const { error } = await supabase.rpc('admin_delete_faq', { p_id: id });
-  if (error) rpcError(error);
-}
-
-// ── Q&A ──
-export async function adminListQuestions(): Promise<AdminQuestion[]> {
-  const { data, error } = await supabase
-    .from('questions')
-    .select('id, user_id, title, content, status, created_at')
-    .order('created_at', { ascending: false })
-    .limit(100);
-  if (error) rpcError(error);
-  return (data ?? []) as AdminQuestion[];
-}
-
-export async function adminDeleteQuestion(id: string) {
-  const { error } = await supabase.from('questions').delete().eq('id', id);
   if (error) rpcError(error);
 }
 
