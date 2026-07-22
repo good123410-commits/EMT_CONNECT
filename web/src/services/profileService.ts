@@ -1,4 +1,5 @@
 import { isAdminRole } from '../constants/roles';
+import { isBootstrapAdminEmail } from '../constants/adminAccess';
 import { supabase } from '../lib/supabase';
 import type { ProfileSetupInput, UserProfile, UserRole } from '../types';
 
@@ -99,7 +100,7 @@ function mapProfileSetupError(message: string): string {
     return '별명은 2~20자로 입력해 주세요.';
   }
   if (isMissingColumnError(message)) {
-    return '프로필 DB 스키마가 최신이 아닙니다. Supabase SQL Editor에서 migration_v43_user_profiles_onboarding_fix.sql을 실행해 주세요.';
+    return '프로필 DB 스키마가 최신이 아닙니다. Supabase SQL Editor에서 migration_v43·v44를 실행해 주세요.';
   }
   return message || '프로필 저장에 실패했습니다.';
 }
@@ -150,18 +151,30 @@ async function completeProfileSetupDirect(input: ProfileSetupInput): Promise<Use
     data: { session },
   } = await supabase.auth.getSession();
   const userId = session?.user?.id;
+  const email = session?.user?.email;
   if (!userId) throw new Error('로그인이 필요합니다.');
 
   await supabase.rpc('ensure_my_user_profile');
+
+  const existing = await fetchProfile(userId);
+  let role: UserRole = input.role;
+  if (existing && isAdminRole(existing.role)) {
+    role = existing.role;
+  } else if (isBootstrapAdminEmail(email)) {
+    role = 'super_admin';
+  }
 
   return upsertUserProfileRow({
     id: userId,
     nickname: input.nickname.trim(),
     name: input.name?.trim() || null,
     phone: input.phone?.trim() || null,
-    role: input.role,
+    role,
     company_name: input.company_name?.trim() || null,
     profile_completed: true,
+    ...(isBootstrapAdminEmail(email) || (existing && isAdminRole(existing.role))
+      ? { is_approved: true }
+      : {}),
   });
 }
 
@@ -200,7 +213,4 @@ export async function findEmailHintByNickname(nickname: string): Promise<string 
   return typeof data === 'string' ? data : null;
 }
 
-export function isApprovedAdmin(profile: UserProfile | null): boolean {
-  if (!profile?.is_approved || profile.is_blocked) return false;
-  return isAdminRole(profile.role);
-}
+export { isApprovedAdmin } from '../constants/adminAccess';

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { BRAND_NAME, BRAND_NAME_KO } from '../constants/branding';
+import { isAdminRole } from '../constants/roles';
 import { useAuth } from '../contexts/AuthContext';
 import { completeProfileSetup } from '../services/profileService';
 import type { ProfileJobRole } from '../types';
@@ -14,7 +15,7 @@ const EMPTY = {
 };
 
 export function ProfileSetupModal() {
-  const { needsProfileSetup, refreshProfile } = useAuth();
+  const { needsProfileSetup, refreshProfile, profile } = useAuth();
   const titleId = useId();
   const nicknameRef = useRef<HTMLInputElement>(null);
 
@@ -54,11 +55,12 @@ export function ProfileSetupModal() {
 
     setLoading(true);
     try {
+      const jobRole = isAdminRole(profile?.role ?? 'user') ? 'user' : form.role;
       await completeProfileSetup({
         nickname,
         name: form.name.trim() || undefined,
         phone: form.phone.trim() || undefined,
-        role: form.role,
+        role: jobRole,
         company_name: form.company_name.trim() || undefined,
       });
       await refreshProfile();
@@ -137,7 +139,7 @@ export function ProfileSetupModal() {
           />
 
           <label className="modal-label" htmlFor="profile-role">
-            직군/역할 <span className="modal-required">*</span>
+            커뮤니티 직군 <span className="modal-required">*</span>
           </label>
           <select
             id="profile-role"

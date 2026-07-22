@@ -171,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const user = session?.user ?? null;
-  const isAdmin = isApprovedAdmin(profile);
+  const isAdmin = isApprovedAdmin(profile, user?.email ?? null);
   const linkedProviders = useMemo(() => getLinkedAuthProviders(user), [user]);
   const needsProfileSetup = Boolean(
     user && !loading && !profileLoading && !isProfileComplete(profile),
