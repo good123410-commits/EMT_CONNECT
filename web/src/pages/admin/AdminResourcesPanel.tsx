@@ -5,6 +5,7 @@ import {
   adminDeleteResource,
   adminListResources,
   adminUpsertResource,
+  deriveFileNameFromUrl,
   formatFileSize,
   type UpsertResourceInput,
 } from '../../services/resourceService';
@@ -23,13 +24,7 @@ const EMPTY_FORM: UpsertResourceInput = {
 };
 
 function fileNameFromUrl(url: string): string {
-  try {
-    const pathname = new URL(url).pathname;
-    const name = pathname.split('/').pop();
-    return name && name.length > 0 ? decodeURIComponent(name) : 'resource-file';
-  } catch {
-    return 'resource-file';
-  }
+  return deriveFileNameFromUrl(url);
 }
 
 export function AdminResourcesPanel() {
@@ -109,7 +104,7 @@ export function AdminResourcesPanel() {
       showToast(message, 'error');
       return;
     }
-    if (!fileUrl || !fileName) {
+    if (!fileUrl) {
       const message = '파일을 업로드하거나 파일 URL을 입력해 주세요.';
       setError(message);
       showToast(message, 'error');
@@ -223,7 +218,7 @@ export function AdminResourcesPanel() {
             <input
               className="modal-input"
               value={form.file_url}
-              placeholder="https://..."
+              placeholder="https://... (파일 업로드 없이 URL만 입력해도 등록 가능)"
               onChange={(e) => {
                 const nextUrl = e.target.value;
                 setForm((f) => ({
@@ -236,11 +231,11 @@ export function AdminResourcesPanel() {
             />
           </label>
           <label className="admin-span-full">
-            파일명 (표시용)
+            파일명 (표시용, 선택)
             <input
               className="modal-input"
               value={form.file_name}
-              placeholder="예: 응급처치_매뉴얼.pdf"
+              placeholder="비우면 URL 또는 업로드 파일명에서 자동 설정"
               onChange={(e) => setForm((f) => ({ ...f, file_name: e.target.value }))}
             />
           </label>

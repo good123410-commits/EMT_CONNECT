@@ -18,6 +18,9 @@ const ATTACHMENT_TYPES = new Set([
   'application/x-zip-compressed',
   'text/plain',
   'application/octet-stream',
+  'application/haansofthwp',
+  'application/vnd.hancom.hwp',
+  'application/x-hwp',
 ]);
 
 const ATTACHMENT_EXTENSIONS = new Set([
@@ -60,15 +63,30 @@ function fileExtension(file: File): string {
   return map[file.type] ?? 'jpg';
 }
 
+function attachmentExtension(file: File): string {
+  const fromName = file.name.split('.').pop()?.toLowerCase();
+  if (fromName && ATTACHMENT_EXTENSIONS.has(fromName)) {
+    return fromName;
+  }
+  return 'bin';
+}
+
+/** 버킷 허용 MIME 목록에 없으면 octet-stream으로 업로드 (HWP 등) */
+function resolveAttachmentContentType(file: File): string {
+  if (ATTACHMENT_TYPES.has(file.type)) {
+    return file.type;
+  }
+  return 'application/octet-stream';
+}
+
 export async function uploadAttachmentFile(file: File, folder: string): Promise<string> {
   const validationError = validateAttachmentFile(file);
   if (validationError) throw new Error(validationError);
 
-  const safeName = file.name.replace(/[^\w.\-가-힣]/g, '_').slice(0, 80);
-  const path = `${folder}/${crypto.randomUUID()}-${safeName}`;
+  const path = `${folder}/${crypto.randomUUID()}.${attachmentExtension(file)}`;
 
   const { error } = await supabase.storage.from(KEMIX_MEDIA_BUCKET).upload(path, file, {
-    contentType: file.type || 'application/octet-stream',
+    contentType: resolveAttachmentContentType(file),
     upsert: false,
     cacheControl: '3600',
   });

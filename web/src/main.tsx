@@ -34,6 +34,9 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 // import { SkillsPage } from './pages/SkillsPage';
 import './styles.css';
 import './dark-theme.css';
+import { preloadKakaoSdk } from './utils/kakaoShare';
+
+preloadKakaoSdk();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

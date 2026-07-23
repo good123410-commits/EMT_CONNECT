@@ -23,8 +23,9 @@ export function ResourceDetailModal({ resource, open, onClose }: ResourceDetailM
 
   const handleKakaoShare = () => {
     setShareError(null);
-    const err = shareResourceOnKakao(resource);
-    if (err) setShareError(err);
+    void shareResourceOnKakao(resource).then((err) => {
+      if (err) setShareError(err);
+    });
   };
 
   return (
