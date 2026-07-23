@@ -651,6 +651,38 @@ a:hover { text-decoration: underline; }
   margin: 0 0 1.25rem;
   padding-left: 1.5rem;
 }
+.guide-detail-body blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--kemix-green, #047857);
+  background: #f8fafc;
+  color: #475569;
+}
+.guide-detail-body [style*='text-align: center'],
+.guide-detail-body [align='center'] {
+  text-align: center;
+}
+.guide-detail-body [style*='text-align: right'],
+.guide-detail-body [align='right'] {
+  text-align: right;
+}
+.guide-detail-body [style*='text-align: left'],
+.guide-detail-body [align='left'] {
+  text-align: left;
+}
+.guide-detail-body font[size='2'] { font-size: 0.875rem; }
+.guide-detail-body font[size='3'] { font-size: 1rem; }
+.guide-detail-body font[size='4'] { font-size: 1.125rem; }
+.guide-detail-body font[size='5'] { font-size: 1.25rem; }
+.guide-detail-body strong,
+.guide-detail-body b {
+  font-weight: 700;
+  color: #0f172a;
+}
+.guide-detail-body em,
+.guide-detail-body i {
+  font-style: italic;
+}
 .guide-detail-actions {
   display: flex;
   flex-wrap: wrap;
@@ -749,6 +781,14 @@ a:hover { text-decoration: underline; }
   margin-top: 0.5rem;
 }
 
+.guide-detail-preview-card {
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
 .guide-detail-preview {
   margin-bottom: 0.5rem;
 }
@@ -763,6 +803,57 @@ a:hover { text-decoration: underline; }
   margin: 0 0 1rem;
 }
 
+.guide-detail-blur-teaser {
+  max-height: 220px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+}
+
+.guide-detail-blur-teaser-inner {
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+}
+
+.guide-detail-login-panel {
+  border-radius: 1rem;
+  border: 1px solid #d1fae5;
+  background: #fff;
+  padding: 1.25rem 1.25rem 1.1rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.guest-login-prompt--guide-gate {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.guest-login-prompt--guide-gate .guest-login-prompt-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.guest-login-prompt--guide-gate .guest-login-prompt-actions .social-login {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 0;
+}
+
+.guest-login-prompt--guide-gate .social-login-btn {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* @deprecated — replaced by stacked guide-detail-blur-teaser + guide-detail-login-panel */
 .guide-detail-gated {
   position: relative;
   margin-top: 0.5rem;
@@ -797,6 +888,18 @@ a:hover { text-decoration: underline; }
 }
 
 @media (max-width: 640px) {
+  .guide-detail-blur-teaser {
+    max-height: 200px;
+  }
+
+  .guide-detail-login-panel {
+    padding: 1.1rem 1rem 1rem;
+  }
+
+  .guest-login-prompt--guide-gate .guest-login-prompt-actions .social-login {
+    max-width: none;
+  }
+
   .guide-detail-gated-blur {
     max-height: 220px;
   }
@@ -892,6 +995,15 @@ a:hover { text-decoration: underline; }
 .modal-dialog {
   position: relative;
   width: min(420px, 100%);
+  background: #fff;
+  border-radius: 1.25rem;
+  padding: 2rem 2rem 1.75rem;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  animation: modal-slide-up 0.25s ease;
+}
+.modal-card {
+  position: relative;
+  width: min(640px, 100%);
   background: #fff;
   border-radius: 1.25rem;
   padding: 2rem 2rem 1.75rem;
@@ -3166,6 +3278,7 @@ a:hover { text-decoration: underline; }
   width: min(100%, 720px);
   max-height: min(90vh, 720px);
   overflow-y: auto;
+  padding: 2rem 2rem 1.75rem;
 }
 
 .fund-usage-modal-header {
@@ -3327,6 +3440,28 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.board-list-preview {
+  display: block;
+  width: 100%;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-qna-mode-label {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #047857;
 }
 
 .board-list-col--author {
@@ -3705,6 +3840,17 @@ a:hover { text-decoration: underline; }
   margin: 0;
   font-size: 0.82rem;
   color: #64748b;
+}
+
+.community-answer-restricted {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.65rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #92400e;
 }
 
 .community-report-modal {

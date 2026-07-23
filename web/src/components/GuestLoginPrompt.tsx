@@ -9,6 +9,7 @@ type GuestLoginPromptProps = {
   title: string;
   description: string;
   presentation?: 'sheet' | 'inline';
+  variant?: 'default' | 'guide-gate';
   returnPath?: string;
   intent?: AuthIntent;
   kakaoLabel?: string;
@@ -22,6 +23,7 @@ export function GuestLoginPrompt({
   title,
   description,
   presentation = 'sheet',
+  variant = 'default',
   returnPath,
   intent,
   kakaoLabel = '카카오 3초 로그인',
@@ -48,18 +50,23 @@ export function GuestLoginPrompt({
   const busy = oauthLoading !== null;
 
   const body = (
-  <div className={`guest-login-prompt${presentation === 'inline' ? ' guest-login-prompt--inline' : ''}`}>
-      <h3 id="guest-login-title" className="guest-login-prompt-title">{title}</h3>
+    <div
+      className={`guest-login-prompt${presentation === 'inline' ? ' guest-login-prompt--inline' : ''}${variant === 'guide-gate' ? ' guest-login-prompt--guide-gate' : ''}`}
+    >
+      <h3 id="guest-login-title" className="guest-login-prompt-title">
+        {title}
+      </h3>
       <p className="guest-login-prompt-desc">{description}</p>
 
       <div className="social-login guest-login-prompt-actions">
+        <p className="social-login-label">소셜 계정으로 간편 로그인</p>
         <button
           type="button"
           className="social-login-btn social-login-btn--kakao"
           disabled={busy}
           onClick={() => void handleOAuth('kakao')}
         >
-          {oauthLoading === 'kakao' ? '연결 중…' : `🟡 ${kakaoLabel}`}
+          {oauthLoading === 'kakao' ? '연결 중…' : kakaoLabel}
         </button>
         <button
           type="button"
@@ -67,7 +74,7 @@ export function GuestLoginPrompt({
           disabled={busy}
           onClick={() => void handleOAuth('google')}
         >
-          {oauthLoading === 'google' ? '연결 중…' : `⚪ ${googleLabel}`}
+          {oauthLoading === 'google' ? '연결 중…' : googleLabel}
         </button>
       </div>
 

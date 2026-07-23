@@ -18,6 +18,21 @@ export function resetRootRoute(name: RootRoute): void {
   navigationRef.reset({ index: 0, routes: [{ name }] });
 }
 
+export function openAuthScreen(screen: 'Login' | 'SignUp' = 'Login'): void {
+  if (!navigationRef.isReady()) return;
+  navigationRef.navigate('Auth', { screen });
+}
+
+/** 로그인 화면에서 게스트 메인으로 복귀 */
+export function returnToGuestMain(): void {
+  if (!navigationRef.isReady()) return;
+  if (navigationRef.canGoBack()) {
+    navigationRef.goBack();
+    return;
+  }
+  resetRootRoute('Main');
+}
+
 /**
  * Main ↔ Expert 전환 시 push/pop으로 히스토리 보존.
  * Loading / Auth / 로그아웃은 reset.
@@ -33,7 +48,18 @@ export function applyRootRouteTransition(
 
   const { hasSession } = options;
 
-  if (!hasSession || target === 'Loading' || target === 'Auth') {
+  if (target === 'Loading' || target === 'Auth') {
+    resetRootRoute(target);
+    return true;
+  }
+
+  if (!hasSession) {
+    if (target === 'Main') {
+      if (current === 'Expert' || current === 'Loading') {
+        resetRootRoute('Main');
+      }
+      return true;
+    }
     resetRootRoute(target);
     return true;
   }

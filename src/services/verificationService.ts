@@ -3,22 +3,15 @@ import {
   USER_PROFILES_TABLE,
   VERIFICATIONS_BUCKET,
   type EmtVerification,
-  type UserRole,
 } from '@/lib/supabaseClient';
 
-const VALID_INVITATION_CODES: Record<string, UserRole> = {
-  'EMS-TEST-PRO': 'paramedic',
-  'EMT-INVITE-2026': 'paramedic',
-  'HOSP-TEST-2026': 'hospital',
-  'PRIVATE-EMS-TEST': 'private_ems',
+const VALID_INVITATION_CODES: Record<string, string> = {
+  'EMS-TEST-PRO': 'associate_member',
+  'EMT-INVITE-2026': 'associate_member',
 };
 
 export function isValidInvitationCode(code: string): boolean {
   return code.trim().toUpperCase() in VALID_INVITATION_CODES;
-}
-
-export function getRoleFromInvitationCode(code: string): UserRole | null {
-  return VALID_INVITATION_CODES[code.trim().toUpperCase()] ?? null;
 }
 
 export async function uploadVerificationDocument(
@@ -48,48 +41,26 @@ export async function uploadVerificationDocument(
 export async function submitVerificationRequest(
   userId: string,
   invitationCode: string,
-  documentUrl: string,
+  documentUrl?: string | null,
 ): Promise<EmtVerification> {
   const normalizedCode = invitationCode.trim().toUpperCase();
-  const targetRole = getRoleFromInvitationCode(normalizedCode);
-
-  const { data, error } = await supabase
-    .from('emt_verifications')
-    .insert({
-      user_id: userId,
-      document_url: documentUrl,
-      status: 'pending',
-    })
-    .select('*')
-    .single();
-
-  if (error) throw error;
-
-  await supabase
-    .from(USER_PROFILES_TABLE)
-    .update({ invitation_code: normalizedCode })
-    .eq('id', userId);
-
-  if (targetRole) {
-    await supabase
-      .from(USER_PROFILES_TABLE)
-      .update({ role: targetRole, is_approved: true })
-      .eq('id', userId);
-
-    await supabase
-      .from('emt_verifications')
-      .update({ status: 'approved', reviewer_notes: 'Auto-approved (test invitation code)' })
-      .eq('id', data.id);
+  if (!normalizedCode) {
+    throw new Error('구급대원 비밀코드를 입력해 주세요.');
   }
 
-  const { data: updated, error: fetchError } = await supabase
-    .from('emt_verifications')
-    .select('*')
-    .eq('id', data.id)
-    .single();
+  const { data, error } = await supabase.rpc('submit_paramedic_code_request', {
+    p_code: normalizedCode,
+    p_document_url: documentUrl ?? null,
+  });
 
-  if (fetchError) throw fetchError;
-  return updated as EmtVerification;
+  if (error) {
+    if (error.message.includes('invalid_code')) {
+      throw new Error('유효하지 않거나 만료된 비밀코드입니다.');
+    }
+    throw error;
+  }
+
+  return data as EmtVerification;
 }
 
 export async function fetchLatestVerification(userId: string): Promise<EmtVerification | null> {
@@ -103,4 +74,24 @@ export async function fetchLatestVerification(userId: string): Promise<EmtVerifi
 
   if (error) throw error;
   return data as EmtVerification | null;
+}
+
+export function subscribeProfileChanges(userId: string, onChange: () => void): () => void {
+  const channel = supabase
+    .channel(`user_profile_${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: USER_PROFILES_TABLE,
+        filter: `id=eq.${userId}`,
+      },
+      () => onChange(),
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
 }

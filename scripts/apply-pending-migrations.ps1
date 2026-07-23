@@ -7,7 +7,11 @@ param(
     [string] $AccessToken = '',
     [string[]] $Files = @(
         'supabase\migration_v45_kemix_members_fund_usage.sql',
-        'supabase\migration_v46_kemix_resources_download.sql'
+        'supabase\migration_v46_kemix_resources_download.sql',
+        'supabase\migration_v47_qa_board_rbac.sql',
+        'supabase\migration_v48_admin_upsert_resource_fix.sql',
+        'supabase\migration_v49_membership_rbac.sql',
+        'supabase\migration_v50_admin_rpc_fix.sql'
     )
 )
 

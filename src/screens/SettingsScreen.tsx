@@ -23,7 +23,9 @@ import { ServicePolicyModal } from '@/components/legal/ServicePolicyModal';
 import { SettingsAdminPortalModal } from '@/components/settings/SettingsAdminPortalModal';
 import { SettingsParamedicPortalModal } from '@/components/settings/SettingsParamedicPortalModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOpeningIntro } from '@/contexts/OpeningIntroContext';
 import { useExpertSettingsAccess } from '@/hooks/useExpertSettingsAccess';
+import { openAuthScreen } from '@/navigation/rootNavigation';
 import type { SettingsStackParamList } from '@/navigation/SettingsStackNavigator';
 
 const LOCATION_CONSENT_KEY = 'ems_connect_location_consent_v1';
@@ -33,6 +35,7 @@ type LegalModalKind = 'privacy' | 'terms' | 'location' | 'servicePolicy' | null;
 export function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
   const { user, profile, signOut } = useAuth();
+  const { replayOpeningIntro, resetOpeningIntroSnooze } = useOpeningIntro();
   const { canOpenAnswerInbox, isDbAdmin, showExpertSettingsMenu } = useExpertSettingsAccess();
   const [locationConsent, setLocationConsent] = useState(false);
   const [legalModal, setLegalModal] = useState<LegalModalKind>(null);
@@ -99,7 +102,9 @@ export function SettingsScreen() {
           <Text className="mt-2 text-xs text-slate-400">
             {profile?.name ?? user.email ?? '로그인됨'}
           </Text>
-        ) : null}
+        ) : (
+          <Text className="mt-2 text-xs text-slate-400">게스트로 둘러보는 중</Text>
+        )}
       </SafeAreaView>
 
       <ScrollView className="flex-1" contentContainerClassName="p-4 pb-12 gap-4">
@@ -148,7 +153,46 @@ export function SettingsScreen() {
           <SettingsSection title="계정">
             <SettingsRow icon="log-out-outline" label="로그아웃" onPress={() => void signOut()} />
           </SettingsSection>
-        ) : null}
+        ) : (
+          <SettingsSection title="계정">
+            <SettingsRow
+              icon="log-in-outline"
+              label="로그인"
+              subtitle="회원 전용 기능 이용"
+              onPress={() => openAuthScreen('Login')}
+            />
+            <SettingsRow
+              icon="person-add-outline"
+              label="회원가입"
+              subtitle="새 계정 만들기"
+              onPress={() => openAuthScreen('SignUp')}
+              showDivider={false}
+            />
+          </SettingsSection>
+        )}
+
+        <SettingsSection title="앱 화면">
+          <SettingsRow
+            icon="play-circle-outline"
+            label="오프닝 인트로 다시 보기"
+            subtitle="KEMIX 브랜드 오프닝 몽타주 재생"
+            onPress={() => {
+              void resetOpeningIntroSnooze();
+              replayOpeningIntro();
+            }}
+          />
+          <SettingsRow
+            icon="eye-off-outline"
+            label="오프닝 인트로 스누즈 해제"
+            subtitle="‘오늘 하루 보지 않기’ 설정 초기화"
+            onPress={() => {
+              void resetOpeningIntroSnooze().then(() => {
+                Alert.alert('완료', '다음 앱 실행 시 오프닝 인트로가 다시 표시됩니다.');
+              });
+            }}
+            showDivider={false}
+          />
+        </SettingsSection>
 
         <SettingsSection title="서비스 안내">
           <SettingsRow

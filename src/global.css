@@ -1,3 +1,35 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.guide-detail-html {
+  font-size: 15px;
+  line-height: 1.75;
+  color: #334155;
+}
+.guide-detail-html p {
+  margin: 0 0 1rem;
+}
+.guide-detail-html img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 12px 0;
+  display: block;
+}
+.guide-detail-html blockquote {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid #047857;
+  background: #f8fafc;
+  color: #475569;
+}
+.guide-detail-html strong,
+.guide-detail-html b {
+  font-weight: 700;
+  color: #0f172a;
+}
+.guide-detail-html em,
+.guide-detail-html i {
+  font-style: italic;
+}

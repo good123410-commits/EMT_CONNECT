@@ -48,6 +48,10 @@ const UserRoleContext = createContext<UserRoleContextValue | null>(null);
 
 const DEV_ROLE_PRESETS: Record<UserRole, DevRolePreset> = {
   user: { role: 'user', isApproved: false },
+  associate_member: { role: 'associate_member', isApproved: true },
+  regular_member: { role: 'regular_member', isApproved: true },
+  super_admin: { role: 'super_admin', isApproved: true },
+  sub_admin: { role: 'sub_admin', isApproved: true },
   hospital: { role: 'hospital', isApproved: true },
   paramedic: { role: 'paramedic', isApproved: true },
   private_ems: { role: 'private_ems', isApproved: true },

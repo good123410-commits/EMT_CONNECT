@@ -15,7 +15,6 @@ export const DOWNLOAD_TABS = [
   { to: '/download/resources', label: '자료실', end: true },
   { to: '/download/app', label: '앱 다운로드', end: true },
   { to: '/download/faq', label: '자주하는 질문', end: true },
-  { to: '/download/contact', label: '1:1 질문하기', end: true },
 ] as const;
 
 export const MAIN_NAV: NavItem[] = [
@@ -42,6 +41,7 @@ export const MAIN_NAV: NavItem[] = [
     label: 'KEMIX 커뮤니티',
     children: [
       { to: '/community/board', label: '자유게시판' },
+      { to: '/community/qna', label: 'EMS 질문하기' },
       // { to: '/community/skills', label: '스킬 테크 트리' },
       { to: '/community/polls', label: 'KEMIX 투표' },
       { to: '/community/donation', label: '모금 계좌 안내' },
@@ -54,13 +54,14 @@ export const MAIN_NAV: NavItem[] = [
       { to: '/download/resources', label: '자료실' },
       { to: '/download/app', label: '앱 다운로드' },
       { to: '/download/faq', label: '자주하는 질문' },
-      { to: '/download/contact', label: '1:1 질문하기' },
+      { to: '/community/qna', label: 'EMS 질문하기' },
     ],
   },
 ];
 
 export const COMMUNITY_TABS = [
   { to: '/community/board', label: '자유게시판' },
+  { to: '/community/qna', label: 'EMS 질문하기' },
   // { to: '/community/skills', label: '스킬 테크 트리' },
   { to: '/community/polls', label: 'KEMIX 투표' },
   { to: '/community/donation', label: '모금 계좌 안내' },

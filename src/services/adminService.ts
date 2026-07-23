@@ -317,7 +317,7 @@ export async function adminReviewVerification(
   verificationId: string,
   status: 'approved' | 'rejected',
   notes?: string,
-  targetRole: UserRole = 'paramedic',
+  targetRole: UserRole = 'associate_member',
 ): Promise<AdminVerificationRow> {
   return callRpc<AdminVerificationRow>('admin_review_verification', {
     p_verification_id: verificationId,

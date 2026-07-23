@@ -42,7 +42,7 @@ export function Layout() {
             <Link to="/download/resources">자료실</Link>
             <Link to="/download/app">앱 다운로드</Link>
             <Link to="/download/faq">자주하는 질문</Link>
-            <Link to="/download/contact">1:1 질문하기</Link>
+            <Link to="/community/qna">EMS 질문하기</Link>
           </div>
           <div className="footer-col">
             <h4>약관 · 정책</h4>

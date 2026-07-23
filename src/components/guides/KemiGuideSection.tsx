@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { SearchBar } from '@/components/SearchBar';
 import { GuideCategoryManageModal } from '@/components/guides/GuideCategoryManageModal';
-import { GuideHtmlContent } from '@/components/guides/GuideHtmlContent';
+import { GuideContentGate } from '@/components/guides/GuideContentGate';
 import { GuideWriteModal, type GuideWriteDraft } from '@/components/guides/GuideWriteModal';
 import { resolveGuideIcon } from '@/constants/guideIcons';
 import { useUserRole } from '@/contexts/UserRoleContext';
@@ -398,7 +398,11 @@ function GuideDetailView({
             />
           ) : null}
           <View className="mt-4">
-            <GuideHtmlContent content={guide.content} />
+            <GuideContentGate
+              slug={guide.slug}
+              content={guide.content}
+              summary={guide.summary ?? guide.seo_description}
+            />
           </View>
         </ScrollView>
       )}

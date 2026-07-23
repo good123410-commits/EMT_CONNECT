@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import type { HiddenPost, HiddenPostTargetRole } from '@/lib/supabaseClient';
 import { createHiddenPost, fetchHiddenPosts } from '@/services/hiddenPostService';
-import { getAllowedTargetRoles, getRoleLabel, getTargetRoleLabel } from '@/utils/roleAccess';
+import { getAllowedTargetRoles, getRoleLabel, getTargetRoleLabel, PARAMEDIC_SPACE_GATE_MESSAGE } from '@/utils/roleAccess';
 
 type HiddenChannelPanelProps = {
   accentColor?: string;
@@ -74,9 +74,7 @@ export function HiddenChannelPanel({ accentColor = '#0f172a' }: HiddenChannelPan
     return (
       <View className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <Text className="text-base font-bold text-amber-800">히든 채널 접근 불가</Text>
-        <Text className="mt-2 text-sm text-amber-700">
-          관리자 승인 후 {getRoleLabel(role)} 전용 채널을 이용할 수 있습니다.
-        </Text>
+        <Text className="mt-2 text-sm text-amber-700">{PARAMEDIC_SPACE_GATE_MESSAGE}</Text>
       </View>
     );
   }

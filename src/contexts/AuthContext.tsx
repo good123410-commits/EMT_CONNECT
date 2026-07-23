@@ -1,4 +1,6 @@
-import type { Session, User } from '@supabase/supabase-js';
+import type { Provider, Session, User } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import {
   createContext,
   useCallback,
@@ -9,7 +11,11 @@ import {
   type ReactNode,
 } from 'react';
 import { supabase, type UserProfile } from '@/lib/supabaseClient';
-import { ensureProfile, fetchProfile } from '@/services/profileService';
+import { signInWithOAuthProvider } from '@/services/authService';
+import { ensureProfile, fetchProfile, updateProfileFields } from '@/services/profileService';
+import { subscribeProfileChanges } from '@/services/verificationService';
+import type { AuthIntent } from '@/utils/authIntent';
+import { storeAuthIntent } from '@/utils/authIntent';
 
 const SESSION_INIT_TIMEOUT_MS = 3_000;
 const PROFILE_LOAD_TIMEOUT_MS = 4_000;
@@ -29,13 +35,21 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Pro
   });
 }
 
+export type SignUpInput = {
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+};
+
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signUp: (input: SignUpInput) => Promise<{ needsEmailConfirmation: boolean }>;
+  signInWithOAuth: (provider: Provider, options?: { intent?: AuthIntent }) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -76,6 +90,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user.id, session?.user.user_metadata?.name, session?.user.email, loadProfile]);
 
   useEffect(() => {
+    const handleUrl = async (url: string) => {
+      if (!url.includes('auth/callback')) return;
+      try {
+        const { params, errorCode } = QueryParams.getQueryParams(url);
+        if (errorCode) return;
+        const { access_token, refresh_token } = params;
+        if (!access_token) return;
+        await supabase.auth.setSession({ access_token, refresh_token });
+      } catch {
+        // ignore malformed callback URLs
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      void handleUrl(url);
+    });
+
+    void Linking.getInitialURL().then((url) => {
+      if (url) void handleUrl(url);
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
 
     const bootstrap = async () => {
@@ -113,20 +152,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [loadProfile]);
 
+  useEffect(() => {
+    if (!session?.user?.id) return undefined;
+
+    const unsubscribe = subscribeProfileChanges(session.user.id, () => {
+      void refreshProfile();
+    });
+
+    return unsubscribe;
+  }, [session?.user?.id, refreshProfile]);
+
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, name: string) => {
+  const signUp = useCallback(async (input: SignUpInput) => {
+    const trimmedPhone = input.phone.trim();
+    if (!trimmedPhone) {
+      throw new Error('전화번호를 입력해 주세요.');
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
+      email: input.email.trim(),
+      password: input.password,
+      options: {
+        data: {
+          name: input.name.trim(),
+          phone: trimmedPhone,
+        },
+      },
     });
     if (error) throw error;
-    if (data.user) await ensureProfile(data.user.id, name, email);
+
+    if (data.user) {
+      await ensureProfile(data.user.id, input.name.trim(), input.email.trim());
+      await updateProfileFields(data.user.id, {
+        name: input.name.trim(),
+        phone: trimmedPhone,
+      });
+    }
+
+    const needsEmailConfirmation = !data.session;
+    return { needsEmailConfirmation };
   }, []);
+
+  const signInWithOAuth = useCallback(
+    async (provider: Provider, options?: { intent?: AuthIntent }) => {
+      if (options?.intent) {
+        await storeAuthIntent(options.intent);
+      }
+      await signInWithOAuthProvider(provider, options);
+    },
+    [],
+  );
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
@@ -142,10 +221,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signIn,
       signUp,
+      signInWithOAuth,
       signOut,
       refreshProfile,
     }),
-    [session, profile, loading, signIn, signUp, signOut, refreshProfile],
+    [session, profile, loading, signIn, signUp, signInWithOAuth, signOut, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

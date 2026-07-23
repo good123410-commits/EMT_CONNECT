@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { OpeningIntroProvider } from '@/contexts/OpeningIntroContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { navigationRef } from '@/navigation/navigationRef';
 import { applyRootRouteTransition, getCurrentRootRoute } from '@/navigation/rootNavigation';
@@ -17,8 +18,7 @@ function resolveRoute(
   role: UserRole,
 ): RootRoute {
   if (loading) return 'Loading';
-  if (!hasSession) return 'Auth';
-  if (isExpertMode && isExpertRole(role)) return 'Expert';
+  if (hasSession && isExpertMode && isExpertRole(role)) return 'Expert';
   return 'Main';
 }
 
@@ -31,26 +31,40 @@ export function AppNavigation() {
   const { role, isExpertMode, exitExpertMode } = useUserRole();
   const isContainerReady = useRef(false);
   const prevTarget = useRef<RootRoute | null>(null);
+  const [rootRoute, setRootRoute] = useState<RootRoute | undefined>(undefined);
   const RootNavigator = useMemo(
     () => require('@/navigation/RootNavigator').RootNavigator,
     [],
   );
 
   const applyAuthRoute = useCallback(() => {
-    const target = resolveRoute(loading, Boolean(session), isExpertMode, role);
+    const hasSession = Boolean(session);
+    const target = resolveRoute(loading, hasSession, isExpertMode, role);
     const current = getCurrentRootRoute();
+
+    // 게스트가 로그인/회원가입 화면을 연 경우 자동으로 Main으로 되돌리지 않음
+    if (!hasSession && current === 'Auth') return;
 
     if (prevTarget.current === target && current === target) return;
     if (!navigationRef.isReady()) return;
 
-    applyRootRouteTransition(target, { hasSession: Boolean(session) });
+    applyRootRouteTransition(target, { hasSession });
     prevTarget.current = target;
   }, [loading, session, isExpertMode, role]);
 
+  const syncRootRoute = useCallback(() => {
+    setRootRoute(getCurrentRootRoute());
+  }, []);
+
   const handleContainerReady = useCallback(() => {
     isContainerReady.current = true;
+    syncRootRoute();
     applyAuthRoute();
-  }, [applyAuthRoute]);
+  }, [applyAuthRoute, syncRootRoute]);
+
+  const handleStateChange = useCallback(() => {
+    syncRootRoute();
+  }, [syncRootRoute]);
 
   useEffect(() => {
     if (!isContainerReady.current) return;
@@ -63,7 +77,7 @@ export function AppNavigation() {
       if (!navigationRef.isReady()) return;
       const current = getCurrentRootRoute();
       if (current === 'Loading') {
-        applyRootRouteTransition(Boolean(session) ? 'Main' : 'Auth', {
+        applyRootRouteTransition('Main', {
           hasSession: Boolean(session),
         });
       }
@@ -78,8 +92,14 @@ export function AppNavigation() {
   }, [session, exitExpertMode]);
 
   return (
-    <NavigationContainer ref={navigationRef} onReady={handleContainerReady}>
-      <RootNavigator />
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={handleContainerReady}
+      onStateChange={handleStateChange}
+    >
+      <OpeningIntroProvider rootRoute={rootRoute}>
+        <RootNavigator />
+      </OpeningIntroProvider>
     </NavigationContainer>
   );
 }

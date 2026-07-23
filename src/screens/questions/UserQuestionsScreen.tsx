@@ -26,6 +26,7 @@ import {
   createQuestion,
   QuestionServiceError,
 } from '@/services/questionService';
+import { consumeAuthIntent } from '@/utils/authIntent';
 
 const LIST_ESTIMATED_ITEM_SIZE = 132;
 
@@ -101,6 +102,15 @@ export function UserQuestionsScreen() {
     () => data?.pages.flatMap((page) => page.items) ?? [],
     [data],
   );
+
+  useEffect(() => {
+    if (!user) return;
+    void consumeAuthIntent().then((intent) => {
+      if (intent?.type === 'question-write') {
+        setFormVisible(true);
+      }
+    });
+  }, [user]);
 
   useEffect(() => {
     if (!detail?.id) return;
@@ -194,17 +204,7 @@ export function UserQuestionsScreen() {
   }, [isFetchingNextPage]);
 
   if (!user) {
-    return (
-      <View className="flex-1 items-center justify-center bg-slate-50 px-6">
-        <Ionicons name="person-circle-outline" size={48} color="#94a3b8" />
-        <Text className="mt-4 text-center text-base font-semibold text-slate-700">
-          로그인 후 질문할 수 있습니다
-        </Text>
-        <Text className="mt-2 text-center text-sm text-slate-500">
-          구급대원에게 응급·현장 관련 질문을 남겨 보세요.
-        </Text>
-      </View>
-    );
+    return null;
   }
 
   if (detail) {

@@ -9,6 +9,7 @@ import {
 } from '../services/communityService';
 import { getCommunityDisplayName } from '../services/profileService';
 import type { CommunityComment, CommunityReaction } from '../types';
+import { canWriteCommunityAnswer } from '../utils/communityRbac';
 import { CommunityReactionButtons } from './CommunityReactionButtons';
 import { CommunityReportModal } from './CommunityReportModal';
 
@@ -35,6 +36,7 @@ function CommentItem({
   onCommentsChange,
   onReport,
   onReply,
+  canAnswer,
 }: {
   comment: CommunityComment;
   replies: CommunityComment[];
@@ -44,6 +46,7 @@ function CommentItem({
   onCommentsChange: () => void;
   onReport: (target: ReportTarget) => void;
   onReply: (parentId: string) => void;
+  canAnswer: boolean;
 }) {
   const { showToast } = useToast();
   const [likes, setLikes] = useState(comment.likes);
@@ -100,7 +103,7 @@ function CommentItem({
           compact
           onToggle={(reaction) => void handleReaction(reaction)}
         />
-        {!comment.parent_id ? (
+        {!comment.parent_id && canAnswer ? (
           <button type="button" className="community-reply-btn" onClick={() => onReply(comment.id)}>
             답글 달기
           </button>
@@ -120,6 +123,7 @@ function CommentItem({
               onCommentsChange={onCommentsChange}
               onReport={onReport}
               onReply={onReply}
+              canAnswer={canAnswer}
             />
           ))}
         </div>
@@ -137,6 +141,7 @@ export function CommunityCommentSection({
 }: CommunityCommentSectionProps) {
   const { user, profile } = useAuth();
   const { showToast } = useToast();
+  const canAnswer = canWriteCommunityAnswer(profile);
   const [content, setContent] = useState('');
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -177,7 +182,12 @@ export function CommunityCommentSection({
       onCommentsChange();
       showToast(replyParentId ? '답글이 등록되었습니다.' : '댓글이 등록되었습니다.');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : '댓글 등록에 실패했습니다.', 'error');
+      const message = err instanceof Error ? err.message : '댓글 등록에 실패했습니다.';
+      if (message.includes('not_authorized_answer')) {
+        showToast('답변은 구급대원 및 관리자만 작성 가능합니다.', 'error');
+      } else {
+        showToast(message, 'error');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -224,6 +234,7 @@ export function CommunityCommentSection({
               setReplyParentId(parentId);
               setContent('');
             }}
+            canAnswer={canAnswer}
           />
         ))}
       </div>
@@ -237,22 +248,30 @@ export function CommunityCommentSection({
             </button>
           </p>
         ) : null}
-        <textarea
-          className="modal-textarea"
-          rows={3}
-          placeholder={user ? '댓글을 입력해 주세요.' : '로그인 후 댓글을 작성할 수 있습니다.'}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          disabled={!user || submitting}
-        />
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={!user || submitting}
-          onClick={() => void submitComment()}
-        >
-          {submitting ? '등록 중…' : replyParentId ? '답글 등록' : '댓글 등록'}
-        </button>
+        {canAnswer ? (
+          <>
+            <textarea
+              className="modal-textarea"
+              rows={3}
+              placeholder={user ? '답변을 입력해 주세요.' : '로그인 후 답변을 작성할 수 있습니다.'}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              disabled={!user || submitting}
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!user || submitting}
+              onClick={() => void submitComment()}
+            >
+              {submitting ? '등록 중…' : replyParentId ? '답글 등록' : '답변 등록'}
+            </button>
+          </>
+        ) : (
+          <p className="community-answer-restricted muted">
+            답변은 구급대원 및 관리자만 작성 가능합니다.
+          </p>
+        )}
       </div>
 
       <CommunityReportModal

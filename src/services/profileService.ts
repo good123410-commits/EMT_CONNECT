@@ -10,7 +10,18 @@ const LEGACY_PROFILES_TABLE = 'profiles';
 function mapLegacyRole(role: string | null | undefined): UserRole {
   if (role === 'emt_certified') return 'paramedic';
   if (role === 'public') return 'user';
-  if (role === 'hospital' || role === 'paramedic' || role === 'private_ems' || role === 'admin') return role;
+  if (
+    role === 'hospital' ||
+    role === 'paramedic' ||
+    role === 'private_ems' ||
+    role === 'admin' ||
+    role === 'associate_member' ||
+    role === 'regular_member' ||
+    role === 'super_admin' ||
+    role === 'sub_admin'
+  ) {
+    return role;
+  }
   return 'user';
 }
 
@@ -28,6 +39,9 @@ function mapLegacyProfile(row: Record<string, unknown>): UserProfile {
           ? row.invitation_code_used
           : null,
     is_approved: Boolean(row.is_approved),
+    membership_dues_paid: Boolean(row.membership_dues_paid),
+    membership_dues_paid_at:
+      typeof row.membership_dues_paid_at === 'string' ? row.membership_dues_paid_at : null,
     wallet_balance: Number(row.wallet_balance) || 0,
     created_at: typeof row.created_at === 'string' ? row.created_at : new Date().toISOString(),
   };
@@ -145,6 +159,25 @@ export async function ensureProfile(
       };
 
   return upsertUserProfileRow(payload);
+}
+
+export async function updateProfileFields(
+  userId: string,
+  fields: { name?: string; phone?: string },
+): Promise<void> {
+  const payload: Record<string, unknown> = { id: userId };
+  if (fields.name?.trim()) payload.name = fields.name.trim();
+  if (fields.phone?.trim()) payload.phone = fields.phone.trim();
+  if (Object.keys(payload).length <= 1) return;
+
+  try {
+    await upsertUserProfileRow(payload);
+  } catch {
+    const { error } = await supabase.from(USER_PROFILES_TABLE).update(payload).eq('id', userId);
+    if (error && !isMissingUserProfilesColumnError(error.message)) {
+      throw error;
+    }
+  }
 }
 
 export async function updateProfileRole(

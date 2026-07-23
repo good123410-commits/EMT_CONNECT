@@ -259,6 +259,7 @@ export type CreateCommunityPostInput = {
   title: string;
   content: string;
   categoryId: string;
+  categorySlug?: string | null;
   userId: string;
   authorLabel?: string;
 };
@@ -271,21 +272,14 @@ function buildSummary(html: string): string {
 }
 
 export async function createCommunityPost(input: CreateCommunityPostInput): Promise<void> {
-  const summary = buildSummary(input.content);
-  const payload: Record<string, unknown> = {
-    post_type: 'bamboo',
-    title: input.title,
-    summary,
-    content: input.content,
-    author_id: input.userId,
-    anonymous_label: input.authorLabel ?? '웹 회원',
-  };
+  const { error } = await supabase.rpc('create_community_bamboo_post', {
+    p_title: input.title,
+    p_content: input.content,
+    p_category_id: input.categoryId?.startsWith('fallback-') ? null : input.categoryId || null,
+    p_category_slug: input.categorySlug ?? 'question',
+    p_anonymous_label: input.authorLabel ?? '웹 회원',
+  });
 
-  if (!input.categoryId.startsWith('fallback-')) {
-    payload.category_id = input.categoryId;
-  }
-
-  const { error } = await supabase.from('ems_community_posts').insert(payload);
   if (error) throw error;
 }
 

@@ -50,7 +50,16 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
-export type UserRole = 'user' | 'hospital' | 'paramedic' | 'private_ems' | 'admin';
+export type UserRole =
+  | 'user'
+  | 'associate_member'
+  | 'regular_member'
+  | 'sub_admin'
+  | 'super_admin'
+  | 'hospital'
+  | 'paramedic'
+  | 'private_ems'
+  | 'admin';
 
 export type HiddenPostTargetRole =
   | 'all'
@@ -64,10 +73,13 @@ export type UserProfile = {
   email: string | null;
   role: UserRole;
   name: string | null;
+  phone?: string | null;
   company_name: string | null;
   invitation_code: string | null;
   is_approved: boolean;
   is_blocked?: boolean;
+  membership_dues_paid?: boolean;
+  membership_dues_paid_at?: string | null;
   wallet_balance: number;
   created_at: string;
 };

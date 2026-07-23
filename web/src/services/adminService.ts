@@ -585,6 +585,7 @@ export async function adminListUsers(options?: {
   return ((data ?? []) as import('../types').AdminUserRow[]).map((row) => ({
     ...row,
     is_blocked: Boolean(row.is_blocked),
+    membership_dues_paid: Boolean(row.membership_dues_paid),
   }));
 }
 
@@ -605,6 +606,45 @@ export async function adminSetUserBlocked(userId: string, blocked: boolean) {
   });
   if (error) rpcError(error);
   return data as import('../types').AdminUserRow;
+}
+
+export async function adminSetUserDuesPaid(userId: string, paid: boolean) {
+  const { data, error } = await supabase.rpc('admin_set_user_dues_paid', {
+    p_user_id: userId,
+    p_paid: paid,
+  });
+  if (error) rpcError(error);
+  return data as import('../types').AdminUserRow;
+}
+
+export type AdminVerificationRow = {
+  id: string;
+  user_id: string;
+  document_url: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewer_notes: string | null;
+  updated_at: string;
+};
+
+export async function adminListPendingVerifications(): Promise<AdminVerificationRow[]> {
+  const { data, error } = await supabase.rpc('admin_list_pending_verifications');
+  if (error) rpcError(error);
+  return (data ?? []) as AdminVerificationRow[];
+}
+
+export async function adminReviewVerification(
+  verificationId: string,
+  status: 'approved' | 'rejected',
+  notes?: string,
+) {
+  const { data, error } = await supabase.rpc('admin_review_verification', {
+    p_verification_id: verificationId,
+    p_status: status,
+    p_notes: notes ?? null,
+    p_target_role: 'associate_member',
+  });
+  if (error) rpcError(error);
+  return data as AdminVerificationRow;
 }
 
 // ── Polls ──

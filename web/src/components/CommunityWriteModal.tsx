@@ -11,12 +11,19 @@ type CommunityWriteModalProps = {
   open: boolean;
   onClose: () => void;
   categories: CommunityCategory[];
+  defaultCategorySlug?: string;
   onSubmitted: () => void;
 };
 
 const EMPTY = { categoryId: '', title: '', content: '' };
 
-export function CommunityWriteModal({ open, onClose, categories, onSubmitted }: CommunityWriteModalProps) {
+export function CommunityWriteModal({
+  open,
+  onClose,
+  categories,
+  defaultCategorySlug,
+  onSubmitted,
+}: CommunityWriteModalProps) {
   const titleId = useId();
   const { user, profile } = useAuth();
   const { showToast } = useToast();
@@ -25,7 +32,10 @@ export function CommunityWriteModal({ open, onClose, categories, onSubmitted }: 
 
   useEffect(() => {
     if (!open) return;
-    const defaultCategory = categories[0]?.id ?? '';
+    const matched = defaultCategorySlug
+      ? categories.find((c) => c.slug === defaultCategorySlug)
+      : categories[0];
+    const defaultCategory = matched?.id ?? categories[0]?.id ?? '';
     setForm({ categoryId: defaultCategory, title: '', content: '' });
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -38,7 +48,7 @@ export function CommunityWriteModal({ open, onClose, categories, onSubmitted }: 
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = '';
     };
-  }, [open, onClose, categories]);
+  }, [open, onClose, categories, defaultCategorySlug]);
 
   if (!open) return null;
 
@@ -65,6 +75,7 @@ export function CommunityWriteModal({ open, onClose, categories, onSubmitted }: 
         title: form.title.trim(),
         content: form.content,
         categoryId: form.categoryId,
+        categorySlug: categories.find((c) => c.id === form.categoryId)?.slug ?? defaultCategorySlug,
         userId: user.id,
         authorLabel,
       });

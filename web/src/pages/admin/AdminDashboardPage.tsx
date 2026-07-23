@@ -9,7 +9,6 @@ import { AdminCommunityPanel } from './AdminCommunityPanel';
 import { AdminDonationsPanel } from './AdminDonationsPanel';
 import { AdminFundUsagePanel } from './AdminFundUsagePanel';
 import { AdminFaqPanel } from './AdminFaqPanel';
-import { AdminInquiriesPanel } from './AdminInquiriesPanel';
 import { AdminGuidesPanel } from './AdminGuidesPanel';
 import { AdminInterviewsPanel } from './AdminInterviewsPanel';
 import { AdminNav } from './AdminNav';
@@ -65,7 +64,6 @@ export function AdminDashboardPage() {
         {tab === 'resources' && <AdminResourcesPanel />}
         {tab === 'app-download' && <AdminAppDownloadPanel />}
         {tab === 'faq' && <AdminFaqPanel />}
-        {tab === 'inquiries' && <AdminInquiriesPanel />}
         {tab === 'users' && <AdminUsersPanel />}
         {tab === 'site-settings' && <AdminSiteSettingsPanel />}
       </div>

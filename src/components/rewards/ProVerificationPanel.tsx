@@ -15,9 +15,8 @@ import { useUserRole } from '@/contexts/UserRoleContext';
 import type { EmtVerification } from '@/lib/supabaseClient';
 import {
   fetchLatestVerification,
-  getRoleFromInvitationCode,
-  isValidInvitationCode,
   submitVerificationRequest,
+  subscribeProfileChanges,
   uploadVerificationDocument,
 } from '@/services/verificationService';
 import { getRoleLabel } from '@/utils/roleAccess';
@@ -59,36 +58,24 @@ export function ProVerificationPanel() {
   const handleSubmit = async () => {
     if (!user) return;
     if (!invitationCode.trim()) {
-      Alert.alert('입력 오류', '초대장 코드를 입력해 주세요.');
-      return;
-    }
-    if (!imageUri) {
-      Alert.alert('입력 오류', '자격증 이미지를 업로드해 주세요.');
+      Alert.alert('입력 오류', '구급대원 비밀코드를 입력해 주세요.');
       return;
     }
 
     setLoading(true);
     try {
-      const documentUrl = await uploadVerificationDocument(user.id, imageUri);
+      const documentUrl = imageUri ? await uploadVerificationDocument(user.id, imageUri) : null;
       const result = await submitVerificationRequest(user.id, invitationCode, documentUrl);
       setVerification(result);
       await refreshProfile();
-      const targetRole = getRoleFromInvitationCode(invitationCode);
-      if (isValidInvitationCode(invitationCode) && targetRole) {
-        Alert.alert(
-          '승인 완료',
-          `테스트 초대 코드로 ${getRoleLabel(targetRole)} 계정이 활성화되었습니다.`,
-        );
-      } else {
-        Alert.alert(
-          '제출 완료',
-          '자격증 심사가 접수되었습니다. 관리자 승인 후 전용 화면으로 전환됩니다.',
-        );
-      }
+      Alert.alert(
+        '제출 완료',
+        '구급대원 비밀코드 인증이 접수되었습니다. 관리자 승인 후 준회원 등급으로 전용 공간이 열립니다.',
+      );
     } catch (e) {
       Alert.alert(
         '제출 실패',
-        e instanceof Error ? e.message : 'Storage/DB 설정을 확인해 주세요.',
+        e instanceof Error ? e.message : '인증 요청에 실패했습니다.',
       );
     } finally {
       setLoading(false);
@@ -158,25 +145,24 @@ export function ProVerificationPanel() {
     <View className="rounded-2xl border border-slate-200 bg-white p-4">
       <View className="flex-row items-center">
         <Ionicons name="shield-outline" size={22} color="#0f172a" />
-        <Text className="ml-2 text-base font-bold text-slate-900">전문가 채널 인증 신청</Text>
+        <Text className="ml-2 text-base font-bold text-slate-900">구급대원 비밀코드 인증</Text>
       </View>
       <Text className="mt-2 text-sm leading-5 text-slate-500">
-        초대장 코드와 자격증을 제출하면 전문가 전용 화면이 열립니다.
-        {'\n'}테스트 코드: EMS-TEST-PRO (구조사), HOSP-TEST-2026 (병원), PRIVATE-EMS-TEST (사설
-        구급차)
+        관리자가 발급한 구급대원 비밀코드를 입력해 주세요. 승인 후 준회원 등급으로 히든공간과 Q&A
+        답변 기능이 열립니다. (선택) 자격증 이미지를 함께 제출할 수 있습니다.
       </Text>
 
-      <Text className="mb-1 mt-4 text-sm font-medium text-slate-700">초대장 코드</Text>
+      <Text className="mb-1 mt-4 text-sm font-medium text-slate-700">구급대원 비밀코드</Text>
       <TextInput
         className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
         value={invitationCode}
         onChangeText={setInvitationCode}
-        placeholder="EMS-TEST-PRO"
+        placeholder="비밀코드 입력"
         placeholderTextColor="#94a3b8"
         autoCapitalize="characters"
       />
 
-      <Text className="mb-1 mt-4 text-sm font-medium text-slate-700">자격증 이미지</Text>
+      <Text className="mb-1 mt-4 text-sm font-medium text-slate-700">자격증 이미지 (선택)</Text>
       <Pressable
         className="items-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 py-6"
         onPress={pickImage}
@@ -199,7 +185,7 @@ export function ProVerificationPanel() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text className="font-bold text-white">인증 신청 제출</Text>
+          <Text className="font-bold text-white">비밀코드 인증 제출</Text>
         )}
       </Pressable>
     </View>

@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
 
+const GUIDE_STYLE_META_REGEX = /^:::guide-style:([\s\S]*?):::\r?\n?/;
+
+function stripGuideMetaPrefix(content: string): string {
+  return content.replace(GUIDE_STYLE_META_REGEX, '');
+}
+
 export function getGuidePreviewText(content: string, summary?: string | null): string {
   if (summary?.trim()) return summary.trim();
 
@@ -24,7 +30,7 @@ export function getGuidePreviewText(content: string, summary?: string | null): s
 }
 
 export function renderGuideContent(content: string): ReactNode {
-  const trimmed = content.trim();
+  const trimmed = stripGuideMetaPrefix(content).trim();
   if (!trimmed) return <p className="muted">본문이 없습니다.</p>;
   if (/<[a-z][\s\S]*>/i.test(trimmed)) {
     return <div className="guide-detail-body" dangerouslySetInnerHTML={{ __html: trimmed }} />;

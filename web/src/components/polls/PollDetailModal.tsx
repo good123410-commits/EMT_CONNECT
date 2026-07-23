@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { castPollVote, formatPollEndsAt, getPollStatusLabel } from '../../services/pollService';
 import type { Poll } from '../../types';
+import { canVoteInPolls, POLL_VOTE_GATE_MESSAGE } from '../../utils/membershipRbac';
 import { getVotePercent } from './PollWriteModal';
 
 type PollDetailModalProps = {
@@ -26,10 +28,12 @@ export function PollDetailModal({
   onClosePoll,
   onLoginRequired,
 }: PollDetailModalProps) {
+  const { profile, user } = useAuth();
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [membershipGateOpen, setMembershipGateOpen] = useState(false);
 
   useEffect(() => {
     if (!open || !poll) return;
@@ -59,6 +63,15 @@ export function PollDetailModal({
   const status = getPollStatusLabel(poll);
 
   const handleVote = async () => {
+    if (!user) {
+      onLoginRequired?.();
+      setError('로그인 후 투표할 수 있습니다.');
+      return;
+    }
+    if (!canVoteInPolls(profile)) {
+      setMembershipGateOpen(true);
+      return;
+    }
     if (!selectedOptionId) {
       setError('투표할 항목을 선택해 주세요.');
       return;
@@ -80,6 +93,8 @@ export function PollDetailModal({
       } else if (message.includes('poll_closed')) {
         setError('마감된 투표입니다.');
         setShowResults(true);
+      } else if (message.includes('regular_member_required')) {
+        setMembershipGateOpen(true);
       } else {
         setError(message);
       }
@@ -188,6 +203,23 @@ export function PollDetailModal({
           ) : null}
         </div>
       </div>
+
+      {membershipGateOpen ? (
+        <div className="modal-overlay modal-overlay--nested" role="presentation" onClick={() => setMembershipGateOpen(false)}>
+          <div
+            className="modal-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="modal-title">투표 권한 안내</h3>
+            <p className="modal-desc">{POLL_VOTE_GATE_MESSAGE}</p>
+            <button type="button" className="btn btn-primary" onClick={() => setMembershipGateOpen(false)}>
+              확인
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

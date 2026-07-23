@@ -40,10 +40,13 @@ export async function adminUpsertResource(input: UpsertResourceInput): Promise<K
     p_file_url: input.file_url,
     p_file_name: input.file_name,
     p_file_size: input.file_size ?? null,
-    p_display_order: input.display_order,
+    p_display_order: Number.isFinite(input.display_order) ? input.display_order : 0,
     p_is_published: input.is_published,
   });
   if (error) throw error;
+  if (!data) {
+    throw new Error('자료 저장에 실패했습니다. 관리자 권한과 필수 항목을 확인해 주세요.');
+  }
   return data as KemixResource;
 }
 

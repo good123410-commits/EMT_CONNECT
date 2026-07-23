@@ -19,7 +19,6 @@ export type AdminTabId =
   | 'resources'
   | 'app-download'
   | 'faq'
-  | 'inquiries'
   | 'users'
   | 'site-settings';
 
@@ -75,7 +74,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { id: 'resources', label: '자료실 관리' },
       { id: 'app-download', label: '앱 다운로드 관리' },
       { id: 'faq', label: '자주하는 질문(FAQ)' },
-      { id: 'inquiries', label: '1:1 질문(Q&A)' },
     ],
   },
   {

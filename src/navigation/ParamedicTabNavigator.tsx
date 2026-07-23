@@ -6,7 +6,7 @@ import { EmsCaseStudyScreen } from '@/screens/emsCommunity/EmsCaseStudyScreen';
 import { EmsChatRoomsScreen } from '@/screens/emsCommunity/EmsChatRoomsScreen';
 import { EmsResourcesScreen } from '@/screens/emsCommunity/EmsResourcesScreen';
 import { ParamedicJobsScreen } from '@/screens/expert/paramedic/ParamedicJobsScreen';
-import { ParamedicAnswerInboxScreen } from '@/screens/questions/ParamedicAnswerInboxScreen';
+import { EmsQaBoardScreen } from '@/screens/emsCommunity/EmsQaBoardScreen';
 
 export type ParamedicTabParamList = {
   AnswerInbox: undefined;
@@ -22,6 +22,10 @@ type TabIconName = keyof typeof Ionicons.glyphMap;
 
 function TabBarIcon({ name, color }: { name: TabIconName; color: string }) {
   return <Ionicons name={name} size={22} color={color} />;
+}
+
+function ParamedicQaBoardScreen() {
+  return <EmsQaBoardScreen variant="paramedic" />;
 }
 
 /**
@@ -42,10 +46,10 @@ export function ParamedicTabNavigator() {
       <Tab.Navigator screenOptions={screenOptions} safeAreaInsets={safeAreaInsets}>
         <Tab.Screen
           name="AnswerInbox"
-          component={ParamedicAnswerInboxScreen}
+          component={ParamedicQaBoardScreen}
           options={{
-            tabBarLabel: '답변함',
-            tabBarIcon: ({ color }) => <TabBarIcon name="mail-unread-outline" color={color} />,
+            tabBarLabel: '질문함',
+            tabBarIcon: ({ color }) => <TabBarIcon name="help-circle-outline" color={color} />,
           }}
         />
         <Tab.Screen

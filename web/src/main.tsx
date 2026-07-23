@@ -16,11 +16,11 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { BlogDetailPage } from './pages/BlogDetailPage';
 import { BlogListPage } from './pages/BlogListPage';
 import { CommunityBoardPage } from './pages/community/CommunityBoardPage';
+import { CommunityQnaPage } from './pages/community/CommunityQnaPage';
 import { DonationPage } from './pages/community/DonationPage';
 import { FundUsagePage } from './pages/community/FundUsagePage';
 import { PollsPage } from './pages/community/PollsPage';
 import { ResourcesPage } from './pages/download/ResourcesPage';
-import { ContactPage } from './pages/download/ContactPage';
 import { DownloadAppPage } from './pages/download/DownloadAppPage';
 import { FaqPage } from './pages/download/FaqPage';
 import { InterviewPage } from './pages/InterviewPage';
@@ -68,6 +68,7 @@ createRoot(document.getElementById('root')!).render(
 
             {/* KEMIX 커뮤니티 */}
             <Route path="community/board" element={<CommunityBoardPage />} />
+            <Route path="community/qna" element={<CommunityQnaPage />} />
             {/* <Route path="community/skills" element={<SkillsPage />} /> */}
             <Route path="community/polls" element={<PollsPage />} />
             <Route path="community/donation" element={<DonationPage />} />
@@ -77,7 +78,6 @@ createRoot(document.getElementById('root')!).render(
             <Route path="download/resources" element={<ResourcesPage />} />
             <Route path="download/app" element={<DownloadAppPage />} />
             <Route path="download/faq" element={<FaqPage />} />
-            <Route path="download/contact" element={<ContactPage />} />
             <Route path="download" element={<Navigate to="/download/resources" replace />} />
 
             {/* 약관 · 정책 */}
@@ -97,6 +97,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="interview" element={<Navigate to="/content/interview" replace />} />
             <Route path="skills" element={<Navigate to="/community/board" replace />} />
             <Route path="facilities/*" element={<Navigate to="/" replace />} />
+            <Route path="download/contact" element={<Navigate to="/community/qna" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

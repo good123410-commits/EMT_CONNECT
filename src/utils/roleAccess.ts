@@ -1,14 +1,28 @@
-import type { HiddenPostTargetRole, UserRole } from '@/lib/supabaseClient';
+import type { UserRole } from '@/lib/supabaseClient';
+import {
+  canAccessParamedicSpace,
+  canVoteInPolls,
+  isAdminRole,
+  isAssociateParamedic,
+  isRegularMember,
+  PARAMEDIC_SPACE_GATE_MESSAGE,
+  POLL_VOTE_GATE_MESSAGE,
+} from '@/utils/membershipRbac';
 
-export const EXPERT_ROLES: UserRole[] = ['hospital', 'paramedic', 'private_ems'];
+export const EXPERT_ROLES: UserRole[] = [
+  'hospital',
+  'paramedic',
+  'private_ems',
+  'associate_member',
+  'regular_member',
+];
 
 export function isExpertRole(role: UserRole): boolean {
   return EXPERT_ROLES.includes(role);
 }
 
-export function isAdminRole(role: UserRole): boolean {
-  return role === 'admin';
-}
+export { isAdminRole, canVoteInPolls, isAssociateParamedic, isRegularMember };
+export { PARAMEDIC_SPACE_GATE_MESSAGE, POLL_VOTE_GATE_MESSAGE };
 
 /** DB admin 역할 또는 비밀코드 인증 시 가이드 관리 가능 */
 export function canManageEmergencyGuides(role: UserRole, guideAdminVerified: boolean): boolean {
@@ -17,29 +31,29 @@ export function canManageEmergencyGuides(role: UserRole, guideAdminVerified: boo
 
 /** 전문가 역할 + 관리자 승인 완료 시에만 히든 채널 접근 가능 */
 export function canAccessHiddenChannel(role: UserRole, isApproved: boolean): boolean {
-  return isExpertRole(role) && isApproved;
+  return canAccessParamedicSpace(role, isApproved);
 }
 
-/** 구급대원(응급구조사) 채널 — role=paramedic + 관리자 승인 */
+/** @deprecated membershipRbac.canAccessParamedicSpace 사용 */
 export function isApprovedParamedic(role: UserRole, isApproved: boolean): boolean {
-  return role === 'paramedic' && isApproved;
+  return isAssociateParamedic(role, isApproved);
 }
 
-/** 구급대원(응급구조사) 채널 — paramedic+승인, DB admin+승인, 운영 관리자 코드 */
+/** 구급대원 채널 — 준회원 이상 + 운영 관리자 코드 */
 export function canAccessParamedicChannel(
   role: UserRole,
   isApproved: boolean,
   opsAdminVerified = false,
 ): boolean {
-  if (opsAdminVerified) return true;
-  if (isApproved && role === 'admin') return true;
-  return isApprovedParamedic(role, isApproved);
+  return canAccessParamedicSpace(role, isApproved, opsAdminVerified);
 }
 
 /** 역할별 조회/작성 가능한 target_role 목록 */
-export function getAllowedTargetRoles(role: UserRole): HiddenPostTargetRole[] {
+export function getAllowedTargetRoles(role: UserRole): import('@/lib/supabaseClient').HiddenPostTargetRole[] {
   switch (role) {
     case 'paramedic':
+    case 'associate_member':
+    case 'regular_member':
       return ['all', 'paramedic'];
     case 'hospital':
       return ['all', 'hospital'];
@@ -50,28 +64,39 @@ export function getAllowedTargetRoles(role: UserRole): HiddenPostTargetRole[] {
   }
 }
 
-export function canWriteToTargetRole(role: UserRole, targetRole: HiddenPostTargetRole): boolean {
+export function canWriteToTargetRole(
+  role: UserRole,
+  targetRole: import('@/lib/supabaseClient').HiddenPostTargetRole,
+): boolean {
   return getAllowedTargetRoles(role).includes(targetRole);
 }
 
 export function getRoleLabel(role: UserRole): string {
   switch (role) {
     case 'user':
-      return '일반인';
+      return '일반회원';
+    case 'associate_member':
+      return '준회원';
+    case 'regular_member':
+      return '정회원';
+    case 'super_admin':
+      return '최고관리자';
+    case 'sub_admin':
+      return '준관리자';
+    case 'admin':
+      return '관리자';
     case 'hospital':
       return '병원 관계자';
     case 'paramedic':
-      return '응급구조사';
+      return '구급대원';
     case 'private_ems':
       return '사설 구급차 운용자';
-    case 'admin':
-      return '관리자';
     default:
       return role;
   }
 }
 
-export function getTargetRoleLabel(targetRole: HiddenPostTargetRole): string {
+export function getTargetRoleLabel(targetRole: import('@/lib/supabaseClient').HiddenPostTargetRole): string {
   switch (targetRole) {
     case 'all':
       return '공통 라운지';
@@ -97,7 +122,10 @@ export type AppRouteKind =
 
 /** 로그인 후 카멜레온 라우팅 결정 */
 export function resolveAppRoute(role: UserRole, isApproved: boolean): AppRouteKind {
-  if (role === 'user' || role === 'admin') return 'public';
+  if (role === 'user' || isAdminRole(role)) return 'public';
+  if (role === 'associate_member' || role === 'regular_member') {
+    return isApproved ? 'paramedic' : 'pending_approval';
+  }
   if (!isApproved) return 'pending_approval';
   return role;
 }

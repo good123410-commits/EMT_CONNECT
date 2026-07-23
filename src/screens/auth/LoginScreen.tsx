@@ -13,8 +13,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AuthDivider, SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
+import { BRAND_FULL_NAME, BRAND_NAME, BRAND_NAME_KO } from '@/constants/branding';
 import { useAuth } from '@/contexts/AuthContext';
 import type { AuthStackParamList } from '@/navigation/AuthStack';
+import { returnToGuestMain } from '@/navigation/rootNavigation';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -45,16 +48,22 @@ export function LoginScreen({ navigation }: Props) {
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-8">
-          <View className="mb-8 items-center">
-            <View className="mb-4 rounded-2xl bg-red-50 p-4">
-              <Ionicons name="medkit" size={40} color="#dc2626" />
+        <ScrollView contentContainerClassName="px-6 py-8" keyboardShouldPersistTaps="handled">
+          <View className="mb-6 items-center">
+            <View className="mb-3 flex-row items-end gap-2">
+              <Text className="text-2xl font-black tracking-tight text-slate-900">{BRAND_NAME}</Text>
+              <Text className="pb-0.5 text-sm font-semibold text-emerald-700">{BRAND_NAME_KO}</Text>
             </View>
-            <Text className="text-2xl font-bold text-slate-900">EMS_Connect</Text>
+            <Text className="text-center text-xl font-bold text-slate-900">로그인</Text>
             <Text className="mt-2 text-center text-sm text-slate-500">
-              대국민 안전 · 응급구조사 커뮤니티
+              {BRAND_NAME} 계정으로 로그인하세요.
             </Text>
+            <Text className="mt-1 text-center text-xs text-slate-400">{BRAND_FULL_NAME}</Text>
           </View>
+
+          <SocialLoginButtons kakaoLabel="카카오로 시작하기" googleLabel="Google 계정으로 로그인" />
+
+          <AuthDivider />
 
           <Text className="mb-1 text-sm font-medium text-slate-700">이메일</Text>
           <TextInput
@@ -90,11 +99,19 @@ export function LoginScreen({ navigation }: Props) {
             )}
           </Pressable>
 
-          <Pressable className="mt-4 items-center py-2" onPress={() => navigation.navigate('SignUp')}>
+          <Pressable
+            className="mt-4 items-center py-2"
+            onPress={() => navigation.navigate('SignUp')}
+            accessibilityRole="button"
+          >
             <Text className="text-sm text-slate-600">
               계정이 없으신가요?{' '}
               <Text className="font-semibold text-slate-900">회원가입</Text>
             </Text>
+          </Pressable>
+
+          <Pressable className="mt-2 items-center py-2" onPress={returnToGuestMain}>
+            <Text className="text-sm font-medium text-slate-500">둘러보기 (로그인 없이)</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -22,6 +22,8 @@ export type UserProfile = {
   profile_completed?: boolean;
   is_approved: boolean;
   is_blocked?: boolean;
+  membership_dues_paid?: boolean;
+  membership_dues_paid_at?: string | null;
   created_at: string;
 };
 

@@ -1,8 +1,9 @@
 import type { UserRole } from '@/lib/supabaseClient';
+import { canAccessParamedicSpace, isAdminRole } from '@/utils/membershipRbac';
 
 /** DB 승인 관리자 — 통합 대시보드 전용 */
 export function isApprovedDbAdmin(role: UserRole, isApproved: boolean): boolean {
-  return role === 'admin' && isApproved;
+  return isAdminRole(role) && isApproved;
 }
 
 /** 설정 히든 메뉴 — 승인된 구급대원·관리자 */
@@ -11,9 +12,7 @@ export function canAccessExpertAnswerInbox(
   isApproved: boolean,
   opsAdminVerified = false,
 ): boolean {
-  return (
-    opsAdminVerified || (isApproved && (role === 'paramedic' || role === 'admin'))
-  );
+  return opsAdminVerified || canAccessParamedicSpace(role, isApproved);
 }
 
 /** Q&A 운영 대시보드 — 구급대원·관리자·운영코드 */
@@ -22,9 +21,7 @@ export function canAccessAdminDashboard(
   isApproved: boolean,
   opsAdminVerified = false,
 ): boolean {
-  return (
-    opsAdminVerified || (isApproved && (role === 'paramedic' || role === 'admin'))
-  );
+  return opsAdminVerified || canAccessParamedicSpace(role, isApproved);
 }
 
 /** 운영 비밀코드 포털 — Q&A·답변함·구급대원 공간 */

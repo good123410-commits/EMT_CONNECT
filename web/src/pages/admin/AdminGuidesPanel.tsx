@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GuideCategoryManageModal } from '../../components/GuideCategoryManageModal';
 import { ImageUploadField } from '../../components/ImageUploadField';
+import { RichTextEditor } from '../../components/RichTextEditor';
 import { useToast } from '../../contexts/ToastContext';
 import {
   adminDeleteGuide,
@@ -150,23 +151,22 @@ export function AdminGuidesPanel() {
               onError={(msg) => showToast(msg, 'error')}
             />
           </div>
-          <label className="admin-span-full">
-            <span className="admin-label-row">
-              상세 처치 가이드 (단계별)
-              <span className="admin-field-hint" title="단계별 이미지 삽입 예시">
-                ?
-              </span>
-            </span>
+          <div className="admin-span-full">
+            <span className="image-upload-label">상세 처치 가이드 (단계별)</span>
             <p className="admin-field-tip">
-              단계별 이미지는 본문 편집 시 툴바의 이미지 버튼으로 파일을 업로드해 삽입할 수 있습니다.
+              폰트·색상·정렬·인용구·이미지 첨부를 툴바에서 사용할 수 있습니다. 이미지는 본문 원하는 위치에
+              삽입되어 글과 번갈아 작성할 수 있습니다.
             </p>
-            <textarea
-              className="modal-textarea admin-textarea--guide"
+            <RichTextEditor
               value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              placeholder="1단계: ...&#10;2단계: ..."
+              onChange={(content) => setForm({ ...form, content })}
+              placeholder="1단계: 상황을 확인합니다.&#10;2단계: 응급처치를 시행합니다."
+              imageFolder="guides"
+              variant="article"
+              minHeight={360}
+              onUploadError={(msg) => showToast(msg, 'error')}
             />
-          </label>
+          </div>
           <label className="admin-checkbox">
             <input
               type="checkbox"

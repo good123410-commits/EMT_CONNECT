@@ -440,9 +440,12 @@
 /* ── Community detail / comments ── */
 [data-theme='dark'] .community-post-detail-modal,
 [data-theme='dark'] .community-report-modal,
-[data-theme='dark'] .modal-dialog {
+[data-theme='dark'] .modal-dialog,
+[data-theme='dark'] .modal-card,
+[data-theme='dark'] .fund-usage-modal,
+[data-theme='dark'] .resource-detail-modal {
   background: var(--bg-surface);
-  border-color: var(--border);
+  border: 1px solid var(--border);
   color: var(--text-primary);
 }
 
@@ -761,8 +764,45 @@
   color: var(--text-primary);
 }
 
+[data-theme='dark'] .guide-detail-preview-card {
+  background: rgba(30, 41, 59, 0.55);
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .guide-detail-blur-teaser {
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .guide-detail-login-panel {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: rgba(52, 211, 153, 0.35);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .guest-login-prompt--guide-gate {
+  background: transparent;
+  border-color: transparent;
+}
+
 [data-theme='dark'] .guide-detail-preview-body {
   color: var(--text-secondary);
+}
+
+[data-theme='dark'] .guide-detail-body {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .guide-detail-body blockquote {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-left-color: var(--kemix-green);
+}
+
+[data-theme='dark'] .guide-detail-body h2,
+[data-theme='dark'] .guide-detail-body h3,
+[data-theme='dark'] .guide-detail-body strong,
+[data-theme='dark'] .guide-detail-body b {
+  color: var(--text-primary);
 }
 
 [data-theme='dark'] .guide-detail-gate-panel {
@@ -919,4 +959,22 @@
 
 [data-theme='dark'] .fund-usage-modal-receipt img {
   border-color: var(--border);
+}
+
+[data-theme='dark'] .fund-usage-modal-body,
+[data-theme='dark'] .fund-usage-modal-amount {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .fund-usage-modal-amount {
+  color: #6ee7b7;
+}
+
+[data-theme='dark'] .modal-close {
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .modal-close:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
 }

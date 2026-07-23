@@ -3,6 +3,7 @@ import type { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'EMS_Connect',
   slug: 'ems-connect',
+  scheme: 'ems-connect',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -28,6 +29,8 @@ const config: ExpoConfig = {
     favicon: './assets/favicon.png',
   },
   plugins: [
+    'expo-screen-orientation',
+    'expo-web-browser',
     [
       'expo-image-picker',
       {

@@ -22,6 +22,16 @@ const EMPTY_FORM: UpsertResourceInput = {
   is_published: true,
 };
 
+function fileNameFromUrl(url: string): string {
+  try {
+    const pathname = new URL(url).pathname;
+    const name = pathname.split('/').pop();
+    return name && name.length > 0 ? decodeURIComponent(name) : 'resource-file';
+  } catch {
+    return 'resource-file';
+  }
+}
+
 export function AdminResourcesPanel() {
   const { showToast } = useToast();
   const [rows, setRows] = useState<KemixResource[]>([]);
@@ -89,23 +99,41 @@ export function AdminResourcesPanel() {
   };
 
   const handleSave = async () => {
-    if (!form.title.trim() || !form.file_url || !form.file_name) {
-      setError('제목과 파일은 필수입니다.');
+    const title = form.title.trim();
+    const fileUrl = form.file_url.trim();
+    const fileName = form.file_name.trim() || (fileUrl ? fileNameFromUrl(fileUrl) : '');
+
+    if (!title) {
+      const message = '제목을 입력해 주세요.';
+      setError(message);
+      showToast(message, 'error');
       return;
     }
+    if (!fileUrl || !fileName) {
+      const message = '파일을 업로드하거나 파일 URL을 입력해 주세요.';
+      setError(message);
+      showToast(message, 'error');
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
       await adminUpsertResource({
         ...form,
-        title: form.title.trim(),
+        title,
         description: form.description.trim(),
+        file_url: fileUrl,
+        file_name: fileName,
+        display_order: Number.isFinite(form.display_order) ? form.display_order : 0,
       });
       showToast(editingId ? '자료가 수정되었습니다.' : '자료가 등록되었습니다.');
       resetForm();
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '저장에 실패했습니다.');
+      const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
+      setError(message);
+      showToast(message, 'error');
     } finally {
       setSaving(false);
     }
@@ -186,7 +214,35 @@ export function AdminResourcesPanel() {
               <span className="muted admin-file-meta">
                 {form.file_name} ({formatFileSize(form.file_size)})
               </span>
-            ) : null}
+            ) : (
+              <span className="muted admin-file-meta">PDF, Word, Excel 등 문서 파일을 선택하세요.</span>
+            )}
+          </label>
+          <label className="admin-span-full">
+            파일 URL (직접 입력)
+            <input
+              className="modal-input"
+              value={form.file_url}
+              placeholder="https://..."
+              onChange={(e) => {
+                const nextUrl = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  file_url: nextUrl,
+                  file_name:
+                    f.file_name.trim() || (nextUrl.trim() ? fileNameFromUrl(nextUrl.trim()) : ''),
+                }));
+              }}
+            />
+          </label>
+          <label className="admin-span-full">
+            파일명 (표시용)
+            <input
+              className="modal-input"
+              value={form.file_name}
+              placeholder="예: 응급처치_매뉴얼.pdf"
+              onChange={(e) => setForm((f) => ({ ...f, file_name: e.target.value }))}
+            />
           </label>
           <label className="admin-checkbox">
             <input

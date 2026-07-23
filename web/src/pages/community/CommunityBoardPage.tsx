@@ -17,13 +17,27 @@ import {
 import type { CommunityPost } from '../../types';
 import { resetScrollPosition } from '../../utils/scrollToTop';
 import { consumeAuthIntent } from '../../utils/authIntent';
+import { buildCommunityPreview } from '../../utils/communityContent';
 
-export function CommunityBoardPage() {
+type CommunityBoardPageProps = {
+  mode?: 'board' | 'qna';
+  heroTitle?: string;
+  heroSubtitle?: string;
+  writeLabel?: string;
+};
+
+export function CommunityBoardPage({
+  mode = 'board',
+  heroTitle = '자유게시판',
+  heroSubtitle = '응급의료인들이 모여 경험과 정보를 나누는 따뜻한 커뮤니티 공간입니다',
+  writeLabel = '글쓰기',
+}: CommunityBoardPageProps = {}) {
+  const isQnaMode = mode === 'qna';
   const { user, loading: authLoading } = useAuth();
 
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [categories, setCategories] = useState<Awaited<ReturnType<typeof fetchCommunityCategories>>>([]);
-  const [activeTab, setActiveTab] = useState<BoardFilterId>('all');
+  const [activeTab, setActiveTab] = useState<BoardFilterId>(isQnaMode ? 'question' : 'all');
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,8 +46,10 @@ export function CommunityBoardPage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
 
-  const isDailyBest = activeTab === 'daily-best';
-  const activeSlug = BOARD_FILTER_TABS.find((tab) => tab.id === activeTab)?.slug ?? null;
+  const isDailyBest = !isQnaMode && activeTab === 'daily-best';
+  const activeSlug = isQnaMode
+    ? 'question'
+    : (BOARD_FILTER_TABS.find((tab) => tab.id === activeTab)?.slug ?? null);
 
   const reload = useCallback(async () => {
     try {
@@ -108,28 +124,32 @@ export function CommunityBoardPage() {
     <div className="container page-content">
       <PageHero
         eyebrow="KEMIX Community"
-        title="자유게시판"
-        subtitle="응급의료인들이 모여 경험과 정보를 나누는 따뜻한 커뮤니티 공간입니다"
+        title={heroTitle}
+        subtitle={heroSubtitle}
         dark
       />
 
       <CommunitySubNav />
 
       <div className="board-toolbar">
-        <nav className="board-tabs" aria-label="게시판 카테고리">
-          {BOARD_FILTER_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`board-tab${activeTab === tab.id ? ' board-tab--active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        {!isQnaMode ? (
+          <nav className="board-tabs" aria-label="게시판 카테고리">
+            {BOARD_FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`board-tab${activeTab === tab.id ? ' board-tab--active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        ) : (
+          <p className="board-qna-mode-label">질문&답변 게시판</p>
+        )}
         <button type="button" className="btn btn-primary board-write-btn" onClick={handleWriteClick}>
-          ✏️ 글쓰기
+          ✏️ {writeLabel}
         </button>
       </div>
 
@@ -158,6 +178,11 @@ export function CommunityBoardPage() {
               {post.is_notice ? <span className="board-list-badge">공지</span> : null}
               {isDailyBest ? <span className="board-hot">🔥</span> : null}
               {post.title?.trim() || '제목 없음'}
+              {post.summary || post.content ? (
+                <span className="board-list-preview">
+                  {buildCommunityPreview(post.content, post.summary)}
+                </span>
+              ) : null}
             </span>
             <span className="board-list-col board-list-col--meta">
               👍 {post.likes}
@@ -191,16 +216,17 @@ export function CommunityBoardPage() {
         open={writeOpen}
         onClose={() => setWriteOpen(false)}
         categories={categories}
+        defaultCategorySlug={isQnaMode ? 'question' : undefined}
         onSubmitted={() => void reload()}
       />
       <GuestLoginPrompt
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
         title="로그인이 필요합니다"
-        description="구급대원 및 전문가에게 질문을 남기시려면 로그인이 필요합니다."
+        description="질문을 남기시려면 로그인이 필요합니다."
         kakaoLabel="카카오로 시작하기"
         googleLabel="Google로 시작하기"
-        returnPath="/community/board"
+        returnPath={isQnaMode ? '/community/qna' : '/community/board'}
         intent={{ type: 'community-write' }}
       />
     </div>
