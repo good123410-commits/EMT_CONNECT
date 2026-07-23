@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getResourceCategoryLabel } from '../constants/resourceCategories';
 import { formatFileSize } from '../services/resourceService';
-import { isKakaoShareAvailable, shareResourceOnKakao } from '../utils/kakaoShare';
+import {
+  isKakaoReadySync,
+  isKakaoShareAvailable,
+  preloadKakaoSdk,
+  shareResourceOnKakao,
+  shareResourceOnKakaoSync,
+} from '../utils/kakaoShare';
 import type { KemixResource } from '../types';
 import { ResourceEmailModal } from './ResourceEmailModal';
 
@@ -18,12 +24,33 @@ function formatDate(iso: string) {
 export function ResourceDetailModal({ resource, open, onClose }: ResourceDetailModalProps) {
   const [emailOpen, setEmailOpen] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+  const [kakaoReady, setKakaoReady] = useState(isKakaoReadySync);
+
+  useEffect(() => {
+    if (!open || !isKakaoShareAvailable()) return;
+    setKakaoReady(isKakaoReadySync());
+    void preloadKakaoSdk().then((err) => {
+      if (err) {
+        setShareError(err);
+      }
+      setKakaoReady(isKakaoReadySync());
+    });
+  }, [open]);
 
   if (!open || !resource) return null;
 
   const handleKakaoShare = () => {
     setShareError(null);
+
+    if (isKakaoReadySync()) {
+      const err = shareResourceOnKakaoSync(resource);
+      if (err) setShareError(err);
+      return;
+    }
+
+    setKakaoReady(false);
     void shareResourceOnKakao(resource).then((err) => {
+      setKakaoReady(isKakaoReadySync());
       if (err) setShareError(err);
     });
   };
@@ -67,8 +94,13 @@ export function ResourceDetailModal({ resource, open, onClose }: ResourceDetailM
               파일 다운로드
             </a>
             {isKakaoShareAvailable() ? (
-              <button type="button" className="btn btn-kakao" onClick={handleKakaoShare}>
-                카카오톡으로 공유
+              <button
+                type="button"
+                className="btn btn-kakao"
+                disabled={!kakaoReady && !shareError}
+                onClick={handleKakaoShare}
+              >
+                {kakaoReady ? '카카오톡으로 공유' : shareError ? '카카오톡 공유 재시도' : '공유 준비 중…'}
               </button>
             ) : null}
             <button type="button" className="btn btn-secondary" onClick={() => setEmailOpen(true)}>

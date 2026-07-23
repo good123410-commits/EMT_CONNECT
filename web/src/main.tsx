@@ -36,7 +36,7 @@ import './styles.css';
 import './dark-theme.css';
 import { preloadKakaoSdk } from './utils/kakaoShare';
 
-preloadKakaoSdk();
+void preloadKakaoSdk();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

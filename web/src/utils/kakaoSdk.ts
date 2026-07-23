@@ -1,13 +1,11 @@
 const KAKAO_SDK_URL =
   'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js';
-const KAKAO_SDK_INTEGRITY =
-  'sha384-DKYJZ8NLiK8MN4c5vVk/8/YJtwpHGvN9MOjk+ErT670HcH0jc0P8jPJJJy9/fbyl';
 
 declare global {
   interface Window {
     Kakao?: {
       init: (key: string) => void;
-      isInitialized: (() => boolean) | boolean;
+      isInitialized: () => boolean;
       Share?: {
         sendDefault: (options: Record<string, unknown>) => void;
       };
@@ -15,8 +13,6 @@ declare global {
   }
 }
 
-let sdkLoadPromise: Promise<void> | null = null;
-let initAttempted = false;
 let initSucceeded = false;
 
 /** Vite 빌드 시 주입 — 공백·따옴표 제거 */
@@ -29,74 +25,45 @@ export function getKakaoJsKey(): string {
 const kakaoKeyAtLoad = getKakaoJsKey();
 console.log('Kakao Key Loaded:', kakaoKeyAtLoad || '(empty)');
 
-function readIsInitialized(kakao: NonNullable<Window['Kakao']>): boolean {
-  const state = kakao.isInitialized;
-  if (typeof state === 'function') {
-    try {
-      return state.call(kakao);
-    } catch {
-      return false;
-    }
-  }
-  if (typeof state === 'boolean') {
-    return state;
-  }
-  return false;
+function isKakaoScriptReady(): boolean {
+  return typeof window.Kakao?.init === 'function';
 }
 
-function isKakaoSdkUsable(kakao: NonNullable<Window['Kakao']>): boolean {
-  return Boolean(kakao.Share?.sendDefault) && (initSucceeded || readIsInitialized(kakao));
+function ensureKakaoScriptInDom(): void {
+  if (document.querySelector('script[data-kakao-sdk]')) return;
+
+  const script = document.createElement('script');
+  script.src = KAKAO_SDK_URL;
+  script.crossOrigin = 'anonymous';
+  script.async = true;
+  script.dataset.kakaoSdk = 'true';
+  document.head.appendChild(script);
 }
 
-export function waitForKakaoSdk(timeoutMs = 8000): Promise<NonNullable<Window['Kakao']>> {
-  if (window.Kakao?.Share) {
-    return Promise.resolve(window.Kakao);
-  }
+/**
+ * SDK 스크립트 로드 대기.
+ * 주의: Kakao.Share 는 init() 호출 후에만 붙습니다 — 여기서는 Kakao.init 만 확인합니다.
+ */
+export function waitForKakaoSdk(timeoutMs = 15000): Promise<NonNullable<Window['Kakao']>> {
+  ensureKakaoScriptInDom();
 
-  if (!sdkLoadPromise) {
-    sdkLoadPromise = new Promise<void>((resolve, reject) => {
-      const existing = document.querySelector<HTMLScriptElement>('script[data-kakao-sdk]');
-      if (existing) {
-        if (window.Kakao?.Share) {
-          resolve();
-          return;
-        }
-        existing.addEventListener('load', () => resolve(), { once: true });
-        existing.addEventListener('error', () => reject(new Error('Kakao SDK script load failed')), {
-          once: true,
-        });
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+
+    const tick = () => {
+      if (isKakaoScriptReady()) {
+        resolve(window.Kakao!);
         return;
       }
+      if (Date.now() - started >= timeoutMs) {
+        reject(new Error('Kakao SDK load timeout'));
+        return;
+      }
+      window.setTimeout(tick, 50);
+    };
 
-      const script = document.createElement('script');
-      script.src = KAKAO_SDK_URL;
-      script.integrity = KAKAO_SDK_INTEGRITY;
-      script.crossOrigin = 'anonymous';
-      script.dataset.kakaoSdk = 'true';
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Kakao SDK script load failed'));
-      document.head.appendChild(script);
-    });
-  }
-
-  return sdkLoadPromise.then(
-    () =>
-      new Promise((resolve, reject) => {
-        const started = Date.now();
-        const poll = () => {
-          if (window.Kakao?.Share) {
-            resolve(window.Kakao);
-            return;
-          }
-          if (Date.now() - started >= timeoutMs) {
-            reject(new Error('Kakao SDK load timeout'));
-            return;
-          }
-          window.setTimeout(poll, 50);
-        };
-        poll();
-      }),
-  );
+    tick();
+  });
 }
 
 export function isKakaoShareConfigured(): boolean {
@@ -110,11 +77,25 @@ export function getKakaoUnavailableReason(
     case 'key':
       return '카카오 JavaScript 키가 설정되지 않았습니다. web/.env 또는 프로젝트 루트 .env의 VITE_KAKAO_JS_KEY를 확인한 뒤 dev 서버를 재시작하세요.';
     case 'sdk':
-      return '카카오 SDK를 불러오지 못했습니다. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.';
+      return '카카오 SDK를 불러오지 못했습니다. 네트워크·광고 차단을 확인한 뒤 페이지를 새로고침해 주세요.';
     case 'init':
       return '카카오 SDK 초기화에 실패했습니다. VITE_KAKAO_JS_KEY와 카카오 개발자 콘솔의 JavaScript 키·도메인 등록을 확인하세요.';
     default:
       return '카카오 공유를 사용할 수 없습니다.';
+  }
+}
+
+function initKakaoSdk(kakao: NonNullable<Window['Kakao']>, key: string): boolean {
+  try {
+    if (!kakao.isInitialized()) {
+      kakao.init(key);
+    }
+    const ready = kakao.isInitialized() && Boolean(kakao.Share?.sendDefault);
+    console.log('Kakao SDK initialized:', ready);
+    return ready;
+  } catch (error) {
+    console.error('Kakao SDK init failed:', error);
+    return false;
   }
 }
 
@@ -125,41 +106,42 @@ export async function ensureKakaoReady(): Promise<string | null> {
     return getKakaoUnavailableReason('key');
   }
 
+  if (initSucceeded && window.Kakao?.Share?.sendDefault) {
+    return null;
+  }
+
   let kakao: NonNullable<Window['Kakao']>;
   try {
     kakao = await waitForKakaoSdk();
-  } catch {
+  } catch (error) {
+    console.error('Kakao SDK wait failed:', error);
     return getKakaoUnavailableReason('sdk');
   }
 
-  if (!initAttempted) {
-    initAttempted = true;
-    try {
-      if (!readIsInitialized(kakao)) {
-        kakao.init(key);
-      }
-      initSucceeded = isKakaoSdkUsable(kakao) || readIsInitialized(kakao);
-      if (!initSucceeded && kakao.Share?.sendDefault) {
-        // isInitialized()가 false여도 Share 모듈이 있으면 사용 가능한 경우가 있음
-        initSucceeded = true;
-      }
-    } catch (error) {
-      console.error('Kakao SDK init failed:', error);
-      initSucceeded = false;
-    }
-  }
+  initSucceeded = initKakaoSdk(kakao, key);
 
-  if (!initSucceeded && !isKakaoSdkUsable(kakao)) {
+  if (!initSucceeded) {
     return getKakaoUnavailableReason('init');
   }
 
   return null;
 }
 
-/** 앱 시작 시 SDK 선로드 (공유 버튼 클릭 전 초기화) */
-export function preloadKakaoSdk(): void {
-  if (!isKakaoShareConfigured()) return;
-  void ensureKakaoReady().catch((error) => {
-    console.warn('Kakao SDK preload skipped:', error);
-  });
+/** 동기 판별 — 클릭 핸들러에서 await 없이 공유 호출 가능 여부 */
+export function isKakaoReadySync(): boolean {
+  return initSucceeded && Boolean(window.Kakao?.Share?.sendDefault);
+}
+
+/** 앱 시작 시 SDK 선로드 */
+export function preloadKakaoSdk(): Promise<string | null> {
+  if (!isKakaoShareConfigured()) return Promise.resolve(null);
+  return ensureKakaoReady();
+}
+
+/** 카카오 공유 피커가 모달 뒤에 가려지지 않도록 일시 조정 */
+export function prepareKakaoShareLayer(): () => void {
+  document.body.classList.add('kakao-share-active');
+  return () => {
+    document.body.classList.remove('kakao-share-active');
+  };
 }

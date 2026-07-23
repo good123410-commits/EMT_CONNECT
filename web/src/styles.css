@@ -992,6 +992,15 @@ a:hover { text-decoration: underline; }
   backdrop-filter: blur(4px);
   animation: modal-fade-in 0.2s ease;
 }
+/* 카카오톡 공유 피커가 모달 뒤에 가려지지 않도록 */
+body.kakao-share-active .modal-overlay {
+  z-index: 50;
+  pointer-events: none;
+}
+body.kakao-share-active iframe[src*='kakao'],
+body.kakao-share-active iframe[src*='sharer.kakao.com'] {
+  z-index: 20000 !important;
+}
 .modal-dialog {
   position: relative;
   width: min(420px, 100%);
