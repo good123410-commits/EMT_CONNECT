@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DownloadSubNav } from '../../components/DownloadSubNav';
 import { PageHero } from '../../components/PageHero';
 import { fetchPublishedFaqs } from '../../services/faqService';
 import type { FaqItem } from '../../types';
@@ -17,7 +18,8 @@ export function FaqPage() {
 
   return (
     <div className="container page-content">
-      <PageHero eyebrow="Download & Q&A" title="자주 묻는 질문" subtitle="KEMIX 이용에 관한 FAQ" dark />
+      <PageHero eyebrow="Resources & Q&A" title="자주하는 질문" subtitle="KEMIX 이용에 관한 FAQ" dark />
+      <DownloadSubNav />
       {loading ? <p className="muted">불러오는 중…</p> : null}
       <div className="faq-list">
         {faqs.map((faq) => (

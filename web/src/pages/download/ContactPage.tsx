@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { DownloadSubNav } from '../../components/DownloadSubNav';
 import { PageHero } from '../../components/PageHero';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -62,7 +63,8 @@ export function ContactPage() {
 
   return (
     <div className="container page-content">
-      <PageHero eyebrow="Download & Q&A" title="1:1 문의" subtitle="궁금한 점을 남겨 주세요" dark />
+      <PageHero eyebrow="Resources & Q&A" title="1:1 질문하기" subtitle="궁금한 점을 남겨 주세요" dark />
+      <DownloadSubNav />
 
       <p className="contact-privacy-note">
         1:1 문의는 비밀글로 처리되며, 작성자 본인과 관리자만 열람할 수 있습니다.

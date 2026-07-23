@@ -59,7 +59,7 @@ export function AdminFaqPanel() {
 
   return (
     <section className="admin-panel">
-      <h2>자주 묻는 질문(FAQ) 관리</h2>
+      <h2>자주하는 질문(FAQ) 관리</h2>
       <p className="admin-panel-desc">공개 FAQ 페이지에 노출되는 질문·답변을 관리합니다.</p>
 
       <div className="admin-form-card">

@@ -8,6 +8,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { DevLogPage } from './pages/about/DevLogPage';
+import { MembersPage } from './pages/about/MembersPage';
 import { HistoryPage } from './pages/about/HistoryPage';
 import { StructurePage } from './pages/about/StructurePage';
 import { VisionPage } from './pages/about/VisionPage';
@@ -16,7 +17,9 @@ import { BlogDetailPage } from './pages/BlogDetailPage';
 import { BlogListPage } from './pages/BlogListPage';
 import { CommunityBoardPage } from './pages/community/CommunityBoardPage';
 import { DonationPage } from './pages/community/DonationPage';
+import { FundUsagePage } from './pages/community/FundUsagePage';
 import { PollsPage } from './pages/community/PollsPage';
+import { ResourcesPage } from './pages/download/ResourcesPage';
 import { ContactPage } from './pages/download/ContactPage';
 import { DownloadAppPage } from './pages/download/DownloadAppPage';
 import { FaqPage } from './pages/download/FaqPage';
@@ -49,6 +52,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="about/history" element={<HistoryPage />} />
             <Route path="about/structure" element={<StructurePage />} />
             <Route path="about/dev-log" element={<DevLogPage />} />
+            <Route path="about/members" element={<MembersPage />} />
 
             {/* KEMIX 콘텐츠 */}
             <Route path="content" element={<ContentLayout />}>
@@ -67,12 +71,14 @@ createRoot(document.getElementById('root')!).render(
             {/* <Route path="community/skills" element={<SkillsPage />} /> */}
             <Route path="community/polls" element={<PollsPage />} />
             <Route path="community/donation" element={<DonationPage />} />
+            <Route path="community/fund-usage" element={<FundUsagePage />} />
 
-            {/* 다운로드 & Q&A */}
+            {/* 자료실 & 질문하기 */}
+            <Route path="download/resources" element={<ResourcesPage />} />
             <Route path="download/app" element={<DownloadAppPage />} />
             <Route path="download/faq" element={<FaqPage />} />
             <Route path="download/contact" element={<ContactPage />} />
-            <Route path="download" element={<Navigate to="/download/app" replace />} />
+            <Route path="download" element={<Navigate to="/download/resources" replace />} />
 
             {/* 약관 · 정책 */}
             <Route path="legal/:slug" element={<LegalPage />} />

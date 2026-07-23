@@ -742,6 +742,38 @@
   color: #6ee7b7;
 }
 
+[data-theme='dark'] .guest-login-sheet,
+[data-theme='dark'] .guest-login-prompt--inline {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .guest-login-prompt-title {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .guest-login-prompt-desc,
+[data-theme='dark'] .guest-login-prompt-dismiss {
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .guest-login-prompt-dismiss:hover {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .guide-detail-preview-body {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .guide-detail-gate-panel {
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 17, 32, 0.05) 0%,
+    rgba(11, 17, 32, 0.78) 38%,
+    rgba(11, 17, 32, 0.94) 100%
+  );
+}
+
 /* ── Polls vote / results ── */
 [data-theme='dark'] .poll-vote-option,
 [data-theme='dark'] .poll-result-row {
@@ -774,4 +806,117 @@
 [data-theme='dark'] .donation-card-purpose {
   background: rgba(4, 120, 87, 0.2);
   color: #6ee7b7;
+}
+
+/* ── Resources library ── */
+[data-theme='dark'] .resource-list,
+[data-theme='dark'] .member-card,
+[data-theme='dark'] .fund-usage-list {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .resource-list-head,
+[data-theme='dark'] .fund-usage-list-head {
+  background: var(--bg-surface-2);
+  border-bottom-color: var(--border);
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .resource-row,
+[data-theme='dark'] .fund-usage-row {
+  border-bottom-color: var(--border);
+}
+
+[data-theme='dark'] .resource-row:hover,
+[data-theme='dark'] .fund-usage-row:hover,
+[data-theme='dark'] .member-card:hover {
+  background: var(--bg-surface-2);
+}
+
+[data-theme='dark'] .resource-col--title strong,
+[data-theme='dark'] .resource-detail-title,
+[data-theme='dark'] .resource-email-modal-title {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .resource-row-desc,
+[data-theme='dark'] .resource-detail-meta,
+[data-theme='dark'] .resource-detail-desc,
+[data-theme='dark'] .resource-email-modal-desc,
+[data-theme='dark'] .download-qr-wrap figcaption {
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .resource-filter-btn {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .resource-filter-btn--active {
+  background: var(--kemix-green-dark);
+  border-color: var(--kemix-green-dark);
+  color: #fff;
+}
+
+[data-theme='dark'] .resource-detail-category,
+[data-theme='dark'] .member-card-badge {
+  background: rgba(4, 120, 87, 0.2);
+  color: #6ee7b7;
+}
+
+[data-theme='dark'] .download-qr-image,
+[data-theme='dark'] .admin-qr-preview {
+  background: #fff;
+  border-color: var(--border);
+}
+
+/* ── Members list ── */
+[data-theme='dark'] .members-section-head {
+  border-bottom-color: var(--border);
+}
+
+[data-theme='dark'] .members-section-title,
+[data-theme='dark'] .member-card-name,
+[data-theme='dark'] .fund-usage-col--title,
+[data-theme='dark'] .fund-usage-modal-title {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .member-card,
+[data-theme='dark'] .fund-usage-list {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .member-card:hover,
+[data-theme='dark'] .fund-usage-row:hover {
+  background: var(--bg-surface-2);
+}
+
+[data-theme='dark'] .member-card-company,
+[data-theme='dark'] .member-card-joined,
+[data-theme='dark'] .fund-usage-col--summary,
+[data-theme='dark'] .fund-usage-modal-date {
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .member-card-badge {
+  background: rgba(4, 120, 87, 0.2);
+  color: #6ee7b7;
+}
+
+[data-theme='dark'] .fund-usage-list-head {
+  background: var(--bg-surface-2);
+  border-bottom-color: var(--border);
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .fund-usage-row {
+  border-bottom-color: var(--border);
+}
+
+[data-theme='dark'] .fund-usage-modal-receipt img {
+  border-color: var(--border);
 }

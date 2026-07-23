@@ -15,6 +15,9 @@ export type AdminTabId =
   | 'polls'
   | 'skills'
   | 'donations'
+  | 'fund-usage'
+  | 'resources'
+  | 'app-download'
   | 'faq'
   | 'inquiries'
   | 'users'
@@ -62,14 +65,17 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       // { id: 'skills', label: '스킬 테크 트리' },
       { id: 'polls', label: 'KEMIX 투표' },
       { id: 'donations', label: '모금 계좌' },
+      { id: 'fund-usage', label: '기금 사용 안내' },
     ],
   },
   {
     id: 'support',
-    label: '다운로드 & Q&A',
+    label: '자료실 & 질문하기',
     children: [
-      { id: 'faq', label: '자주 묻는 질문(FAQ)' },
-      { id: 'inquiries', label: '1:1 문의(Q&A)' },
+      { id: 'resources', label: '자료실 관리' },
+      { id: 'app-download', label: '앱 다운로드 관리' },
+      { id: 'faq', label: '자주하는 질문(FAQ)' },
+      { id: 'inquiries', label: '1:1 질문(Q&A)' },
     ],
   },
   {

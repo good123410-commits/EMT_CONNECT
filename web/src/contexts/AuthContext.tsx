@@ -27,6 +27,8 @@ import {
   getPasswordResetRedirectUrl,
   storeAuthReturnPath,
 } from '../utils/authRedirects';
+import type { AuthIntent } from '../utils/authIntent';
+import { storeAuthIntent } from '../utils/authIntent';
 import type { UserProfile } from '../types';
 
 export {
@@ -47,7 +49,7 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsEmailConfirmation: boolean }>;
-  signInWithOAuth: (provider: Provider) => Promise<void>;
+  signInWithOAuth: (provider: Provider, options?: { returnPath?: string; intent?: AuthIntent }) => Promise<void>;
   linkOAuthProvider: (provider: Provider) => Promise<void>;
   resetPasswordForEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -146,19 +148,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
-  const signInWithOAuth = useCallback(async (provider: Provider) => {
-    storeAuthReturnPath();
+  const signInWithOAuth = useCallback(
+    async (provider: Provider, options?: { returnPath?: string; intent?: AuthIntent }) => {
+      storeAuthReturnPath(options?.returnPath);
+      if (options?.intent) {
+        storeAuthIntent(options.intent);
+      }
 
-    const options: { redirectTo?: string; scopes?: string } = {
-      redirectTo: getOAuthRedirectUrl(),
-    };
+      const oauthOptions: { redirectTo?: string; scopes?: string } = {
+        redirectTo: getOAuthRedirectUrl(),
+      };
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options,
-    });
-    if (error) throw error;
-  }, []);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: oauthOptions,
+      });
+      if (error) throw error;
+    },
+    [],
+  );
 
   const handleLinkOAuthProvider = useCallback(async (provider: Provider) => {
     await linkOAuthProvider(provider);

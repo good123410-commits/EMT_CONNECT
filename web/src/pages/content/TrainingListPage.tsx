@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
 import {
   TRAINING_STATUS_LABEL,
   fetchTrainingCategories,
@@ -18,6 +19,8 @@ export function TrainingListPage() {
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
+
+  useScrollToTop([category]);
 
   useEffect(() => {
     void fetchTrainingCategories().then(setCategories);

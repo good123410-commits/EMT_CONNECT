@@ -45,6 +45,54 @@ export type DonationAccount = {
   updated_at: string;
 };
 
+export type PublicMemberRole = 'regular_member' | 'associate_member';
+
+export type PublicMember = {
+  id: string;
+  nickname: string | null;
+  name: string | null;
+  company_name: string | null;
+  role: PublicMemberRole;
+  created_at: string;
+};
+
+export type FundUsageReport = {
+  id: string;
+  title: string;
+  content: string;
+  summary: string | null;
+  amount_used: number | null;
+  receipt_image_url: string | null;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type KemixResource = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  file_url: string;
+  file_name: string;
+  file_size: number | null;
+  display_order: number;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AppDownloadSettings = {
+  id: string;
+  ios_store_url: string;
+  android_store_url: string;
+  deep_link: string;
+  latest_version: string | null;
+  qr_code_image_url: string | null;
+  description: string;
+  updated_at: string;
+};
+
 export type MonthlyInterview = {
   id: string;
   title: string;

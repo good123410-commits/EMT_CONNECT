@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { GuideContentGate } from '../components/GuideContentGate';
 import { useToast } from '../contexts/ToastContext';
 import {
   fetchGuideBySlug,
@@ -12,21 +13,6 @@ import {
 
 const APP_DEEP_LINK = import.meta.env.VITE_APP_DEEP_LINK ?? 'emtconnect://guide';
 const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL ?? '/download/app';
-
-function renderGuideContent(content: string) {
-  const trimmed = content.trim();
-  if (!trimmed) return <p className="muted">본문이 없습니다.</p>;
-  if (/<[a-z][\s\S]*>/i.test(trimmed)) {
-    return <div className="guide-detail-body" dangerouslySetInnerHTML={{ __html: trimmed }} />;
-  }
-  return (
-    <div className="guide-detail-body">
-      {trimmed.split(/\n\n+/).map((block, i) => (
-        <p key={i}>{block}</p>
-      ))}
-    </div>
-  );
-}
 
 export function BlogDetailPage() {
   const { slug = '' } = useParams();
@@ -139,7 +125,7 @@ export function BlogDetailPage() {
         <img src={post.thumbnail_url} alt="" className="guide-detail-hero" />
       ) : null}
 
-      {renderGuideContent(post.content)}
+      <GuideContentGate slug={slug} content={post.content} summary={post.summary} />
 
       <footer className="guide-detail-actions">
         <Link to="/blog" className="btn btn-secondary">

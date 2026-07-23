@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ALL_USER_ROLES, getRoleLabel } from '../../constants/roles';
+import { ADMIN_ROLE_OPTIONS, getRoleLabel, LEGACY_ROLE_OPTIONS, MEMBERSHIP_ROLES } from '../../constants/roles';
 import { useToast } from '../../contexts/ToastContext';
 import { adminListUsers, adminSetUserBlocked, adminSetUserRole } from '../../services/adminService';
 import type { AdminUserRow, UserRole } from '../../types';
@@ -60,7 +60,10 @@ export function AdminUsersPanel() {
   return (
     <section className="admin-panel">
       <h2>유저 관리</h2>
-      <p className="muted">가입 유저의 등급·상태를 관리합니다. 변경 사항은 즉시 DB에 반영됩니다.</p>
+      <p className="muted">
+        가입 유저의 등급(정회원 · 준회원 · 일반회원) 및 관리자 권한을 설정합니다. 변경 사항은 회원 목록에
+        실시간 반영됩니다.
+      </p>
 
       <div className="admin-form-card admin-form-card--compact">
         <label className="admin-span-full">
@@ -101,11 +104,27 @@ export function AdminUsersPanel() {
                     disabled={savingId === row.id}
                     onChange={(e) => void handleRoleChange(row.id, e.target.value as UserRole)}
                   >
-                    {ALL_USER_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {getRoleLabel(role)}
-                      </option>
-                    ))}
+                    <optgroup label="회원 등급">
+                      {MEMBERSHIP_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {getRoleLabel(role)}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="관리자">
+                      {ADMIN_ROLE_OPTIONS.map((role) => (
+                        <option key={role} value={role}>
+                          {getRoleLabel(role)}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="직군(레거시)">
+                      {LEGACY_ROLE_OPTIONS.map((role) => (
+                        <option key={role} value={role}>
+                          {getRoleLabel(role)}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </td>
                 <td>

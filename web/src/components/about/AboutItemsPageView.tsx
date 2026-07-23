@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { PageHero } from '../PageHero';
+import { AboutSubNav } from '../AboutSubNav';
 import { AboutItemCard } from './AboutItemCard';
 import { AboutItemDetailModal } from './AboutItemDetailModal';
 import { useAboutPage } from '../../hooks/useAboutPage';
@@ -46,6 +47,7 @@ export function AboutItemsPageView({ pageSlug }: AboutItemsPageViewProps) {
   return (
     <div className="container page-content">
       <PageHero eyebrow={page.eyebrow} title={page.title} subtitle={page.subtitle ?? ''} dark />
+      <AboutSubNav />
 
       {loading ? <p className="muted">항목을 불러오는 중…</p> : null}
 

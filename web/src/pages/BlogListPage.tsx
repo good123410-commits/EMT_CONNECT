@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHero } from '../components/PageHero';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 import { useGuideList } from '../hooks/useGuideList';
 import {
   formatGuideDate,
@@ -19,6 +20,8 @@ export function BlogListPage() {
     loading,
     error,
   } = useGuideList();
+
+  useScrollToTop([activeCategory]);
 
   const resultLabel = useMemo(() => {
     if (loading) return '';

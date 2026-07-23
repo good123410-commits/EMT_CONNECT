@@ -8,7 +8,11 @@ export const MEMBER_ROLES = [
   'user',
 ] as const;
 
-export const LEGACY_ROLES = ['admin', 'hospital', 'paramedic', 'private_ems'] as const;
+export const MEMBERSHIP_ROLES: UserRole[] = ['regular_member', 'associate_member', 'user'];
+
+export const ADMIN_ROLE_OPTIONS: UserRole[] = ['super_admin', 'sub_admin', 'admin'];
+
+export const LEGACY_ROLE_OPTIONS: UserRole[] = ['hospital', 'paramedic', 'private_ems'];
 
 export const ALL_USER_ROLES: UserRole[] = [
   'super_admin',
@@ -27,7 +31,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   sub_admin: '준관리자',
   regular_member: '정회원',
   associate_member: '준회원',
-  user: '일반유저',
+  user: '일반회원',
   admin: '관리자(레거시)',
   hospital: '병원',
   paramedic: '구급대원',
@@ -37,7 +41,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 export const ADMIN_ROLES: UserRole[] = ['super_admin', 'sub_admin', 'admin'];
 
 export function getRoleLabel(role: UserRole | string | null | undefined): string {
-  if (!role) return '일반유저';
+  if (!role) return '일반회원';
   return ROLE_LABELS[role as UserRole] ?? String(role);
 }
 

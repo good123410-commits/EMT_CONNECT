@@ -1,4 +1,5 @@
 import { PageHero } from '../components/PageHero';
+import { AboutSubNav } from './AboutSubNav';
 import { useAboutPage } from '../hooks/useAboutPage';
 import type { AboutPageSlug } from '../types';
 
@@ -20,6 +21,7 @@ export function AboutPageView({ slug }: AboutPageViewProps) {
   return (
     <div className="container page-content">
       <PageHero eyebrow={page.eyebrow} title={page.title} subtitle={page.subtitle ?? ''} dark />
+      <AboutSubNav />
       <div
         className="prose-block rich-content about-page-body"
         dangerouslySetInnerHTML={{ __html: page.content }}

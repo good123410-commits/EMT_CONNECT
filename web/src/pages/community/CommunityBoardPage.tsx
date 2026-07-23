@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CommunityPostDetailModal } from '../../components/CommunityPostDetailModal';
 import { CommunityWriteModal } from '../../components/CommunityWriteModal';
-import { LoginModal } from '../../components/LoginModal';
+import { GuestLoginPrompt } from '../../components/GuestLoginPrompt';
 import { CommunitySubNav } from '../../components/CommunitySubNav';
 import { Pagination } from '../../components/Pagination';
 import { PageHero } from '../../components/PageHero';
 import { BOARD_FILTER_TABS, BOARD_PAGE_SIZE, type BoardFilterId } from '../../constants/communityBoard';
 import { useAuth } from '../../contexts/AuthContext';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
 import {
   fetchBambooPostsPage,
   fetchCommunityCategories,
@@ -14,10 +15,11 @@ import {
   subscribeCommunityPosts,
 } from '../../services/communityService';
 import type { CommunityPost } from '../../types';
+import { resetScrollPosition } from '../../utils/scrollToTop';
+import { consumeAuthIntent } from '../../utils/authIntent';
 
 export function CommunityBoardPage() {
-  const { user } = useAuth();
-  const listRef = useRef<HTMLDivElement>(null);
+  const { user, loading: authLoading } = useAuth();
 
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [categories, setCategories] = useState<Awaited<ReturnType<typeof fetchCommunityCategories>>>([]);
@@ -66,6 +68,9 @@ export function CommunityBoardPage() {
     setPage(1);
   }, [activeTab]);
 
+  useScrollToTop([activeTab]);
+  useScrollToTop([page]);
+
   const totalPages = useMemo(() => {
     if (isDailyBest) return 1;
     return Math.max(1, Math.ceil(totalCount / BOARD_PAGE_SIZE));
@@ -73,8 +78,9 @@ export function CommunityBoardPage() {
 
   const handlePageChange = (nextPage: number) => {
     setPage(nextPage);
-    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      resetScrollPosition({ behavior: 'instant' });
+    });
   };
 
   const handlePostUpdate = (postId: string, patch: Partial<CommunityPost>) => {
@@ -90,6 +96,14 @@ export function CommunityBoardPage() {
     setWriteOpen(true);
   };
 
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const intent = consumeAuthIntent();
+    if (intent?.type === 'community-write') {
+      setWriteOpen(true);
+    }
+  }, [authLoading, user]);
+
   return (
     <div className="container page-content">
       <PageHero
@@ -101,7 +115,7 @@ export function CommunityBoardPage() {
 
       <CommunitySubNav />
 
-      <div className="board-toolbar" ref={listRef}>
+      <div className="board-toolbar">
         <nav className="board-tabs" aria-label="게시판 카테고리">
           {BOARD_FILTER_TABS.map((tab) => (
             <button
@@ -179,7 +193,16 @@ export function CommunityBoardPage() {
         categories={categories}
         onSubmitted={() => void reload()}
       />
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <GuestLoginPrompt
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        title="로그인이 필요합니다"
+        description="구급대원 및 전문가에게 질문을 남기시려면 로그인이 필요합니다."
+        kakaoLabel="카카오로 시작하기"
+        googleLabel="Google로 시작하기"
+        returnPath="/community/board"
+        intent={{ type: 'community-write' }}
+      />
     </div>
   );
 }

@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   readonly VITE_ADSENSE_CLIENT?: string;
   readonly VITE_APP_STORE_URL?: string;
   readonly VITE_PLAY_STORE_URL?: string;
+  readonly VITE_APP_DEEP_LINK?: string;
+  readonly VITE_KAKAO_JS_KEY?: string;
   readonly VITE_SITE_URL?: string;
 }
 

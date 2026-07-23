@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { PageHero } from '../../components/PageHero';
+import { useScrollToTop } from '../../hooks/useScrollToTop';
+import { AdminAppDownloadPanel } from './AdminAppDownloadPanel';
+import { AdminResourcesPanel } from './AdminResourcesPanel';
 import { AdminAboutPagesPanel } from './AdminAboutPagesPanel';
 import { AdminAboutItemsPanel } from './AdminAboutItemsPanel';
 import { AdminCommunityPanel } from './AdminCommunityPanel';
 import { AdminDonationsPanel } from './AdminDonationsPanel';
+import { AdminFundUsagePanel } from './AdminFundUsagePanel';
 import { AdminFaqPanel } from './AdminFaqPanel';
 import { AdminInquiriesPanel } from './AdminInquiriesPanel';
 import { AdminGuidesPanel } from './AdminGuidesPanel';
@@ -27,6 +31,8 @@ export function AdminDashboardPage() {
     setGroup(groupId);
     setTab(defaultTab);
   };
+
+  useScrollToTop([tab, group]);
 
   return (
     <div className="container page-content">
@@ -55,6 +61,9 @@ export function AdminDashboardPage() {
         {/* {tab === 'skills' && <AdminSkillsPanel />} */}
         {tab === 'polls' && <AdminPollsPanel />}
         {tab === 'donations' && <AdminDonationsPanel />}
+        {tab === 'fund-usage' && <AdminFundUsagePanel />}
+        {tab === 'resources' && <AdminResourcesPanel />}
+        {tab === 'app-download' && <AdminAppDownloadPanel />}
         {tab === 'faq' && <AdminFaqPanel />}
         {tab === 'inquiries' && <AdminInquiriesPanel />}
         {tab === 'users' && <AdminUsersPanel />}
