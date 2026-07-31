@@ -54,7 +54,6 @@ export const MAIN_NAV: NavItem[] = [
       { to: '/download/resources', label: '자료실' },
       { to: '/download/app', label: '앱 다운로드' },
       { to: '/download/faq', label: '자주하는 질문' },
-      { to: '/community/qna', label: 'EMS 질문하기' },
     ],
   },
 ];

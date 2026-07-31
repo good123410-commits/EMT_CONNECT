@@ -1,10 +1,12 @@
-import { ActivityIndicator, Text, View } from 'react-native';
+import { View } from 'react-native';
+import { BrandSplashView } from '@/components/intro/BrandSplashView';
+import { APP_COLORS } from '@/constants/appTheme';
 
+/** 네비게이션 Loading 스택 — AppLaunchGate 오버레이와 동일한 배경 */
 export function LoadingScreen() {
   return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <ActivityIndicator size="large" color="#0f172a" />
-      <Text className="mt-3 text-sm text-slate-400">앱을 불러오는 중...</Text>
+    <View style={{ flex: 1, backgroundColor: APP_COLORS.background }}>
+      <BrandSplashView showLoadingHint />
     </View>
   );
 }

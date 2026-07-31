@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useWallet } from '@/contexts/WalletContext';
@@ -10,7 +10,7 @@ export function WalletHeader() {
     <View className="rounded-2xl bg-slate-900 p-4">
       <View className="flex-row items-center justify-between">
         <View>
-          <Text className="text-xs font-medium text-slate-400">보유 포인트</Text>
+          <Text className="text-xs font-medium text-kemix-muted">보유 포인트</Text>
           <Text className="text-3xl font-bold text-white">{balance.toLocaleString()}P</Text>
         </View>
         <View className="items-end">
@@ -21,15 +21,15 @@ export function WalletHeader() {
             <Ionicons name="flame" size={14} color="#f97316" />
             <Text className="ml-1 text-xs font-semibold text-orange-300">{streak}일 연속</Text>
           </View>
-          <Text className="mt-1 text-xs text-slate-500">mockData 지갑</Text>
+          <Text className="mt-1 text-xs text-kemix-text-secondary">mockData 지갑</Text>
         </View>
       </View>
       {transactions.length > 0 ? (
         <View className="mt-3 border-t pt-3" style={{ borderTopColor: 'rgba(255, 255, 255, 0.1)' }}>
-          <Text className="mb-1 text-xs text-slate-500">최근 내역</Text>
+          <Text className="mb-1 text-xs text-kemix-text-secondary">최근 내역</Text>
           {transactions.slice(0, 2).map((tx) => (
             <View key={tx.id} className="flex-row justify-between py-0.5">
-              <Text className="text-xs text-slate-400">{tx.label}</Text>
+              <Text className="text-xs text-kemix-muted">{tx.label}</Text>
               <Text
                 className={`text-xs font-semibold ${tx.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}
               >

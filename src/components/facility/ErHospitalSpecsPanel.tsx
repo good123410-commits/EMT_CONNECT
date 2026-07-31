@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 import { confirmPhoneCall } from '@/utils/confirmPhoneCall';
 import type { EmergencyHospitalSpecs } from '@/utils/emergencyHospitalSpecs';
@@ -39,7 +39,7 @@ function SpecBadge({
       className={`flex-row items-center rounded-xl border px-2.5 py-1.5 ${
         available
           ? 'border-blue-200 bg-blue-50'
-          : 'border-slate-200 bg-slate-50 opacity-70'
+          : 'border-kemix-border bg-kemix-bg opacity-70'
       } ${compact ? 'min-w-[30%] flex-1' : 'min-w-[28%] flex-grow basis-[30%]'}`}
     >
       <Ionicons
@@ -50,13 +50,13 @@ function SpecBadge({
       <View className="ml-1.5 flex-1">
         <Text
           className={`font-semibold ${compact ? 'text-[10px]' : 'text-xs'} ${
-            available ? 'text-blue-800' : 'text-slate-500'
+            available ? 'text-blue-800' : 'text-kemix-text-secondary'
           }`}
           numberOfLines={1}
         >
           {label}
         </Text>
-        <Text className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-slate-500`}>
+        <Text className={`${compact ? 'text-[9px]' : 'text-[10px]'} text-kemix-text-secondary`}>
           {available ? '가용' : '불가'}
         </Text>
       </View>
@@ -106,7 +106,7 @@ export function ErDutyContactButtons({
 
   return (
     <View className="mb-3 gap-2">
-      <Text className="text-xs font-bold text-slate-700">긴급 직통 연락처</Text>
+      <Text className="text-xs font-bold text-kemix-text">긴급 직통 연락처</Text>
       <View className="flex-row gap-2">
         {specs.dutyContacts.map((contact) => (
           <DutyCallButton
@@ -145,7 +145,7 @@ export function ErHospitalSpecsPanel({
       {equipmentToShow.length > 0 ? (
         <View className={compact ? 'mb-2' : 'mb-4'}>
           {!compact ? (
-            <Text className="mb-2 text-xs font-bold text-slate-700">주요 장비 가용</Text>
+            <Text className="mb-2 text-xs font-bold text-kemix-text">주요 장비 가용</Text>
           ) : null}
           <View className="flex-row flex-wrap gap-2">
             {equipmentToShow.map((item) => (
@@ -163,15 +163,15 @@ export function ErHospitalSpecsPanel({
 
       {!compact && specs.icuBeds.length > 0 ? (
         <View className="mb-4">
-          <Text className="mb-2 text-xs font-bold text-slate-700">중환자실·특수 병상</Text>
+          <Text className="mb-2 text-xs font-bold text-kemix-text">중환자실·특수 병상</Text>
           <View className="flex-row flex-wrap gap-2">
             {specs.icuBeds.map((item) => (
               <View
                 key={item.key}
-                className="min-w-[28%] flex-grow basis-[30%] rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2"
+                className="min-w-[28%] flex-grow basis-[30%] rounded-xl border border-kemix-border bg-kemix-bg px-2.5 py-2"
               >
-                <Text className="text-[10px] text-slate-500">{item.label}</Text>
-                <Text className="text-sm font-bold text-slate-900">{item.count}병상</Text>
+                <Text className="text-[10px] text-kemix-text-secondary">{item.label}</Text>
+                <Text className="text-sm font-bold text-kemix-text">{item.count}병상</Text>
               </View>
             ))}
           </View>
@@ -181,7 +181,7 @@ export function ErHospitalSpecsPanel({
       {pediatricToShow.length > 0 ? (
         <View>
           {!compact ? (
-            <Text className="mb-2 text-xs font-bold text-slate-700">소아 전용 장비</Text>
+            <Text className="mb-2 text-xs font-bold text-kemix-text">소아 전용 장비</Text>
           ) : null}
           <View className="flex-row flex-wrap gap-2">
             {pediatricToShow.map((item) => (

@@ -50,16 +50,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
-export type UserRole =
-  | 'user'
-  | 'associate_member'
-  | 'regular_member'
-  | 'sub_admin'
-  | 'super_admin'
-  | 'hospital'
-  | 'paramedic'
-  | 'private_ems'
-  | 'admin';
+export type UserRole = 'user' | 'associate_member' | 'regular_member' | 'admin';
 
 export type HiddenPostTargetRole =
   | 'all'
@@ -67,6 +58,8 @@ export type HiddenPostTargetRole =
   | 'paramedic'
   | 'private_ems'
   | 'nurse';
+
+export type EmsAuthStatus = 'none' | 'pending' | 'code_required' | 'verified';
 
 export type UserProfile = {
   id: string;
@@ -76,6 +69,7 @@ export type UserProfile = {
   phone?: string | null;
   company_name: string | null;
   invitation_code: string | null;
+  auth_status?: EmsAuthStatus;
   is_approved: boolean;
   is_blocked?: boolean;
   membership_dues_paid?: boolean;

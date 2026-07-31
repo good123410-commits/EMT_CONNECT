@@ -1,18 +1,9 @@
 import {
   supabase,
-  USER_PROFILES_TABLE,
   VERIFICATIONS_BUCKET,
   type EmtVerification,
 } from '@/lib/supabaseClient';
-
-const VALID_INVITATION_CODES: Record<string, string> = {
-  'EMS-TEST-PRO': 'associate_member',
-  'EMT-INVITE-2026': 'associate_member',
-};
-
-export function isValidInvitationCode(code: string): boolean {
-  return code.trim().toUpperCase() in VALID_INVITATION_CODES;
-}
+import { subscribeUserProfileChanges } from '@/lib/realtimeSubscription';
 
 export async function uploadVerificationDocument(
   userId: string,
@@ -38,26 +29,50 @@ export async function uploadVerificationDocument(
   return data.publicUrl;
 }
 
-export async function submitVerificationRequest(
-  userId: string,
-  invitationCode: string,
-  documentUrl?: string | null,
-): Promise<EmtVerification> {
+function mapRpcError(error: { message?: string }): string {
+  const message = error.message ?? '';
+  if (message.includes('document_required')) {
+    return '자격증 이미지가 필요합니다.';
+  }
+  if (message.includes('already_pending')) {
+    return '이미 승인 대기 중입니다.';
+  }
+  if (message.includes('invalid_code')) {
+    return '유효하지 않거나 만료된 비밀코드입니다.';
+  }
+  if (message.includes('code_required')) {
+    return '비밀코드를 입력해 주세요.';
+  }
+  return message || '요청 처리에 실패했습니다.';
+}
+
+/** Step 1 — 자격증 이미지만 제출 */
+export async function submitEmsDocumentRequest(documentUrl: string): Promise<EmtVerification> {
+  const { data, error } = await supabase.rpc('submit_ems_verification_document', {
+    p_document_url: documentUrl,
+  });
+
+  if (error) {
+    throw new Error(mapRpcError(error));
+  }
+
+  return data as EmtVerification;
+}
+
+/** Step 3 — 비밀코드 입력 완료 */
+export async function submitVerificationCode(invitationCode: string): Promise<EmtVerification> {
   const normalizedCode = invitationCode.trim().toUpperCase();
   if (!normalizedCode) {
-    throw new Error('구급대원 비밀코드를 입력해 주세요.');
+    throw new Error('비밀코드를 입력해 주세요.');
   }
 
   const { data, error } = await supabase.rpc('submit_paramedic_code_request', {
     p_code: normalizedCode,
-    p_document_url: documentUrl ?? null,
+    p_document_url: null,
   });
 
   if (error) {
-    if (error.message.includes('invalid_code')) {
-      throw new Error('유효하지 않거나 만료된 비밀코드입니다.');
-    }
-    throw error;
+    throw new Error(mapRpcError(error));
   }
 
   return data as EmtVerification;
@@ -77,21 +92,5 @@ export async function fetchLatestVerification(userId: string): Promise<EmtVerifi
 }
 
 export function subscribeProfileChanges(userId: string, onChange: () => void): () => void {
-  const channel = supabase
-    .channel(`user_profile_${userId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: USER_PROFILES_TABLE,
-        filter: `id=eq.${userId}`,
-      },
-      () => onChange(),
-    )
-    .subscribe();
-
-  return () => {
-    void supabase.removeChannel(channel);
-  };
+  return subscribeUserProfileChanges(userId, onChange);
 }

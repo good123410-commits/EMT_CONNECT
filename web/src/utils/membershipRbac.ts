@@ -1,28 +1,20 @@
 import type { UserProfile } from '../types';
+import { isAdminRole, normalizeUserRole } from '../constants/roles';
 
 /** 구급대원 히든공간·Q&A 답변 — 준회원 이상 */
 export function canAccessParamedicSpace(profile: UserProfile | null | undefined): boolean {
   if (!profile || profile.is_blocked) return false;
-  if (profile.role === 'super_admin' || profile.role === 'sub_admin' || profile.role === 'admin') {
-    return true;
-  }
+  const role = normalizeUserRole(profile.role);
+  if (isAdminRole(role)) return true;
   if (!profile.is_approved) return false;
-  return (
-    profile.role === 'associate_member' ||
-    profile.role === 'regular_member' ||
-    profile.role === 'paramedic'
-  );
+  return role === 'associate_member' || role === 'regular_member';
 }
 
-/** 투표 — 정회원 이상 */
+/** 투표 — 정회원·관리자 */
 export function canVoteInPolls(profile: UserProfile | null | undefined): boolean {
   if (!profile || profile.is_blocked || !profile.is_approved) return false;
-  return (
-    profile.role === 'regular_member' ||
-    profile.role === 'super_admin' ||
-    profile.role === 'sub_admin' ||
-    profile.role === 'admin'
-  );
+  const role = normalizeUserRole(profile.role);
+  return role === 'regular_member' || isAdminRole(role);
 }
 
 export const POLL_VOTE_GATE_MESSAGE =

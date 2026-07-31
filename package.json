@@ -39,7 +39,9 @@
     "react-native-screens": "~4.16.0",
     "react-native-web": "^0.21.0",
     "react-native-worklets": "^0.5.2",
-    "supercluster": "^8.0.1"
+    "supercluster": "^8.0.1",
+    "emergency-overlay": "file:./modules/emergency-overlay",
+    "medication-shortcut": "file:./modules/medication-shortcut"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
@@ -48,16 +50,20 @@
     "babel-preset-expo": "~54.0.10",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "sharp": "^0.34.5"
   },
   "scripts": {
     "postinstall": "node scripts/patch-css-interop.mjs",
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "build:facility-data": "node scripts/convert-facility-xlsx.mjs",
     "build:medical-data": "node scripts/process_medical_data.mjs",
+    "generate:icons": "node scripts/generate-app-icons.mjs",
+    "build:android:preview": "npx --yes eas-cli build -p android --profile preview",
+    "build:android:local": "cd android && gradlew.bat assembleRelease",
     "web:dev": "npm --prefix web run dev",
     "web:build": "npm --prefix web run build"
   },

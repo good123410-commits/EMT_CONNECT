@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -63,25 +63,25 @@ export function GuideCategoryAddModal({
       <Pressable className="flex-1 justify-end bg-black/40" onPress={handleClose}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable
-            className="rounded-t-3xl bg-white"
+            className="rounded-t-3xl bg-kemix-surface"
             style={{ paddingBottom: insets.bottom + 16 }}
             onPress={(event) => event.stopPropagation()}
           >
-            <View className="border-b border-slate-200 px-4 py-4">
-              <Text className="text-center text-base font-bold text-slate-900">새 분류 추가</Text>
+            <View className="border-b border-kemix-border px-4 py-4">
+              <Text className="text-center text-base font-bold text-kemix-text">새 분류 추가</Text>
             </View>
 
             <View className="px-4 py-4">
-              <Text className="mb-1 text-sm font-medium text-slate-700">분류 이름</Text>
+              <Text className="mb-1 text-sm font-medium text-kemix-text">분류 이름</Text>
               <TextInput
-                className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+                className="mb-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base text-kemix-text"
                 value={name}
                 onChangeText={setName}
                 placeholder="예: 알레르기, 독극물"
                 placeholderTextColor="#94a3b8"
               />
 
-              <Text className="mb-2 text-sm font-medium text-slate-700">아이콘 선택</Text>
+              <Text className="mb-2 text-sm font-medium text-kemix-text">아이콘 선택</Text>
               <View className="mb-4 flex-row flex-wrap gap-2">
                 {GUIDE_ICON_OPTIONS.map((option) => {
                   const selected = icon === option.id;
@@ -89,7 +89,7 @@ export function GuideCategoryAddModal({
                     <Pressable
                       key={option.id}
                       className={`items-center rounded-xl border px-3 py-2 ${
-                        selected ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50'
+                        selected ? 'border-red-500 bg-red-50' : 'border-kemix-border bg-kemix-bg'
                       }`}
                       onPress={() => setIcon(option.id)}
                     >
@@ -99,7 +99,7 @@ export function GuideCategoryAddModal({
                         color={selected ? '#dc2626' : '#64748b'}
                       />
                       <Text
-                        className={`mt-1 text-[10px] ${selected ? 'font-bold text-red-600' : 'text-slate-500'}`}
+                        className={`mt-1 text-[10px] ${selected ? 'font-bold text-red-600' : 'text-kemix-text-secondary'}`}
                       >
                         {option.label}
                       </Text>

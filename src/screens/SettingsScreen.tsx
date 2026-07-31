@@ -1,3 +1,4 @@
+﻿import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -19,13 +20,17 @@ import {
   PRIVACY_POLICY_TEXT,
   TERMS_OF_SERVICE_TEXT,
 } from '@/constants/legalContent';
+import { EmergencyOverlayToggleCard } from '@/components/utilities/EmergencyOverlayToggleCard';
 import { ServicePolicyModal } from '@/components/legal/ServicePolicyModal';
+import { SettingsDonationModal } from '@/components/settings/SettingsDonationModal';
 import { SettingsAdminPortalModal } from '@/components/settings/SettingsAdminPortalModal';
 import { SettingsParamedicPortalModal } from '@/components/settings/SettingsParamedicPortalModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMoreMenu } from '@/contexts/MoreMenuContext';
 import { useOpeningIntro } from '@/contexts/OpeningIntroContext';
 import { useExpertSettingsAccess } from '@/hooks/useExpertSettingsAccess';
 import { openAuthScreen } from '@/navigation/rootNavigation';
+import { fetchOfficialWebsiteUrl } from '@/services/siteSettingsService';
 import type { SettingsStackParamList } from '@/navigation/SettingsStackNavigator';
 
 const LOCATION_CONSENT_KEY = 'ems_connect_location_consent_v1';
@@ -36,13 +41,15 @@ export function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
   const { user, profile, signOut } = useAuth();
   const { replayOpeningIntro, resetOpeningIntroSnooze } = useOpeningIntro();
-  const { canOpenAnswerInbox, isDbAdmin, showExpertSettingsMenu } = useExpertSettingsAccess();
+  const { openMoreMenu } = useMoreMenu();
+  const { isDbAdmin } = useExpertSettingsAccess();
   const [locationConsent, setLocationConsent] = useState(false);
   const [legalModal, setLegalModal] = useState<LegalModalKind>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [paramedicPortalVisible, setParamedicPortalVisible] = useState(false);
   const [adminPortalVisible, setAdminPortalVisible] = useState(false);
+  const [donationModalVisible, setDonationModalVisible] = useState(false);
 
   useEffect(() => {
     void AsyncStorage.getItem(LOCATION_CONSENT_KEY).then((value) => {
@@ -88,26 +95,38 @@ export function SettingsScreen() {
     }
   };
 
+  const handleOpenOfficialWebsite = async () => {
+    try {
+      const url = await fetchOfficialWebsiteUrl();
+      if (!url) {
+        Alert.alert('준비 중', '공식 웹사이트 주소가 등록되지 않았습니다.');
+        return;
+      }
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('연결 불가', '웹사이트 링크를 열 수 없습니다.');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert(
+        '연결 실패',
+        error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+      );
+    }
+  };
+
   return (
-    <View className="flex-1 bg-slate-50">
-      <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 pb-4">
-        <View className="flex-row items-center gap-2">
-          <Ionicons name="settings-outline" size={24} color="#0f172a" />
-          <View>
-            <Text className="text-xl font-bold text-slate-900">설정</Text>
-            <Text className="text-sm text-slate-500">개인정보 · 약관 · 계정 관리</Text>
-          </View>
-        </View>
+    <SafeAreaView edges={['top']} className="flex-1 bg-kemix-bg">
+      <ScrollView className="flex-1" contentContainerClassName="px-8 pt-4 pb-16 gap-6">
         {user ? (
-          <Text className="mt-2 text-xs text-slate-400">
+          <Text className="text-xs text-kemix-muted">
             {profile?.name ?? user.email ?? '로그인됨'}
           </Text>
         ) : (
-          <Text className="mt-2 text-xs text-slate-400">게스트로 둘러보는 중</Text>
+          <Text className="text-xs text-kemix-muted">게스트로 둘러보는 중</Text>
         )}
-      </SafeAreaView>
 
-      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-12 gap-4">
         <SettingsSection title="법적 고지">
           <SettingsRow
             icon="document-text-outline"
@@ -132,10 +151,10 @@ export function SettingsScreen() {
             <View className="mr-3 flex-1 flex-row items-start gap-3">
               <Ionicons name="location-outline" size={22} color="#2563eb" />
               <View className="flex-1">
-                <Text className="text-base font-semibold text-slate-900">
+                <Text className="text-base font-semibold text-kemix-text">
                   위치기반서비스 이용동의
                 </Text>
-                <Text className="mt-1 text-xs leading-5 text-slate-500">
+                <Text className="mt-1 text-xs leading-5 text-kemix-text-secondary">
                   주변 AED·응급실·약국 거리 계산에 사용됩니다.
                 </Text>
               </View>
@@ -174,8 +193,8 @@ export function SettingsScreen() {
         <SettingsSection title="앱 화면">
           <SettingsRow
             icon="play-circle-outline"
-            label="오프닝 인트로 다시 보기"
-            subtitle="KEMIX 브랜드 오프닝 몽타주 재생"
+            label="오프닝 화면 다시 보기"
+            subtitle="K-EMIX On 브랜드 스플래시 재생"
             onPress={() => {
               void resetOpeningIntroSnooze();
               replayOpeningIntro();
@@ -183,18 +202,41 @@ export function SettingsScreen() {
           />
           <SettingsRow
             icon="eye-off-outline"
-            label="오프닝 인트로 스누즈 해제"
+            label="오프닝 스누즈 해제"
             subtitle="‘오늘 하루 보지 않기’ 설정 초기화"
             onPress={() => {
               void resetOpeningIntroSnooze().then(() => {
-                Alert.alert('완료', '다음 앱 실행 시 오프닝 인트로가 다시 표시됩니다.');
+                Alert.alert('완료', '설정에서 오프닝 화면을 다시 볼 수 있습니다.');
               });
             }}
             showDivider={false}
           />
         </SettingsSection>
 
+        <SettingsSection title="응급 유틸">
+          <View className="px-4 pb-4">
+            <EmergencyOverlayToggleCard />
+          </View>
+          <SettingsRow
+            icon="apps-outline"
+            label="더보기 · 응급 유틸"
+            onPress={openMoreMenu}
+            showDivider={false}
+          />
+        </SettingsSection>
+
         <SettingsSection title="서비스 안내">
+          <SettingsRow
+            icon="globe-outline"
+            label="공식 웹사이트"
+            onPress={() => void handleOpenOfficialWebsite()}
+          />
+          <SettingsRow
+            icon="heart-outline"
+            label="후원하기"
+            subtitle="후원 계좌 및 안내"
+            onPress={() => setDonationModalVisible(true)}
+          />
           <SettingsRow
             icon="shield-checkmark-outline"
             label="운영 정책 및 면책 안내"
@@ -206,15 +248,15 @@ export function SettingsScreen() {
         <SettingsSection title="전문가 · 운영">
           <SettingsRow
             icon="shield-checkmark-outline"
-            label="구급대원 인증 · 전용 공간"
-            subtitle="자격증 제출 · EMS 커뮤니티 · 답변함"
+            label="EMS 인증 · 전용 공간"
+            subtitle="자격증 제출 · EMS 커뮤니티"
             onPress={() => setParamedicPortalVisible(true)}
             accent="green"
           />
           <SettingsRow
             icon="key-outline"
             label="관리자 모드"
-            subtitle="Q&A 운영 대시보드 · 답변함"
+            subtitle="Q&A 운영 대시보드"
             onPress={() => setAdminPortalVisible(true)}
             accent="violet"
             showDivider={false}
@@ -234,21 +276,7 @@ export function SettingsScreen() {
           </SettingsSection>
         ) : null}
 
-        {showExpertSettingsMenu ? (
-          <SettingsSection title="바로가기">
-            {canOpenAnswerInbox ? (
-              <SettingsRow
-                icon="mail-unread-outline"
-                label="전문가 전용 답변함"
-                subtitle="Q&A pending · Realtime"
-                onPress={() => navigation.navigate('ParamedicAnswerInbox')}
-                accent="green"
-              />
-            ) : null}
-          </SettingsSection>
-        ) : null}
-
-        <View className="mt-2 overflow-hidden rounded-2xl border border-red-200 bg-white">
+        <View className="mt-2 overflow-hidden rounded-2xl border border-red-200 bg-kemix-surface">
           <Pressable
             className="flex-row items-center gap-3 px-4 py-4 active:bg-red-50"
             onPress={() => setDeleteModalVisible(true)}
@@ -256,7 +284,7 @@ export function SettingsScreen() {
             <Ionicons name="trash-outline" size={22} color="#dc2626" />
             <View className="flex-1">
               <Text className="text-base font-bold text-red-600">회원 탈퇴 및 데이터 삭제 요청</Text>
-              <Text className="mt-1 text-xs text-slate-500">
+              <Text className="mt-1 text-xs text-kemix-text-secondary">
                 Google Play 정책에 따라 계정·개인정보 삭제를 요청할 수 있습니다.
               </Text>
             </View>
@@ -264,7 +292,7 @@ export function SettingsScreen() {
           </Pressable>
         </View>
 
-        <Text className="text-center text-xs text-slate-400">EMS Connect v1.0.0</Text>
+        <Text className="text-center text-xs text-kemix-muted">EMS Connect v1.0.0</Text>
       </ScrollView>
 
       <LegalDocumentModal
@@ -297,6 +325,10 @@ export function SettingsScreen() {
         visible={adminPortalVisible}
         onClose={() => setAdminPortalVisible(false)}
       />
+      <SettingsDonationModal
+        visible={donationModalVisible}
+        onClose={() => setDonationModalVisible(false)}
+      />
 
       <Modal
         visible={deleteModalVisible}
@@ -305,12 +337,12 @@ export function SettingsScreen() {
         onRequestClose={() => setDeleteModalVisible(false)}
       >
         <View className="flex-1 justify-end bg-black/45">
-          <View className="rounded-t-3xl bg-white px-5 pb-8 pt-4">
+          <View className="rounded-t-3xl bg-kemix-surface px-5 pb-8 pt-4">
             <View className="mb-4 items-center">
-              <View className="h-1 w-10 rounded-full bg-slate-200" />
+              <View className="h-1 w-10 rounded-full bg-kemix-elevated" />
             </View>
-            <Text className="text-lg font-bold text-slate-900">회원 탈퇴 및 데이터 삭제</Text>
-            <Text className="mt-3 text-sm leading-6 text-slate-600">
+            <Text className="text-lg font-bold text-kemix-text">회원 탈퇴 및 데이터 삭제</Text>
+            <Text className="mt-3 text-sm leading-6 text-kemix-text-secondary">
               탈퇴 시 계정 정보, 프로필, 포인트·리워드 기록(해당 시)이 삭제 요청됩니다.{'\n\n'}
               · 처리 기간: 영업일 기준 최대 7일{'\n'}
               · 삭제 후 동일 이메일 재가입 가능{'\n'}
@@ -326,22 +358,22 @@ export function SettingsScreen() {
               </Text>
             </Pressable>
             <Pressable className="mt-3 items-center py-2" onPress={() => setDeleteModalVisible(false)}>
-              <Text className="font-semibold text-slate-500">취소</Text>
+              <Text className="font-semibold text-kemix-text-secondary">취소</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View>
-      <Text className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-slate-400">
+      <Text className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-kemix-muted">
         {title}
       </Text>
-      <View className="overflow-hidden rounded-2xl border border-slate-200 bg-white">{children}</View>
+      <View className="overflow-hidden rounded-2xl border border-kemix-border bg-kemix-surface">{children}</View>
     </View>
   );
 }
@@ -366,13 +398,13 @@ function SettingsRow({
 
   return (
     <Pressable
-      className={`flex-row items-center px-4 py-4 active:bg-slate-50 ${showDivider ? 'border-b border-slate-100' : ''}`}
+      className={`flex-row items-center px-4 py-4 active:bg-kemix-bg ${showDivider ? 'border-b border-kemix-border-light' : ''}`}
       onPress={onPress}
     >
       <Ionicons name={icon} size={22} color={iconColor} />
       <View className="ml-3 flex-1">
-        <Text className="text-base font-medium text-slate-900">{label}</Text>
-        {subtitle ? <Text className="mt-0.5 text-xs text-slate-500">{subtitle}</Text> : null}
+        <Text className="text-base font-medium text-kemix-text">{label}</Text>
+        {subtitle ? <Text className="mt-0.5 text-xs text-kemix-text-secondary">{subtitle}</Text> : null}
       </View>
       <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
     </Pressable>
@@ -392,15 +424,15 @@ function LegalDocumentModal({
 }) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-row items-center justify-between border-b border-slate-200 px-4 py-3">
-          <Text className="text-lg font-bold text-slate-900">{title}</Text>
+      <SafeAreaView className="flex-1 bg-kemix-surface">
+        <View className="flex-row items-center justify-between border-b border-kemix-border px-4 py-3">
+          <Text className="text-lg font-bold text-kemix-text">{title}</Text>
           <Pressable onPress={onClose} hitSlop={12}>
             <Ionicons name="close" size={24} color="#64748b" />
           </Pressable>
         </View>
         <ScrollView className="flex-1 px-4 py-4" contentContainerClassName="pb-8">
-          <Text className="text-sm leading-7 text-slate-700">{body}</Text>
+          <Text className="text-sm leading-7 text-kemix-text">{body}</Text>
         </ScrollView>
       </SafeAreaView>
     </Modal>

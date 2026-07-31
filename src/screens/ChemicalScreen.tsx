@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -29,13 +29,9 @@ import type { MedicineChoseongFilter } from '@/utils/medicineChoseong';
 
 export function ChemicalScreen() {
   return (
-    <View className="flex-1 bg-slate-50">
-      <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 pb-3">
-        <Text className="mb-1 text-xl font-bold text-slate-900">의약품 검색</Text>
-        <Text className="text-sm text-slate-500">e약은요 · 낱알 이미지 · 초성 필터</Text>
-      </SafeAreaView>
+    <SafeAreaView edges={['top']} className="flex-1 bg-kemix-bg">
       <DrugModule />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -195,7 +191,7 @@ function DrugModule() {
 
   return (
     <View className="flex-1">
-      <View className="border-b border-slate-100 bg-white px-4 pb-3 pt-3">
+      <View className="border-b border-kemix-border-light bg-kemix-surface px-4 pb-2 pt-2">
         <SearchBar
           value={query}
           onChangeText={handleQueryChange}
@@ -216,7 +212,7 @@ function DrugModule() {
             </Pressable>
           </View>
         ) : (
-          <Text className="mt-2 text-xs text-slate-400">
+          <Text className="mt-2 text-xs text-kemix-muted">
             {isSearchMode
               ? `'${trimmedQuery}' 검색 · ${filteredData.length}건`
               : choseong === '전체'
@@ -229,7 +225,7 @@ function DrugModule() {
       {loading && medicines.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-3">
           <ActivityIndicator size="large" color="#2563eb" />
-          <Text className="text-sm text-slate-500">의약품 정보를 불러오는 중...</Text>
+          <Text className="text-sm text-kemix-text-secondary">의약품 정보를 불러오는 중...</Text>
         </View>
       ) : (
         <FlatList
@@ -281,21 +277,21 @@ function MedicineCard({ item, onPress }: { item: MedicineInfo; onPress: () => vo
 
   return (
     <Pressable
-      className="flex-row rounded-2xl border border-slate-200 bg-white p-3 active:bg-slate-50"
+      className="flex-row rounded-2xl border border-kemix-border bg-kemix-surface p-3 active:bg-kemix-bg"
       onPress={onPress}
     >
       <MedicineImage uri={item.itemImage} size={80} />
       <View className="ml-3 flex-1">
         <Text className="text-xs font-medium text-blue-600">{item.entpName || 'e약은요'}</Text>
-        <Text className="mt-1 text-base font-bold text-slate-900" numberOfLines={2}>
+        <Text className="mt-1 text-base font-bold text-kemix-text" numberOfLines={2}>
           {item.itemName?.trim() || '제품명 없음'}
         </Text>
-        <Text className="mt-1.5 text-sm leading-5 text-slate-600" numberOfLines={2}>
+        <Text className="mt-1.5 text-sm leading-5 text-kemix-text-secondary" numberOfLines={2}>
           {summary}
         </Text>
         <View className="mt-2 flex-row items-center">
           <Ionicons name="document-text-outline" size={14} color="#64748b" />
-          <Text className="ml-1 text-xs text-slate-500">상세 · 복용법 · 주의사항</Text>
+          <Text className="ml-1 text-xs text-kemix-text-secondary">상세 · 복용법 · 주의사항</Text>
           <Ionicons name="chevron-forward" size={16} color="#94a3b8" style={{ marginLeft: 'auto' }} />
         </View>
       </View>
@@ -314,12 +310,12 @@ function MedicineDetail({ medicine, onBack }: { medicine: MedicineInfo; onBack: 
     <ScrollView className="flex-1" contentContainerClassName="p-4 pb-8">
       <BackHeader title={medicine.itemName} onBack={onBack} />
 
-      <View className="mb-4 flex-row rounded-2xl border border-slate-200 bg-white p-4">
+      <View className="mb-4 flex-row rounded-2xl border border-kemix-border bg-kemix-surface p-4">
         <MedicineImage uri={medicine.itemImage} size={96} />
         <View className="ml-4 flex-1 justify-center">
           <Text className="text-xs font-medium text-blue-600">{medicine.entpName || 'e약은요'}</Text>
-          <Text className="mt-1 text-lg font-bold text-slate-900">{medicine.itemName}</Text>
-          <Text className="mt-1 text-xs text-slate-400">품목코드: {medicine.itemSeq || '-'}</Text>
+          <Text className="mt-1 text-lg font-bold text-kemix-text">{medicine.itemName}</Text>
+          <Text className="mt-1 text-xs text-kemix-muted">품목코드: {medicine.itemSeq || '-'}</Text>
         </View>
       </View>
 
@@ -351,13 +347,13 @@ function MedicineSection({
       ? 'border-red-200 bg-red-50'
       : highlight === 'amber'
         ? 'border-amber-200 bg-amber-50'
-        : 'border-slate-200 bg-white';
+        : 'border-kemix-border bg-kemix-surface';
 
   const titleClass =
-    highlight === 'red' ? 'text-red-700' : highlight === 'amber' ? 'text-amber-800' : 'text-slate-500';
+    highlight === 'red' ? 'text-red-700' : highlight === 'amber' ? 'text-amber-800' : 'text-kemix-text-secondary';
 
   const bodyClass =
-    highlight === 'red' ? 'text-red-900' : highlight === 'amber' ? 'text-amber-900' : 'text-slate-700';
+    highlight === 'red' ? 'text-red-900' : highlight === 'amber' ? 'text-amber-900' : 'text-kemix-text';
 
   return (
     <View className={`mb-4 rounded-2xl border p-4 ${borderClass}`}>

@@ -20,6 +20,18 @@ const FALLBACKS: Record<SiteSettingKey, SiteSetting> = {
     content: '<p><strong>버전:</strong> v1.0</p>',
     updated_at: new Date().toISOString(),
   },
+  official_website: {
+    key: 'official_website',
+    title: '공식 웹사이트',
+    content: '',
+    updated_at: new Date().toISOString(),
+  },
+  donation_notice: {
+    key: 'donation_notice',
+    title: '후원 안내',
+    content: '',
+    updated_at: new Date().toISOString(),
+  },
 };
 
 export async function fetchSiteSetting(key: SiteSettingKey): Promise<SiteSetting> {

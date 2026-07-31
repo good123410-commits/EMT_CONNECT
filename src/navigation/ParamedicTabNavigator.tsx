@@ -1,5 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { EMS_LOUNGE } from '@/constants/emsLoungeTheme';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { ParamedicCommunityProvider } from '@/contexts/ParamedicCommunityContext';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
 import { EmsCaseStudyScreen } from '@/screens/emsCommunity/EmsCaseStudyScreen';
@@ -9,7 +10,7 @@ import { ParamedicJobsScreen } from '@/screens/expert/paramedic/ParamedicJobsScr
 import { EmsQaBoardScreen } from '@/screens/emsCommunity/EmsQaBoardScreen';
 
 export type ParamedicTabParamList = {
-  AnswerInbox: undefined;
+  QaBoard: undefined;
   CaseStudy: undefined;
   ChatRooms: undefined;
   Resources: undefined;
@@ -18,10 +19,8 @@ export type ParamedicTabParamList = {
 
 const Tab = createBottomTabNavigator<ParamedicTabParamList>();
 
-type TabIconName = keyof typeof Ionicons.glyphMap;
-
-function TabBarIcon({ name, color }: { name: TabIconName; color: string }) {
-  return <Ionicons name={name} size={22} color={color} />;
+function TabBarIcon({ name, color }: { name: AppIconName; color: string }) {
+  return <AppIcon name={name} size={22} color={color} />;
 }
 
 function ParamedicQaBoardScreen() {
@@ -29,23 +28,22 @@ function ParamedicQaBoardScreen() {
 }
 
 /**
- * EMS 커뮤니티(미래회) — 승인된 paramedic 전용 4개 서브 탭.
- * 설문/후원·공동구매 등 앱 내 결제 기능은 제외 (자료실 외부 링크만).
+ * EMS 커뮤니티(미래회) — 승인된 준회원·정회원 전용 서브 탭.
  */
 export function ParamedicTabNavigator() {
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
-    activeTintColor: '#4ade80',
-    inactiveTintColor: '#64748b',
-    backgroundColor: '#14532d',
-    borderTopColor: '#14532d',
-    labelFontSize: 9,
+    activeTintColor: EMS_LOUNGE.green,
+    inactiveTintColor: EMS_LOUNGE.textMuted,
+    backgroundColor: EMS_LOUNGE.surface,
+    borderTopColor: EMS_LOUNGE.border,
+    labelFontSize: 11,
   });
 
   return (
     <ParamedicCommunityProvider>
       <Tab.Navigator screenOptions={screenOptions} safeAreaInsets={safeAreaInsets}>
         <Tab.Screen
-          name="AnswerInbox"
+          name="QaBoard"
           component={ParamedicQaBoardScreen}
           options={{
             tabBarLabel: '질문함',
@@ -57,7 +55,7 @@ export function ParamedicTabNavigator() {
           component={EmsCaseStudyScreen}
           options={{
             tabBarLabel: '케이스',
-            tabBarIcon: ({ color }) => <TabBarIcon name="book-outline" color={color} />,
+            tabBarIcon: ({ color }) => <TabBarIcon name="book-open-outline" color={color} />,
           }}
         />
         <Tab.Screen
@@ -65,7 +63,7 @@ export function ParamedicTabNavigator() {
           component={EmsChatRoomsScreen}
           options={{
             tabBarLabel: '소통창',
-            tabBarIcon: ({ color }) => <TabBarIcon name="chatbubbles-outline" color={color} />,
+            tabBarIcon: ({ color }) => <TabBarIcon name="chat-outline" color={color} />,
           }}
         />
         <Tab.Screen

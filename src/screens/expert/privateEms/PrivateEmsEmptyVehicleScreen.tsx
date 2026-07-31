@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { PrivateEmsHeader } from '@/components/expert/PrivateEmsHeader';
@@ -19,7 +19,7 @@ function EmptyReturnCard({
   onAccept: (request: EmptyReturnRequest) => void;
 }) {
   return (
-    <View className="mb-3 overflow-hidden rounded-2xl border border-indigo-200 bg-white shadow-sm">
+    <View className="mb-3 overflow-hidden rounded-2xl border border-indigo-200 bg-kemix-surface shadow-sm">
       <View className="flex-row items-center bg-indigo-600 px-4 py-2">
         <Ionicons name="swap-horizontal" size={14} color="#c7d2fe" />
         <Text className="ml-2 text-xs font-bold text-indigo-100">
@@ -30,10 +30,10 @@ function EmptyReturnCard({
       <View className="p-4">
         <View className="flex-row items-start justify-between">
           <View className="flex-1 pr-3">
-            <Text className="text-base font-bold text-slate-900">
+            <Text className="text-base font-bold text-kemix-text">
               {request.from} ➡️ {request.to}
             </Text>
-            <Text className="mt-1 text-sm text-slate-600">{request.patientInfo} · {request.notes}</Text>
+            <Text className="mt-1 text-sm text-kemix-text-secondary">{request.patientInfo} · {request.notes}</Text>
           </View>
           <View className="items-end">
             <Text className="text-lg font-bold text-indigo-600">
@@ -42,12 +42,12 @@ function EmptyReturnCard({
             <Text className="mt-0.5 text-xs text-emerald-600">
               공차 보너스 +{formatFare(request.emptyReturnBonus)}
             </Text>
-            <Text className="mt-0.5 text-xs text-slate-400">{request.distance}</Text>
+            <Text className="mt-0.5 text-xs text-kemix-muted">{request.distance}</Text>
           </View>
         </View>
 
         <View className="mt-3 flex-row items-center justify-between">
-          <Text className="text-xs text-slate-400">{request.postedAt} 등록</Text>
+          <Text className="text-xs text-kemix-muted">{request.postedAt} 등록</Text>
           <Pressable
             className="rounded-xl bg-indigo-600 px-5 py-2.5 active:bg-indigo-700"
             onPress={() => onAccept(request)}
@@ -82,7 +82,7 @@ export function PrivateEmsEmptyVehicleScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-100">
+    <View className="flex-1 bg-kemix-elevated">
       <PrivateEmsHeader subtitle="공차 매칭 · 전국 복귀 네트워크" />
 
       <View className="border-b border-indigo-100 bg-indigo-950 px-4 py-4">
@@ -94,8 +94,8 @@ export function PrivateEmsEmptyVehicleScreen() {
         </Text>
       </View>
 
-      <View className="border-b border-slate-200 bg-white px-4 py-3">
-        <Text className="mb-2 text-xs font-semibold text-slate-500">현재 내 복귀 목적지</Text>
+      <View className="border-b border-kemix-border bg-kemix-surface px-4 py-3">
+        <Text className="mb-2 text-xs font-semibold text-kemix-text-secondary">현재 내 복귀 목적지</Text>
         <View className="flex-row flex-wrap gap-2">
           {RETURN_DESTINATIONS.map((region) => {
             const active = destination === region;
@@ -103,16 +103,16 @@ export function PrivateEmsEmptyVehicleScreen() {
               <Pressable
                 key={region}
                 onPress={() => setDestination(region)}
-                className={`rounded-full px-4 py-2 ${active ? 'bg-indigo-600' : 'bg-slate-100'}`}
+                className={`rounded-full px-4 py-2 ${active ? 'bg-indigo-600' : 'bg-kemix-elevated'}`}
               >
-                <Text className={`text-sm font-semibold ${active ? 'text-white' : 'text-slate-600'}`}>
+                <Text className={`text-sm font-semibold ${active ? 'text-white' : 'text-kemix-text-secondary'}`}>
                   {region}
                 </Text>
               </Pressable>
             );
           })}
         </View>
-        <Text className="mt-2 text-xs text-slate-400">
+        <Text className="mt-2 text-xs text-kemix-muted">
           {destination}(으)로 복귀 중인 기사님을 위한 역방향 요청 {filteredRequests.length}건
         </Text>
       </View>
@@ -124,10 +124,10 @@ export function PrivateEmsEmptyVehicleScreen() {
         ListEmptyComponent={
           <View className="items-center py-16">
             <Ionicons name="car-outline" size={48} color="#94a3b8" />
-            <Text className="mt-4 text-base font-semibold text-slate-600">
+            <Text className="mt-4 text-base font-semibold text-kemix-text-secondary">
               {destination} 방향 복귀 매칭 건이 없습니다
             </Text>
-            <Text className="mt-1 text-sm text-slate-400">다른 목적지를 선택해 보세요</Text>
+            <Text className="mt-1 text-sm text-kemix-muted">다른 목적지를 선택해 보세요</Text>
           </View>
         }
         renderItem={({ item }) => (

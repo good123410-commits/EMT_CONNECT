@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -151,7 +151,7 @@ export function KemiGuideSection() {
 
   return (
     <View className="flex-1">
-      <View className="px-4 py-3">
+      <View className="px-4 pt-1 pb-2">
         <SearchBar
           value={query}
           onChangeText={setQuery}
@@ -179,7 +179,7 @@ export function KemiGuideSection() {
       {loading && guides.length === 0 && !error ? (
         <View className="flex-1 items-center justify-center py-12">
           <ActivityIndicator size="large" color="#047857" />
-          <Text className="mt-2 text-xs text-slate-400">생활 응급처치 가이드 불러오는 중...</Text>
+          <Text className="mt-2 text-xs text-kemix-muted">생활 응급처치 가이드 불러오는 중...</Text>
         </View>
       ) : (
         <FlatList
@@ -257,11 +257,11 @@ function GuideCategoryFilter({
     <View className="mt-3">
       {isGuideAdmin ? (
         <Pressable
-          className="mb-2 self-end flex-row items-center rounded-full bg-slate-100 px-3 py-1.5"
+          className="mb-2 self-end flex-row items-center rounded-full bg-kemix-elevated px-3 py-1.5"
           onPress={onManageCategories}
         >
           <Ionicons name="settings-outline" size={14} color="#475569" />
-          <Text className="ml-1 text-xs font-bold text-slate-600">분류 관리</Text>
+          <Text className="ml-1 text-xs font-bold text-kemix-text-secondary">분류 관리</Text>
         </Pressable>
       ) : null}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-2">
@@ -294,7 +294,7 @@ function CategoryChip({
   return (
     <Pressable
       className={`flex-row items-center rounded-full border px-3 py-2 ${
-        selected ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white'
+        selected ? 'border-emerald-600 bg-emerald-50' : 'border-kemix-border bg-kemix-surface'
       }`}
       onPress={onPress}
     >
@@ -307,7 +307,7 @@ function CategoryChip({
       ) : null}
       <Text
         className={`${icon ? 'ml-1.5' : ''} text-sm ${
-          selected ? 'font-bold text-emerald-700' : 'font-medium text-slate-600'
+          selected ? 'font-bold text-emerald-700' : 'font-medium text-kemix-text-secondary'
         }`}
       >
         {label}
@@ -318,25 +318,36 @@ function CategoryChip({
 
 function GuideListCard({ guide, onPress }: { guide: KemiGuideSummary; onPress: () => void }) {
   return (
-    <Pressable className="mb-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" onPress={onPress}>
+    <Pressable
+      className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4 shadow-sm"
+      onPress={onPress}
+    >
       {guide.thumbnail_url ? (
-        <Image
-          source={{ uri: guide.thumbnail_url }}
-          style={{ width: '100%', height: 140, borderRadius: 12, marginBottom: 12 }}
-          resizeMode="cover"
-        />
-      ) : null}
+        <View className="mb-3 overflow-hidden rounded-xl border border-kemix-border-light bg-kemix-bg">
+          <Image
+            source={{ uri: guide.thumbnail_url }}
+            style={{ width: '100%', height: 140 }}
+            resizeMode="cover"
+          />
+        </View>
+      ) : (
+        <View
+          className="mb-3 h-24 items-center justify-center rounded-xl border border-kemix-border-light bg-kemix-bg"
+        >
+          <Ionicons name="medkit-outline" size={28} color="#94a3b8" />
+        </View>
+      )}
       <View className="flex-row items-center justify-between gap-2">
-        <Text className="flex-1 text-base font-bold text-slate-900">{guide.title}</Text>
+        <Text className="flex-1 text-base font-bold text-kemix-text">{guide.title}</Text>
         {guide.category ? (
           <Text className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
             {guide.category}
           </Text>
         ) : null}
       </View>
-      <Text className="mt-1 text-xs text-slate-500">{formatKemiPostDate(guide.created_at)}</Text>
+      <Text className="mt-1 text-xs text-kemix-text-secondary">{formatKemiPostDate(guide.created_at)}</Text>
       {guide.summary || guide.seo_description ? (
-        <Text className="mt-2 text-sm text-slate-600" numberOfLines={2}>
+        <Text className="mt-2 text-sm text-kemix-text-secondary" numberOfLines={2}>
           {guide.summary ?? guide.seo_description}
         </Text>
       ) : null}
@@ -363,12 +374,12 @@ function GuideDetailView({
   useHardwareBackHandler(onBack, true);
 
   return (
-    <View className="flex-1 bg-white">
-      <View className="flex-row items-center justify-between border-b border-slate-200 px-4 py-3">
-        <Pressable className="rounded-full bg-slate-100 p-2" onPress={onBack} hitSlop={8}>
+    <View className="flex-1 bg-kemix-surface">
+      <View className="flex-row items-center justify-between border-b border-kemix-border px-4 py-3">
+        <Pressable className="rounded-full bg-kemix-elevated p-2" onPress={onBack} hitSlop={8}>
           <Ionicons name="arrow-back" size={22} color="#0f172a" />
         </Pressable>
-        <Text className="text-sm font-semibold text-slate-700">생활 응급처치 가이드</Text>
+        <Text className="text-sm font-semibold text-kemix-text">생활 응급처치 가이드</Text>
         <View className="w-9" />
       </View>
 
@@ -386,16 +397,18 @@ function GuideDetailView({
               {guide.category}
             </Text>
           ) : null}
-          <Text className="text-xl font-bold text-slate-900">{guide.title}</Text>
-          <Text className="mt-1 text-xs text-slate-500">
+          <Text className="text-xl font-bold text-kemix-text">{guide.title}</Text>
+          <Text className="mt-1 text-xs text-kemix-text-secondary">
             {formatKemiPostDate(guide.created_at)} · 조회 {guide.views}
           </Text>
           {guide.thumbnail_url ? (
-            <Image
-              source={{ uri: guide.thumbnail_url }}
-              style={{ width: '100%', height: 200, borderRadius: 12, marginTop: 16 }}
-              resizeMode="cover"
-            />
+            <View className="mt-4 overflow-hidden rounded-xl border border-kemix-border-light bg-kemix-bg">
+              <Image
+                source={{ uri: guide.thumbnail_url }}
+                style={{ width: '100%', height: 200 }}
+                resizeMode="cover"
+              />
+            </View>
           ) : null}
           <View className="mt-4">
             <GuideContentGate
@@ -409,15 +422,15 @@ function GuideDetailView({
 
       {isGuideAdmin && guide ? (
         <View
-          className="border-t border-slate-200 bg-white px-4 pt-3"
+          className="border-t border-kemix-border bg-kemix-surface px-4 pt-3"
           style={{ paddingBottom: insets.bottom + 12, gap: 10 }}
         >
           <Pressable
-            className="flex-row items-center justify-center rounded-xl border border-slate-200 bg-slate-50 py-4"
+            className="flex-row items-center justify-center rounded-xl border border-kemix-border bg-kemix-bg py-4"
             onPress={onEdit}
           >
             <Ionicons name="create-outline" size={18} color="#334155" />
-            <Text className="ml-2 text-sm font-bold text-slate-700">수정하기</Text>
+            <Text className="ml-2 text-sm font-bold text-kemix-text">수정하기</Text>
           </Pressable>
           <Pressable
             className="flex-row items-center justify-center rounded-xl border border-red-200 bg-red-50 py-4"

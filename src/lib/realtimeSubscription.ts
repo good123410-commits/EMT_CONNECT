@@ -2,7 +2,7 @@ import type {
   RealtimeChannel,
   RealtimePostgresChangesFilter,
 } from '@supabase/supabase-js';
-import { QUESTIONS_TABLE, supabase } from '@/lib/supabaseClient';
+import { QUESTIONS_TABLE, USER_PROFILES_TABLE, supabase } from '@/lib/supabaseClient';
 
 type ChangeListener = () => void;
 
@@ -102,6 +102,32 @@ export const subscribeKemiPostCategoriesTable = createTableSubscription(
   'kemix_post_categories_live',
 );
 
+export function subscribeHomeEventBanners(onChange: ChangeListener): () => void {
+  const subscribe = createPostgresChangeSubscription('kemix_home_event_banners_live', [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'kemix_home_event_banners',
+    },
+  ]);
+  return subscribe(onChange);
+}
+
+export function subscribeLocalCommunityPosts(
+  regionCode: string,
+  onChange: ChangeListener,
+): () => void {
+  const subscribe = createPostgresChangeSubscription(`local_community_posts_${regionCode}`, [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'local_community_posts',
+      filter: `region_code=eq.${regionCode}`,
+    },
+  ]);
+  return subscribe(onChange);
+}
+
 export function subscribeUserQuestionsChanges(
   userId: string,
   onChange: ChangeListener,
@@ -123,6 +149,19 @@ export function subscribePendingQuestionsChanges(onChange: ChangeListener): () =
       event: '*',
       schema: 'public',
       table: QUESTIONS_TABLE,
+    },
+  ]);
+  return subscribe(onChange);
+}
+
+/** user_profiles UPDATE — 채널 단일화(중복 subscribe 방지) */
+export function subscribeUserProfileChanges(userId: string, onChange: ChangeListener): () => void {
+  const subscribe = createPostgresChangeSubscription(`user_profile_${userId}`, [
+    {
+      event: 'UPDATE',
+      schema: 'public',
+      table: USER_PROFILES_TABLE,
+      filter: `id=eq.${userId}`,
     },
   ]);
   return subscribe(onChange);

@@ -1,12 +1,14 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { MoreMenuProvider } from '@/contexts/MoreMenuContext';
 import { OpeningIntroProvider } from '@/contexts/OpeningIntroContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { navigationRef } from '@/navigation/navigationRef';
 import { applyRootRouteTransition, getCurrentRootRoute } from '@/navigation/rootNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import type { UserRole } from '@/lib/supabaseClient';
+import { kemixNavigationTheme } from '@/theme/navigationTheme';
 import { isExpertRole } from '@/utils/roleAccess';
 
 type RootRoute = keyof RootStackParamList;
@@ -31,7 +33,6 @@ export function AppNavigation() {
   const { role, isExpertMode, exitExpertMode } = useUserRole();
   const isContainerReady = useRef(false);
   const prevTarget = useRef<RootRoute | null>(null);
-  const [rootRoute, setRootRoute] = useState<RootRoute | undefined>(undefined);
   const RootNavigator = useMemo(
     () => require('@/navigation/RootNavigator').RootNavigator,
     [],
@@ -52,19 +53,14 @@ export function AppNavigation() {
     prevTarget.current = target;
   }, [loading, session, isExpertMode, role]);
 
-  const syncRootRoute = useCallback(() => {
-    setRootRoute(getCurrentRootRoute());
-  }, []);
-
   const handleContainerReady = useCallback(() => {
     isContainerReady.current = true;
-    syncRootRoute();
     applyAuthRoute();
-  }, [applyAuthRoute, syncRootRoute]);
+  }, [applyAuthRoute]);
 
   const handleStateChange = useCallback(() => {
-    syncRootRoute();
-  }, [syncRootRoute]);
+    // 네비게이션 상태 변경 시 별도 동기화 불필요
+  }, []);
 
   useEffect(() => {
     if (!isContainerReady.current) return;
@@ -94,12 +90,15 @@ export function AppNavigation() {
   return (
     <NavigationContainer
       ref={navigationRef}
+      theme={kemixNavigationTheme}
       onReady={handleContainerReady}
       onStateChange={handleStateChange}
     >
-      <OpeningIntroProvider rootRoute={rootRoute}>
-        <RootNavigator />
-      </OpeningIntroProvider>
+      <MoreMenuProvider>
+        <OpeningIntroProvider>
+          <RootNavigator />
+        </OpeningIntroProvider>
+      </MoreMenuProvider>
     </NavigationContainer>
   );
 }

@@ -15,6 +15,8 @@ import { AdminNav } from './AdminNav';
 import { AdminOpeningSlidesPanel } from './AdminOpeningSlidesPanel';
 import { AdminSchedulesPanel } from './AdminSchedulesPanel';
 import { AdminPollsPanel } from './AdminPollsPanel';
+import { AdminAppLinksPanel } from './AdminAppLinksPanel';
+import { AdminHomeBannersPanel } from './AdminHomeBannersPanel';
 import { AdminSiteSettingsPanel } from './AdminSiteSettingsPanel';
 import { AdminTrainingsPanel } from './AdminTrainingsPanel';
 import { AdminUsersPanel } from './AdminUsersPanel';
@@ -65,6 +67,8 @@ export function AdminDashboardPage() {
         {tab === 'app-download' && <AdminAppDownloadPanel />}
         {tab === 'faq' && <AdminFaqPanel />}
         {tab === 'users' && <AdminUsersPanel />}
+        {tab === 'home-banners' && <AdminHomeBannersPanel />}
+        {tab === 'app-links' && <AdminAppLinksPanel />}
         {tab === 'site-settings' && <AdminSiteSettingsPanel />}
       </div>
     </div>

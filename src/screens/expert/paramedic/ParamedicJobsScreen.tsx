@@ -14,60 +14,125 @@ import {
   View,
 } from 'react-native';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
+import {
+  LoungeActionRow,
+  LoungeAnonymousBadge,
+  LoungeBody,
+  LoungeCard,
+  LoungeErrorBanner,
+  LoungeFilterPill,
+  LoungeInput,
+  LoungeMetaText,
+  LoungePrimaryButton,
+  LoungeScreen,
+  LoungeTitle,
+  LoungeWriteBar,
+  loungeListContent,
+} from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
+import { EMS_LOUNGE, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import type { JobPost } from '@/data/paramedicMockData';
 
-function JobCard({ post }: { post: JobPost }) {
+function JobTypeBadge({ post }: { post: JobPost }) {
   const isSeek = post.type === 'seek';
+  const bg = isSeek ? '#E0E7FF' : post.isUrgent ? EMS_LOUNGE.errorBg : EMS_LOUNGE.greenSoft;
+  const color = isSeek ? '#3730A3' : post.isUrgent ? EMS_LOUNGE.error : EMS_LOUNGE.green;
+  const label = isSeek ? '구직' : post.isUrgent ? '긴급채용' : '구인';
 
   return (
-    <View
-      className={`mb-3 rounded-2xl border p-4 ${isSeek ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'}`}
-    >
-      <View className="flex-row items-start justify-between">
-        <View className="flex-1 pr-2">
-          <View className="flex-row items-center gap-2">
-            <View
-              className={`rounded-full px-2 py-0.5 ${isSeek ? 'bg-blue-100' : post.isUrgent ? 'bg-red-100' : 'bg-green-100'}`}
-            >
-              <Text
-                className={`text-[10px] font-bold ${isSeek ? 'text-blue-700' : post.isUrgent ? 'text-red-700' : 'text-green-700'}`}
-              >
-                {isSeek ? '구직' : post.isUrgent ? '긴급채용' : '구인'}
-              </Text>
-            </View>
-            <Text className="text-xs text-slate-400">{post.postedAt}</Text>
-          </View>
-          <Text className="mt-2 text-base font-bold text-slate-900">{post.title}</Text>
-          <Text className="mt-0.5 text-sm text-slate-600">{post.company}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-      </View>
-
-      <View className="mt-3 gap-1.5">
-        <View className="flex-row items-center">
-          <Ionicons name="location-outline" size={14} color="#64748b" />
-          <Text className="ml-1.5 text-xs text-slate-600">{post.location}</Text>
-        </View>
-        <View className="flex-row items-center">
-          <Ionicons name="cash-outline" size={14} color="#64748b" />
-          <Text className="ml-1.5 text-xs font-semibold text-green-700">{post.salary}</Text>
-        </View>
-        <View className="flex-row items-center">
-          <Ionicons name="time-outline" size={14} color="#64748b" />
-          <Text className="ml-1.5 text-xs text-slate-600">{post.schedule}</Text>
-        </View>
-      </View>
-
-      <View className="mt-3 rounded-xl bg-slate-50 p-3">
-        <Text className="text-xs leading-5 text-slate-600">{post.requirements}</Text>
-      </View>
-      <View className="mt-3 flex-row justify-end border-t border-slate-100 pt-2">
-        <ReportContentButton contentId={post.id} contentType="job" preview={post.title} />
-      </View>
+    <View style={{ backgroundColor: bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
+      <Text style={{ fontFamily: 'Pretendard-Bold', fontSize: 10, color }}>{label}</Text>
     </View>
+  );
+}
+
+function JobCard({ post }: { post: JobPost }) {
+  return (
+    <LoungeCard>
+      <View className="flex-row items-start justify-between">
+        <View className="flex-1 pr-3">
+          <View className="flex-row items-center gap-2">
+            <JobTypeBadge post={post} />
+            <LoungeMetaText>{post.postedAt}</LoungeMetaText>
+          </View>
+          <View className="mt-3">
+            <LoungeTitle numberOfLines={2}>{post.title}</LoungeTitle>
+          </View>
+          <Text
+            style={{
+              marginTop: 4,
+              fontFamily: 'Pretendard-Medium',
+              fontSize: 14,
+              color: EMS_LOUNGE.textSecondary,
+            }}
+          >
+            {post.company}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={EMS_LOUNGE.textMuted} />
+      </View>
+
+      <View className="mt-4 gap-2">
+        <View className="flex-row items-center">
+          <Ionicons name="location-outline" size={14} color={EMS_LOUNGE.textMuted} />
+          <Text
+            style={{
+              marginLeft: 6,
+              fontFamily: 'Pretendard',
+              fontSize: 12,
+              color: EMS_LOUNGE.textSecondary,
+            }}
+          >
+            {post.location}
+          </Text>
+        </View>
+        <View className="flex-row items-center">
+          <Ionicons name="cash-outline" size={14} color={EMS_LOUNGE.textMuted} />
+          <Text
+            style={{
+              marginLeft: 6,
+              fontFamily: 'Pretendard-SemiBold',
+              fontSize: 12,
+              color: EMS_LOUNGE.green,
+            }}
+          >
+            {post.salary}
+          </Text>
+        </View>
+        <View className="flex-row items-center">
+          <Ionicons name="time-outline" size={14} color={EMS_LOUNGE.textMuted} />
+          <Text
+            style={{
+              marginLeft: 6,
+              fontFamily: 'Pretendard',
+              fontSize: 12,
+              color: EMS_LOUNGE.textSecondary,
+            }}
+          >
+            {post.schedule}
+          </Text>
+        </View>
+      </View>
+
+      <View
+        className="mt-4"
+        style={{
+          borderRadius: 14,
+          backgroundColor: EMS_LOUNGE.background,
+          padding: 12,
+        }}
+      >
+        <LoungeBody>{post.requirements}</LoungeBody>
+      </View>
+
+      <LoungeActionRow
+        right={
+          <ReportContentButton contentId={post.id} contentType="job" preview={post.title} />
+        }
+      />
+    </LoungeCard>
   );
 }
 
@@ -110,56 +175,53 @@ export function ParamedicJobsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-100">
-      <ParamedicHeader subtitle="구인구직 · 응급구조사 전용" />
+    <LoungeScreen>
+      <ParamedicHeader />
 
-      <View className="border-b border-slate-200 bg-white px-4 py-3">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-sm font-bold text-slate-900">전국 구인/구직 보드</Text>
-          <Pressable
-            className="flex-row items-center rounded-xl bg-green-700 px-4 py-2"
-            onPress={() => setShowWriteForm(true)}
-          >
-            <Ionicons name="create-outline" size={14} color="#fff" />
-            <Text className="ml-1 text-xs font-bold text-white">✍️ 글쓰기</Text>
-          </Pressable>
-        </View>
-        <View className="mt-3 flex-row gap-2">
-          {(['all', 'hire', 'seek'] as const).map((f) => (
-            <Pressable
-              key={f}
-              onPress={() => setFilter(f)}
-              className={`rounded-full px-4 py-1.5 ${filter === f ? 'bg-green-700' : 'bg-slate-100'}`}
-            >
-              <Text className={`text-xs font-semibold ${filter === f ? 'text-white' : 'text-slate-600'}`}>
-                {f === 'all' ? '전체' : f === 'hire' ? '구인' : '구직'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+      <LoungeWriteBar label="글쓰기" onPress={() => setShowWriteForm(true)} />
+
+      <View
+        style={{
+          paddingHorizontal: EMS_LOUNGE_SPACING.screen,
+          paddingBottom: 12,
+          flexDirection: 'row',
+          gap: 8,
+        }}
+      >
+        {(['all', 'hire', 'seek'] as const).map((f) => (
+          <LoungeFilterPill
+            key={f}
+            label={f === 'all' ? '전체' : f === 'hire' ? '구인' : '구직'}
+            active={filter === f}
+            onPress={() => setFilter(f)}
+          />
+        ))}
       </View>
 
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
-        contentContainerClassName="p-4 pb-28"
-        ListHeaderComponent={
-          error ? (
-            <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
-              <Text className="text-sm text-red-700">{error}</Text>
-            </View>
-          ) : null
-        }
+        contentContainerStyle={loungeListContent}
+        ListHeaderComponent={error ? <LoungeErrorBanner message={error} /> : null}
         ListEmptyComponent={
           loading ? (
             <View className="items-center py-16">
-              <ActivityIndicator color="#15803d" />
+              <ActivityIndicator color={EMS_LOUNGE.navy} />
             </View>
           ) : (
-          <View className="items-center py-16">
-            <Ionicons name="briefcase-outline" size={48} color="#94a3b8" />
-            <Text className="mt-4 text-base font-semibold text-slate-600">등록된 공고가 없습니다</Text>
-          </View>
+            <View className="items-center py-16">
+              <Ionicons name="briefcase-outline" size={48} color={EMS_LOUNGE.textMuted} />
+              <Text
+                style={{
+                  marginTop: 16,
+                  fontFamily: 'Pretendard-SemiBold',
+                  fontSize: 15,
+                  color: EMS_LOUNGE.textSecondary,
+                }}
+              >
+                등록된 공고가 없습니다
+              </Text>
+            </View>
           )
         }
         renderItem={({ item }) => <JobCard post={item} />}
@@ -171,48 +233,78 @@ export function ParamedicJobsScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <Pressable className="flex-1 bg-black/40" onPress={() => setShowWriteForm(false)} />
-          <View className="max-h-[85%] rounded-t-3xl bg-white px-4 pb-8 pt-4">
+          <View
+            className="max-h-[85%] px-4 pb-8 pt-4"
+            style={{
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              backgroundColor: EMS_LOUNGE.surface,
+            }}
+          >
             <View className="mb-4 flex-row items-center justify-between">
-              <Text className="text-lg font-bold text-slate-900">구직 글쓰기</Text>
+              <Text
+                style={{
+                  fontFamily: 'Pretendard-Bold',
+                  fontSize: 18,
+                  color: EMS_LOUNGE.navy,
+                }}
+              >
+                구직 글쓰기
+              </Text>
               <Pressable onPress={() => setShowWriteForm(false)}>
-                <Ionicons name="close" size={24} color="#94a3b8" />
+                <Ionicons name="close" size={24} color={EMS_LOUNGE.textMuted} />
               </Pressable>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text className="mb-1 text-xs font-semibold text-slate-500">제목</Text>
-              <TextInput
-                className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm"
-                placeholder="예: 119 경력 5년 · 야간 근무 희망"
+              <Text
+                style={{
+                  marginBottom: 4,
+                  fontFamily: 'Pretendard-SemiBold',
+                  fontSize: 12,
+                  color: EMS_LOUNGE.textMuted,
+                }}
+              >
+                제목
+              </Text>
+              <LoungeInput
                 value={title}
                 onChangeText={setTitle}
+                placeholder="예: 119 경력 5년 · 야간 근무 희망"
               />
-
-              <Text className="mb-1 text-xs font-semibold text-slate-500">희망 지역</Text>
-              <TextInput
-                className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm"
-                placeholder="예: 서울, 경기"
-                value={location}
-                onChangeText={setLocation}
-              />
-
-              <Text className="mb-1 text-xs font-semibold text-slate-500">이력 · 자기소개</Text>
-              <TextInput
-                className="mb-4 min-h-[120px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm"
-                placeholder="면허, 경력, 희망 근무 조건 등을 작성해 주세요"
+              <Text
+                style={{
+                  marginBottom: 4,
+                  fontFamily: 'Pretendard-SemiBold',
+                  fontSize: 12,
+                  color: EMS_LOUNGE.textMuted,
+                }}
+              >
+                희망 지역
+              </Text>
+              <LoungeInput value={location} onChangeText={setLocation} placeholder="예: 서울, 경기" />
+              <Text
+                style={{
+                  marginBottom: 4,
+                  fontFamily: 'Pretendard-SemiBold',
+                  fontSize: 12,
+                  color: EMS_LOUNGE.textMuted,
+                }}
+              >
+                이력 · 자기소개
+              </Text>
+              <LoungeInput
                 value={content}
                 onChangeText={setContent}
+                placeholder="면허, 경력, 희망 근무 조건 등을 작성해 주세요"
                 multiline
-                textAlignVertical="top"
+                minHeight={120}
               />
-
-              <Pressable className="items-center rounded-xl bg-green-700 py-4" onPress={() => void handleSubmit()}>
-                <Text className="font-bold text-white">구직 글 등록</Text>
-              </Pressable>
+              <LoungePrimaryButton label="구직 글 등록" onPress={() => void handleSubmit()} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </LoungeScreen>
   );
 }

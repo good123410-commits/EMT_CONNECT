@@ -112,7 +112,10 @@ export function AdminDonationsPanel() {
   return (
     <section className="admin-panel">
       <h2>모금 계좌 관리</h2>
-      <p className="muted">변경 사항은 모금 계좌 안내 페이지에 실시간 반영됩니다.</p>
+      <p className="muted">
+        변경 사항은 웹 모금 안내 페이지와 앱 설정 「후원하기」에 실시간 반영됩니다. 후원 안내
+        문구는 시스템 → 앱 연동 설정에서 수정하세요.
+      </p>
 
       {error ? <p className="error">{error}</p> : null}
 

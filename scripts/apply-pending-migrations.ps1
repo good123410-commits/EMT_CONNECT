@@ -12,7 +12,9 @@ param(
         'supabase\migration_v48_admin_upsert_resource_fix.sql',
         'supabase\migration_v49_membership_rbac.sql',
         'supabase\migration_v50_admin_rpc_fix.sql',
-        'supabase\migration_v51_kemix_resources_storage_fix.sql'
+        'supabase\migration_v51_kemix_resources_storage_fix.sql',
+        'supabase\migration_v52_admin_job_posts_roles_fix.sql',
+        'supabase\migration_v53_ems_auth_status.sql'
     )
 )
 

@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+﻿import { Pressable, ScrollView, Text, View } from 'react-native';
 import {
   MEDICINE_CHOSEONG_FILTERS,
   type MedicineChoseongFilter,
@@ -12,7 +12,7 @@ type ChoseongFilterPanelProps = {
 export function ChoseongFilterPanel({ value, onChange }: ChoseongFilterPanelProps) {
   return (
     <View className="mt-3">
-      <Text className="mb-2 text-xs font-semibold text-slate-500">초성 · 알파벳 빠른 필터</Text>
+      <Text className="mb-2 text-xs font-semibold text-kemix-text-secondary">초성 · 알파벳 빠른 필터</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -27,11 +27,11 @@ export function ChoseongFilterPanel({ value, onChange }: ChoseongFilterPanelProp
               className={`min-w-[44px] items-center rounded-xl border px-3 py-2 ${
                 selected
                   ? 'border-blue-500 bg-blue-500'
-                  : 'border-slate-200 bg-white active:bg-slate-50'
+                  : 'border-kemix-border bg-kemix-surface active:bg-kemix-bg'
               }`}
             >
               <Text
-                className={`text-sm font-bold ${selected ? 'text-white' : 'text-slate-700'}`}
+                className={`text-sm font-bold ${selected ? 'text-white' : 'text-kemix-text'}`}
               >
                 {filter}
               </Text>

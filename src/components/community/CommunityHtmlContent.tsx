@@ -1,4 +1,4 @@
-import { Platform, Image, Text, View } from 'react-native';
+﻿import { Platform, Image, Text, View } from 'react-native';
 import { extractGuideImageUrls, stripGuideHtml } from '@/services/kemiPostService';
 
 type CommunityHtmlContentProps = {
@@ -9,7 +9,7 @@ export function CommunityHtmlContent({ content }: CommunityHtmlContentProps) {
   const trimmed = content.trim();
 
   if (!trimmed) {
-    return <Text className="text-sm text-slate-500">본문이 없습니다.</Text>;
+    return <Text className="text-sm text-kemix-text-secondary">본문이 없습니다.</Text>;
   }
 
   if (Platform.OS === 'web') {
@@ -36,7 +36,7 @@ export function CommunityHtmlContent({ content }: CommunityHtmlContentProps) {
           resizeMode="cover"
         />
       ))}
-      <Text className="text-sm leading-7 text-slate-800" selectable>
+      <Text className="text-sm leading-7 text-kemix-text" selectable>
         {text}
       </Text>
     </View>

@@ -20,7 +20,9 @@ export type AdminTabId =
   | 'app-download'
   | 'faq'
   | 'users'
-  | 'site-settings';
+  | 'site-settings'
+  | 'app-links'
+  | 'home-banners';
 
 export type AdminNavGroup = {
   id: string;
@@ -81,6 +83,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: '시스템',
     children: [
       { id: 'users', label: '유저 관리' },
+      { id: 'home-banners', label: '앱 홈 배너' },
+      { id: 'app-links', label: '앱 연동 설정' },
       { id: 'site-settings', label: '사이트 설정' },
     ],
   },

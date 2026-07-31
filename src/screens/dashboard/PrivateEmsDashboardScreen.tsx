@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -66,7 +66,7 @@ export function PrivateEmsDashboardScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-kemix-bg">
       <SafeAreaView edges={['top']} className="border-b border-orange-200 bg-orange-900 px-4 pb-4">
         <View className="flex-row items-center">
           <Ionicons name="car" size={24} color="#fdba74" />
@@ -78,8 +78,8 @@ export function PrivateEmsDashboardScreen() {
       </SafeAreaView>
 
       <ScrollView className="flex-1" contentContainerClassName="gap-4 p-4 pb-24">
-        <View className="rounded-2xl border border-orange-200 bg-white p-4">
-          <Text className="text-base font-bold text-slate-900">차량 현황</Text>
+        <View className="rounded-2xl border border-orange-200 bg-kemix-surface p-4">
+          <Text className="text-base font-bold text-kemix-text">차량 현황</Text>
           <View className="mt-3 flex-row gap-3">
             <View className="flex-1 rounded-xl bg-orange-50 p-3">
               <Text className="text-xs text-orange-600">총 차량</Text>
@@ -89,18 +89,18 @@ export function PrivateEmsDashboardScreen() {
               <Text className="text-xs text-green-600">운행 중</Text>
               <Text className="mt-1 text-2xl font-bold text-green-900">{activeVehicles}</Text>
             </View>
-            <View className="flex-1 rounded-xl bg-slate-50 p-3">
-              <Text className="text-xs text-slate-600">대기</Text>
-              <Text className="mt-1 text-2xl font-bold text-slate-900">
+            <View className="flex-1 rounded-xl bg-kemix-bg p-3">
+              <Text className="text-xs text-kemix-text-secondary">대기</Text>
+              <Text className="mt-1 text-2xl font-bold text-kemix-text">
                 {vehicleCount - activeVehicles}
               </Text>
             </View>
           </View>
         </View>
 
-        <View className="rounded-2xl border border-slate-200 bg-white p-4">
+        <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
           <View className="mb-3 flex-row items-center justify-between">
-            <Text className="text-base font-bold text-slate-900">실시간 배차 콜</Text>
+            <Text className="text-base font-bold text-kemix-text">실시간 배차 콜</Text>
             <Pressable onPress={() => void loadCalls()}>
               <Ionicons name="refresh" size={20} color="#64748b" />
             </Pressable>
@@ -114,26 +114,26 @@ export function PrivateEmsDashboardScreen() {
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
               ListEmptyComponent={
-                <Text className="py-4 text-center text-sm text-slate-400">
+                <Text className="py-4 text-center text-sm text-kemix-muted">
                   현재 대기 중인 호출이 없습니다.
                 </Text>
               }
               renderItem={({ item }) => (
-                <View className="mb-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <View className="mb-3 rounded-xl border border-kemix-border-light bg-kemix-bg p-3">
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-sm font-bold text-slate-900">
+                    <Text className="text-sm font-bold text-kemix-text">
                       {getCallStatusLabel(item.status)}
                     </Text>
-                    <Text className="text-xs text-slate-400">
+                    <Text className="text-xs text-kemix-muted">
                       {new Date(item.created_at).toLocaleTimeString('ko-KR')}
                     </Text>
                   </View>
-                  <Text className="mt-1 text-sm text-slate-600">
+                  <Text className="mt-1 text-sm text-kemix-text-secondary">
                     {item.address ??
                       `위치: ${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}`}
                   </Text>
                   {item.notes ? (
-                    <Text className="mt-1 text-xs text-slate-500">{item.notes}</Text>
+                    <Text className="mt-1 text-xs text-kemix-text-secondary">{item.notes}</Text>
                   ) : null}
                   <View className="mt-2 flex-row gap-2">
                     {item.status === 'pending' ? (

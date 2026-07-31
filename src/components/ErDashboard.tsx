@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+﻿import { Text, View } from 'react-native';
 import type { ErStatus } from '@/mockData/aedAndEmergency';
 import { ER_STATUS_COLORS, ER_STATUS_LABELS } from '@/mockData/aedAndEmergency';
 import { safeErStatus } from '@/services/emergencyApi';
@@ -38,28 +38,28 @@ export function ErDashboardSummary({
       : '국립중앙의료원 API';
 
   return (
-    <View className="rounded-2xl border border-slate-200 bg-white p-4">
-      <Text className="text-base font-bold text-slate-900">실시간 응급실 가동 현황</Text>
-      <Text className="mt-1 text-xs text-slate-500">{regionLabel} · {statusHint}</Text>
+    <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+      <Text className="text-base font-bold text-kemix-text">실시간 응급실 가동 현황</Text>
+      <Text className="mt-1 text-xs text-kemix-text-secondary">{regionLabel} · {statusHint}</Text>
 
       <View className="mt-4 flex-row gap-3">
-        <View className="flex-1 rounded-xl bg-slate-50 p-3">
-          <Text className="text-2xl font-bold text-slate-900">
+        <View className="flex-1 rounded-xl bg-kemix-bg p-3">
+          <Text className="text-2xl font-bold text-kemix-text">
             {formatDashboardValue(totalAvailableBeds, loading, unavailable)}
           </Text>
-          <Text className="text-xs text-slate-500">가용 병상</Text>
+          <Text className="text-xs text-kemix-text-secondary">가용 병상</Text>
         </View>
-        <View className="flex-1 rounded-xl bg-slate-50 p-3">
-          <Text className="text-2xl font-bold text-slate-900">
+        <View className="flex-1 rounded-xl bg-kemix-bg p-3">
+          <Text className="text-2xl font-bold text-kemix-text">
             {formatDashboardValue(stressedCount, loading, unavailable)}
           </Text>
-          <Text className="text-xs text-slate-500">혼잡·포화</Text>
+          <Text className="text-xs text-kemix-text-secondary">혼잡·포화</Text>
         </View>
-        <View className="flex-1 rounded-xl bg-slate-50 p-3">
-          <Text className="text-2xl font-bold text-slate-900">
+        <View className="flex-1 rounded-xl bg-kemix-bg p-3">
+          <Text className="text-2xl font-bold text-kemix-text">
             {formatDashboardValue(totalHospitals ?? 0, loading, unavailable)}
           </Text>
-          <Text className="text-xs text-slate-500">조회 병원</Text>
+          <Text className="text-xs text-kemix-text-secondary">조회 병원</Text>
         </View>
       </View>
 
@@ -115,12 +115,12 @@ export function BedAvailabilityBar({ available, status }: BedBarProps) {
   return (
     <View>
       <View className="mb-1 flex-row justify-between">
-        <Text className="text-xs text-slate-500">응급실 가용 병상</Text>
-        <Text className="text-xs font-semibold text-slate-700">
+        <Text className="text-xs text-kemix-text-secondary">응급실 가용 병상</Text>
+        <Text className="text-xs font-semibold text-kemix-text">
           {safeAvailable > 0 ? `${safeAvailable}병상` : '-'}
         </Text>
       </View>
-      <View className="h-2 overflow-hidden rounded-full bg-slate-100">
+      <View className="h-2 overflow-hidden rounded-full bg-kemix-elevated">
         <View
           className="h-full rounded-full"
           style={{ width: `${fillPercent}%`, backgroundColor: ER_STATUS_COLORS[safeStatus] }}

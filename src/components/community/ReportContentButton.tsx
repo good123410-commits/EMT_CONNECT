@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { Alert, Pressable, Text } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -47,7 +47,7 @@ export function ReportContentButton({
   return (
     <Pressable className="flex-row items-center" onPress={handleReport} hitSlop={8}>
       <Ionicons name="flag-outline" size={compact ? 14 : 16} color="#94a3b8" />
-      {!compact ? <Text className="ml-1 text-xs text-slate-400">신고</Text> : null}
+      {!compact ? <Text className="ml-1 text-xs text-kemix-muted">신고</Text> : null}
     </Pressable>
   );
 }

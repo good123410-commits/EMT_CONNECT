@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
@@ -43,7 +43,7 @@ export function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-kemix-surface">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -51,23 +51,23 @@ export function LoginScreen({ navigation }: Props) {
         <ScrollView contentContainerClassName="px-6 py-8" keyboardShouldPersistTaps="handled">
           <View className="mb-6 items-center">
             <View className="mb-3 flex-row items-end gap-2">
-              <Text className="text-2xl font-black tracking-tight text-slate-900">{BRAND_NAME}</Text>
+              <Text className="text-2xl font-black tracking-tight text-kemix-text">{BRAND_NAME}</Text>
               <Text className="pb-0.5 text-sm font-semibold text-emerald-700">{BRAND_NAME_KO}</Text>
             </View>
-            <Text className="text-center text-xl font-bold text-slate-900">로그인</Text>
-            <Text className="mt-2 text-center text-sm text-slate-500">
+            <Text className="text-center text-xl font-bold text-kemix-text">로그인</Text>
+            <Text className="mt-2 text-center text-sm text-kemix-text-secondary">
               {BRAND_NAME} 계정으로 로그인하세요.
             </Text>
-            <Text className="mt-1 text-center text-xs text-slate-400">{BRAND_FULL_NAME}</Text>
+            <Text className="mt-1 text-center text-xs text-kemix-muted">{BRAND_FULL_NAME}</Text>
           </View>
 
           <SocialLoginButtons kakaoLabel="카카오로 시작하기" googleLabel="Google 계정으로 로그인" />
 
           <AuthDivider />
 
-          <Text className="mb-1 text-sm font-medium text-slate-700">이메일</Text>
+          <Text className="mb-1 text-sm font-medium text-kemix-text">이메일</Text>
           <TextInput
-            className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+            className="mb-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base text-kemix-text"
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
@@ -77,9 +77,9 @@ export function LoginScreen({ navigation }: Props) {
             autoCorrect={false}
           />
 
-          <Text className="mb-1 text-sm font-medium text-slate-700">비밀번호</Text>
+          <Text className="mb-1 text-sm font-medium text-kemix-text">비밀번호</Text>
           <TextInput
-            className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+            className="mb-6 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base text-kemix-text"
             value={password}
             onChangeText={setPassword}
             placeholder="비밀번호"
@@ -104,14 +104,14 @@ export function LoginScreen({ navigation }: Props) {
             onPress={() => navigation.navigate('SignUp')}
             accessibilityRole="button"
           >
-            <Text className="text-sm text-slate-600">
+            <Text className="text-sm text-kemix-text-secondary">
               계정이 없으신가요?{' '}
-              <Text className="font-semibold text-slate-900">회원가입</Text>
+              <Text className="font-semibold text-kemix-text">회원가입</Text>
             </Text>
           </Pressable>
 
           <Pressable className="mt-2 items-center py-2" onPress={returnToGuestMain}>
-            <Text className="text-sm font-medium text-slate-500">둘러보기 (로그인 없이)</Text>
+            <Text className="text-sm font-medium text-kemix-text-secondary">둘러보기 (로그인 없이)</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

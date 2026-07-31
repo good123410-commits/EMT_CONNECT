@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useRef, useState } from 'react';
 import {
   Modal,
@@ -15,14 +15,13 @@ import { V1_STORE_BUILD } from '@/constants/releaseFlags';
 import { getRoleLabel } from '@/utils/roleAccess';
 
 const ALL_DEV_ROLES: { role: UserRole; label: string; color: string }[] = [
-  { role: 'user', label: '일반', color: '#64748b' },
-  { role: 'admin', label: '관리', color: '#7c3aed' },
-  { role: 'private_ems', label: '사설', color: '#dc2626' },
-  { role: 'paramedic', label: '구급', color: '#2563eb' },
-  { role: 'hospital', label: '병원', color: '#059669' },
+  { role: 'user', label: '일반회원', color: '#64748b' },
+  { role: 'associate_member', label: '준회원', color: '#2563eb' },
+  { role: 'regular_member', label: '정회원', color: '#059669' },
+  { role: 'admin', label: '관리자', color: '#7c3aed' },
 ];
 
-/** v1: 구급대원·병원관계자·사설구급차 진입 버튼 숨김 */
+/** v1: 개발용 등급 프리셋 */
 const DEV_ROLES = V1_STORE_BUILD
   ? ALL_DEV_ROLES.filter((item) => item.role === 'user' || item.role === 'admin')
   : ALL_DEV_ROLES;
@@ -119,24 +118,24 @@ export function DevRoleCheatMenu() {
           onPress={closeMenu}
         >
           <Pressable
-            className="rounded-t-3xl bg-white px-4 pb-8 pt-3"
+            className="rounded-t-3xl bg-kemix-surface px-4 pb-8 pt-3"
             style={{ paddingBottom: insets.bottom + 16 }}
             onPress={(e) => e.stopPropagation()}
           >
             <View className="mb-4 items-center">
-              <View className="h-1 w-10 rounded-full bg-slate-200" />
+              <View className="h-1 w-10 rounded-full bg-kemix-elevated" />
             </View>
 
             <View className="mb-3 flex-row items-center justify-between">
-              <Text className="text-sm font-bold text-slate-800">DEV · 직군 치트키</Text>
+              <Text className="text-sm font-bold text-kemix-text">DEV · 등급 치트키</Text>
               <Pressable onPress={closeMenu} hitSlop={12}>
                 <Ionicons name="close" size={22} color="#94a3b8" />
               </Pressable>
             </View>
 
-            <Text className="mb-4 text-xs text-slate-500">
+            <Text className="mb-4 text-xs text-kemix-text-secondary">
               현재: {getRoleLabel(role)}
-              {isApproved ? ' (승인됨)' : ' (승인 대기)'} · [구급]/[사설] 선택 시 전용 탭 즉시 진입
+              {isApproved ? ' (승인됨)' : ' (승인 대기)'} · 준회원/정회원 선택 시 전용 탭 즉시 진입
             </Text>
 
             <View className="flex-row flex-wrap gap-2">
@@ -164,7 +163,7 @@ export function DevRoleCheatMenu() {
               })}
             </View>
 
-            <Text className="mt-3 text-center text-[10px] text-slate-400">
+            <Text className="mt-3 text-center text-[10px] text-kemix-muted">
               길게 누르면 is_approved=false (승인 대기 화면)
             </Text>
           </Pressable>

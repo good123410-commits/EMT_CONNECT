@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -35,7 +35,7 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<SettingsNav>();
   const { profile } = useAuth();
-  const { canOpenOpsAdminPortal, canOpenAnswerInbox } = useExpertSettingsAccess();
+  const { canOpenOpsAdminPortal } = useExpertSettingsAccess();
   const { opsAdminVerified, verifyOpsAdminCode, clearOpsAdminVerification } = useUserRole();
   const [code, setCode] = useState('');
 
@@ -57,11 +57,6 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
     navigation.navigate('AdminDashboard');
   };
 
-  const handleOpenAnswerInbox = () => {
-    onClose();
-    navigation.navigate('ParamedicAnswerInbox');
-  };
-
   const handleOpenParamedicSpace = () => {
     onClose();
     navigation.getParent()?.navigate('Paramedic');
@@ -74,11 +69,11 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-slate-50" style={{ paddingTop: insets.top }}>
-        <View className="flex-row items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+      <View className="flex-1 bg-kemix-bg" style={{ paddingTop: insets.top }}>
+        <View className="flex-row items-center justify-between border-b border-kemix-border bg-kemix-surface px-4 py-3">
           <View className="flex-1 pr-3">
-            <Text className="text-lg font-bold text-slate-900">관리자 모드</Text>
-            <Text className="mt-0.5 text-xs text-slate-500">Q&A 운영 · 질문 현황 모니터링</Text>
+            <Text className="text-lg font-bold text-kemix-text">관리자 모드</Text>
+            <Text className="mt-0.5 text-xs text-kemix-text-secondary">Q&A 운영 · 질문 현황 모니터링</Text>
           </View>
           <Pressable onPress={onClose} hitSlop={12}>
             <Ionicons name="close" size={24} color="#64748b" />
@@ -93,7 +88,7 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
                   {dbAdmin ? '승인된 관리자 계정' : '운영 관리자 인증됨'}
                 </Text>
                 <Text className="mt-1 text-xs leading-5 text-violet-800">
-                  관리자 대시보드, 구급대원 전용 공간, 전문가 답변함에 접근할 수 있습니다.
+                  관리자 대시보드와 구급대원 전용 공간에 접근할 수 있습니다.
                 </Text>
               </View>
 
@@ -119,38 +114,25 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
                 <Ionicons name="chevron-forward" size={18} color="#ddd6fe" />
               </Pressable>
 
-              {canOpenAnswerInbox ? (
-                <Pressable
-                  className="flex-row items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3.5 active:bg-slate-50"
-                  onPress={handleOpenAnswerInbox}
-                >
-                  <View className="flex-row items-center">
-                    <Ionicons name="mail-unread-outline" size={20} color="#7c3aed" />
-                    <Text className="ml-2 font-semibold text-slate-900">전문가 전용 답변함</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
-                </Pressable>
-              ) : null}
-
               {opsAdminVerified && !dbAdmin ? (
                 <Pressable
-                  className="items-center rounded-xl border border-slate-200 py-3 active:bg-slate-50"
+                  className="items-center rounded-xl border border-kemix-border py-3 active:bg-kemix-bg"
                   onPress={handleClearSession}
                 >
-                  <Text className="text-sm font-semibold text-slate-500">관리자 인증 해제</Text>
+                  <Text className="text-sm font-semibold text-kemix-text-secondary">관리자 인증 해제</Text>
                 </Pressable>
               ) : null}
             </View>
           ) : (
-            <View className="rounded-2xl border border-slate-200 bg-white p-5">
-              <Text className="text-sm leading-6 text-slate-600">
-                운영 관리자 비밀코드를 입력하면 Q&A 대시보드, 구급대원 전용 공간, 답변함에
-                접근할 수 있습니다.
+            <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-5">
+              <Text className="text-sm leading-6 text-kemix-text-secondary">
+                운영 관리자 비밀코드를 입력하면 Q&A 대시보드와 구급대원 전용 공간에 접근할 수
+                있습니다.
                 {'\n\n'}승인된 관리자 계정은 별도 코드 없이 자동으로 입장됩니다.
               </Text>
 
               <TextInput
-                className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+                className="mt-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base text-kemix-text"
                 value={code}
                 onChangeText={setCode}
                 placeholder="관리자 비밀코드"

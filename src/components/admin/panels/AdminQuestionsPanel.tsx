@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -129,7 +129,7 @@ export function AdminQuestionsPanel() {
 
   return (
     <View>
-      <Text className="mb-2 text-sm text-slate-600">
+      <Text className="mb-2 text-sm text-kemix-text-secondary">
         일반 사용자가 올린 Q&A 질문을 검토·수정·삭제합니다. 답변 대기 건은 관리자 답변을 등록할 수 있습니다.
       </Text>
 
@@ -145,18 +145,18 @@ export function AdminQuestionsPanel() {
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-slate-500">표시할 질문이 없습니다.</Text>
+            <Text className="py-8 text-center text-sm text-kemix-text-secondary">표시할 질문이 없습니다.</Text>
           }
           renderItem={({ item }) => (
-            <View className="mb-3 rounded-xl border border-slate-200 bg-white p-3">
+            <View className="mb-3 rounded-xl border border-kemix-border bg-kemix-surface p-3">
               <View className="flex-row items-start justify-between gap-2">
                 <View className="flex-1">
                   <Text className="text-xs font-bold text-violet-700">{STATUS_LABEL[item.status]}</Text>
-                  <Text className="mt-1 text-base font-bold text-slate-900">{item.title}</Text>
-                  <Text className="mt-1 text-xs text-slate-500">
+                  <Text className="mt-1 text-base font-bold text-kemix-text">{item.title}</Text>
+                  <Text className="mt-1 text-xs text-kemix-text-secondary">
                     {new Date(item.created_at).toLocaleString('ko-KR')}
                   </Text>
-                  <Text className="mt-2 text-sm leading-5 text-slate-700" numberOfLines={3}>
+                  <Text className="mt-2 text-sm leading-5 text-kemix-text" numberOfLines={3}>
                     {item.content}
                   </Text>
                   {item.answer ? (
@@ -166,7 +166,7 @@ export function AdminQuestionsPanel() {
                   ) : null}
                 </View>
                 <View className="flex-row gap-1">
-                  <Pressable className="rounded-lg bg-slate-100 p-2" onPress={() => openEdit(item)}>
+                  <Pressable className="rounded-lg bg-kemix-elevated p-2" onPress={() => openEdit(item)}>
                     <Ionicons name="create-outline" size={16} color="#475569" />
                   </Pressable>
                   <Pressable className="rounded-lg bg-red-50 p-2" onPress={() => setDeleteTarget(item)}>
@@ -180,12 +180,12 @@ export function AdminQuestionsPanel() {
       )}
 
       <Modal visible={Boolean(editTarget)} animationType="slide" onRequestClose={() => setEditTarget(null)}>
-        <ScrollView className="flex-1 bg-white" contentContainerClassName="p-4 pb-10">
-          <Text className="mb-4 text-lg font-bold text-slate-900">질문 수정</Text>
+        <ScrollView className="flex-1 bg-kemix-surface" contentContainerClassName="p-4 pb-10">
+          <Text className="mb-4 text-lg font-bold text-kemix-text">질문 수정</Text>
           <AdminFormField label="제목" value={formTitle} onChangeText={setFormTitle} />
           <AdminFormField label="내용" value={formContent} onChangeText={setFormContent} multiline />
           <View className="mb-4">
-            <Text className="mb-2 text-sm font-semibold text-slate-700">상태</Text>
+            <Text className="mb-2 text-sm font-semibold text-kemix-text">상태</Text>
             <SegmentControl
               options={[
                 { value: 'pending', label: '답변 대기' },
@@ -211,7 +211,7 @@ export function AdminQuestionsPanel() {
             <Text className="font-bold text-white">{submitting ? '저장 중...' : '저장'}</Text>
           </Pressable>
           <Pressable className="mt-3 items-center py-2" onPress={() => setEditTarget(null)}>
-            <Text className="font-semibold text-slate-500">취소</Text>
+            <Text className="font-semibold text-kemix-text-secondary">취소</Text>
           </Pressable>
         </ScrollView>
       </Modal>

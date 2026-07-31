@@ -1,13 +1,13 @@
-import { memo } from 'react';
+﻿import { memo } from 'react';
 import { View } from 'react-native';
 
 function SkeletonBlock({ className }: { className?: string }) {
-  return <View className={`rounded-lg bg-slate-200/80 ${className ?? ''}`} />;
+  return <View className={`rounded-lg bg-kemix-elevated/80 ${className ?? ''}`} />;
 }
 
 function SkeletonCard() {
   return (
-    <View className="mb-3 rounded-2xl border border-slate-100 bg-white p-4">
+    <View className="mb-3 rounded-2xl border border-kemix-border-light bg-kemix-surface p-4">
       <View className="flex-row justify-between">
         <SkeletonBlock className="h-4 flex-1 mr-8" />
         <SkeletonBlock className="h-5 w-16 rounded-full" />

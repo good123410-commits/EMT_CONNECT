@@ -1,6 +1,7 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { AuthStackParamList } from '@/navigation/AuthStack';
 import type { MainTabParamList } from '@/navigation/MainTabNavigator';
+import type { UtilitiesStackParamList } from '@/navigation/UtilitiesStackNavigator';
 
 export type RootStackParamList = {
   Loading: undefined;
@@ -9,4 +10,6 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   /** 승인된 전문가 전용 Root — role별 독립 Tab/Stack Navigator */
   Expert: undefined;
+  /** 실생활·응급 유틸리티 도구 스택 (모달) */
+  Utilities: NavigatorScreenParams<UtilitiesStackParamList>;
 };

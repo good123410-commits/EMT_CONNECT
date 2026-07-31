@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -18,8 +18,6 @@ import {
   getAmbulanceSidoOptions,
   listNearbyPrivateAmbulances,
   phoneDialUri,
-  PRIVATE_AMBULANCE_CALL_GUIDE,
-  PRIVATE_AMBULANCE_DISCLAIMER,
   searchPrivateAmbulances,
 } from '@/services/privateAmbulanceService';
 import {
@@ -30,7 +28,7 @@ import {
 import type { PrivateAmbulanceListItem } from '@/types/privateAmbulance';
 
 type RegionForm = { sido: string; sigungu: string };
-type PickerTarget = 'departureSido' | 'departureSigungu' | 'destinationSido' | 'destinationSigungu' | null;
+type PickerTarget = 'departureSido' | 'departureSigungu' | null;
 
 const EMPTY_REGION: RegionForm = { sido: '', sigungu: '' };
 
@@ -52,9 +50,9 @@ function RegionPickerModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 justify-end bg-black/40" onPress={onClose}>
-        <Pressable className="max-h-[60%] rounded-t-3xl bg-white" onPress={(e) => e.stopPropagation()}>
-          <View className="border-b border-slate-100 px-4 py-3">
-            <Text className="text-base font-bold text-slate-900">{title}</Text>
+        <Pressable className="max-h-[60%] rounded-t-3xl bg-kemix-surface" onPress={(e) => e.stopPropagation()}>
+          <View className="border-b border-kemix-border-light px-4 py-3">
+            <Text className="text-base font-bold text-kemix-text">{title}</Text>
           </View>
           <ScrollView className="max-h-80">
             {options.map((option) => {
@@ -62,13 +60,13 @@ function RegionPickerModal({
               return (
                 <Pressable
                   key={option}
-                  className={`border-b border-slate-50 px-4 py-3.5 ${active ? 'bg-orange-50' : ''}`}
+                  className={`border-b border-slate-50 px-4 py-3.5 ${active ? 'bg-sky-50' : ''}`}
                   onPress={() => {
                     onSelect(option);
                     onClose();
                   }}
                 >
-                  <Text className={`text-sm ${active ? 'font-bold text-orange-700' : 'text-slate-700'}`}>
+                  <Text className={`text-sm ${active ? 'font-bold text-sky-800' : 'text-kemix-text'}`}>
                     {option}
                   </Text>
                 </Pressable>
@@ -96,22 +94,22 @@ function RegionSelectRow({
 }) {
   return (
     <View className="mb-3">
-      <Text className="mb-2 text-sm font-bold text-slate-800">{label}</Text>
+      <Text className="mb-2 text-sm font-bold text-kemix-text">{label}</Text>
       <View className="flex-row gap-2">
         <Pressable
-          className="flex-1 flex-row items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
+          className="flex-1 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-bg px-3 py-3"
           onPress={onPressSido}
         >
-          <Text className={`text-sm ${sido ? 'text-slate-900' : 'text-slate-400'}`}>
+          <Text className={`text-sm ${sido ? 'text-kemix-text' : 'text-kemix-muted'}`}>
             {sido || '시·도 선택'}
           </Text>
           <Ionicons name="chevron-down" size={16} color="#94a3b8" />
         </Pressable>
         <Pressable
-          className="flex-1 flex-row items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
+          className="flex-1 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-bg px-3 py-3"
           onPress={onPressSigungu}
         >
-          <Text className={`text-sm ${sigungu ? 'text-slate-900' : 'text-slate-400'}`}>
+          <Text className={`text-sm ${sigungu ? 'text-kemix-text' : 'text-kemix-muted'}`}>
             {sigungu || '시·군·구 선택'}
           </Text>
           <Ionicons name="chevron-down" size={16} color="#94a3b8" />
@@ -131,21 +129,21 @@ function AmbulanceCard({
   const phoneLabel = item.p ? formatAmbulancePhone(item.p) : '대표전화 미등록';
 
   return (
-    <View className="mb-3 rounded-2xl border border-orange-200 bg-white p-4">
+    <View className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4">
       <View className="flex-row items-start justify-between">
         <View className="mr-3 flex-1">
-          <Text className="text-base font-bold text-slate-900">{item.n}</Text>
-          <Text className="mt-1 text-sm font-semibold text-orange-700">{phoneLabel}</Text>
-          {item.t ? <Text className="mt-0.5 text-xs text-slate-600">{item.t}</Text> : null}
-          <Text className="mt-1 text-xs text-slate-500">{item.r}</Text>
+          <Text className="text-base font-bold text-kemix-text">{item.n}</Text>
+          <Text className="mt-1 text-sm font-semibold text-sky-800">{phoneLabel}</Text>
+          {item.t ? <Text className="mt-0.5 text-xs text-kemix-text-secondary">{item.t}</Text> : null}
+          <Text className="mt-1 text-xs text-kemix-text-secondary">{item.r}</Text>
           {item.distanceM != null ? (
-            <Text className="mt-1 text-xs text-slate-400">
+            <Text className="mt-1 text-xs text-kemix-muted">
               약 {(item.distanceM / 1000).toFixed(1)}km
             </Text>
           ) : null}
         </View>
         <Pressable
-          className={`flex-row items-center rounded-xl px-3 py-2.5 ${item.p ? 'bg-orange-600' : 'bg-slate-300'}`}
+          className={`flex-row items-center rounded-xl px-3 py-2.5 ${item.p ? 'bg-sky-700' : 'bg-slate-300'}`}
           onPress={() => onCall(item)}
           disabled={!item.p}
         >
@@ -153,33 +151,29 @@ function AmbulanceCard({
           <Text className="ml-1 text-sm font-bold text-white">전화하기</Text>
         </Pressable>
       </View>
-
-      <View className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-        <Text className="text-xs leading-5 text-amber-900">{PRIVATE_AMBULANCE_DISCLAIMER}</Text>
-      </View>
     </View>
   );
 }
 
 function V2CallComingSoonSection() {
   return (
-    <View className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-100/80 p-4">
+    <View className="mt-2 rounded-2xl border border-dashed border-kemix-border bg-kemix-elevated/80 p-4">
       <View className="flex-row items-center">
         <Ionicons name="construct-outline" size={18} color="#64748b" />
-        <Text className="ml-2 text-sm font-bold text-slate-700">빠른 호출 (v2 예정)</Text>
+        <Text className="ml-2 text-sm font-bold text-kemix-text">빠른 호출 (v2 예정)</Text>
       </View>
-      <Text className="mt-2 text-sm leading-6 text-slate-600">
+      <Text className="mt-2 text-sm leading-6 text-kemix-text-secondary">
         빠른 호출 기능은 업데이트 준비 중입니다. 현재는 아래 지역별 업체 검색 및 전화 연결을
         이용해 주세요.
       </Text>
       <TextInput
-        className="mt-3 min-h-[64px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400"
+        className="mt-3 min-h-[64px] rounded-xl border border-kemix-border bg-kemix-surface px-3 py-2 text-sm text-kemix-muted"
         placeholder="v2: GPS 기반 즉시 호출 (준비 중)"
         editable={false}
         multiline
       />
       <Pressable className="mt-3 items-center rounded-xl bg-slate-300 py-3.5" disabled>
-        <Text className="font-bold text-slate-500">사설 구급차 즉시 호출 (준비 중)</Text>
+        <Text className="font-bold text-kemix-text-secondary">사설 구급차 즉시 호출 (준비 중)</Text>
       </Pressable>
     </View>
   );
@@ -190,7 +184,6 @@ export function PrivateEmsCallScreen() {
     getLocationWithRegionImmediate(),
   );
   const [departure, setDeparture] = useState<RegionForm>(EMPTY_REGION);
-  const [destination, setDestination] = useState<RegionForm>(EMPTY_REGION);
   const [results, setResults] = useState<PrivateAmbulanceListItem[]>([]);
   const [searched, setSearched] = useState(false);
   const [picker, setPicker] = useState<PickerTarget>(null);
@@ -238,35 +231,26 @@ export function PrivateEmsCallScreen() {
           selected: departure.sigungu,
           onSelect: (value: string) => setDeparture((prev) => ({ ...prev, sigungu: value })),
         };
-      case 'destinationSido':
-        return {
-          title: '목적지 · 시·도',
-          options: [...getAmbulanceSidoOptions()],
-          selected: destination.sido,
-          onSelect: (value: string) => setDestination({ sido: value, sigungu: '' }),
-        };
-      case 'destinationSigungu':
-        return {
-          title: '목적지 · 시·군·구',
-          options: getAmbulanceSigunguOptionsForSido(destination.sido),
-          selected: destination.sigungu,
-          onSelect: (value: string) => setDestination((prev) => ({ ...prev, sigungu: value })),
-        };
       default:
         return null;
     }
-  }, [picker, departure, destination]);
+  }, [picker, departure]);
 
   const handleSearch = () => {
-    const items = searchPrivateAmbulances(
-      { departure, destination },
-      locationSnapshot.coordinate,
-    );
+    if (!departure.sido.trim()) {
+      Alert.alert('출발지 선택', '시·도를 선택해 주세요.');
+      return;
+    }
+
+    const items = searchPrivateAmbulances(departure, locationSnapshot.coordinate);
     setResults(items);
     setSearched(true);
 
     if (items.length === 0) {
-      Alert.alert('검색 결과 없음', '선택한 지역에 등록된 업체가 없습니다. 다른 지역을 선택해 주세요.');
+      Alert.alert(
+        '검색 결과 없음',
+        '선택한 출발지를 커버하는 업체가 없습니다. 시·군·구를 바꾸거나 내 위치 기준으로 다시 확인해 주세요.',
+      );
     }
   };
 
@@ -277,38 +261,17 @@ export function PrivateEmsCallScreen() {
       return;
     }
 
-    Alert.alert('연결 안내', PRIVATE_AMBULANCE_CALL_GUIDE, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '전화 연결',
-        onPress: () => {
-          void Linking.openURL(dialUri).catch(() => {
-            Alert.alert('연결 실패', '전화 앱을 열 수 없습니다. 번호를 직접 입력해 주세요.');
-          });
-        },
-      },
-    ]);
+    void Linking.openURL(dialUri).catch(() => {
+      Alert.alert('연결 실패', '전화 앱을 열 수 없습니다. 번호를 직접 입력해 주세요.');
+    });
   };
 
-  const regionLabel = locationSnapshot.permissionGranted
-    ? `${locationSnapshot.region.label} · GPS 기준`
-    : `${locationSnapshot.region.label} · 기본 위치`;
-
   return (
-    <View className="flex-1 bg-slate-50">
-      <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 pb-3">
-        <Text className="text-xl font-bold text-slate-900">민간 구급차</Text>
-        <View className="mt-1 flex-row items-center">
-          <Ionicons name="location" size={14} color="#64748b" />
-          <Text className="ml-1 text-sm text-slate-500">{regionLabel}</Text>
-        </View>
-        <Text className="mt-1 text-xs text-slate-400">지역별 업체 검색 · 전화 연결 (v1)</Text>
-      </SafeAreaView>
-
+    <SafeAreaView edges={['top']} className="flex-1 bg-kemix-bg">
       <FlatList
         data={results}
         keyExtractor={(item) => item.i}
-        contentContainerClassName="p-4 pb-28"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 112 }}
         ListHeaderComponent={
           <View className="mb-4 gap-4">
             <View className="rounded-2xl border border-red-200 bg-red-50 p-4">
@@ -322,10 +285,10 @@ export function PrivateEmsCallScreen() {
               </Text>
             </View>
 
-            <View className="rounded-2xl border border-slate-200 bg-white p-4">
-              <Text className="text-base font-bold text-slate-900">지역별 업체 검색</Text>
-              <Text className="mt-1 text-xs text-slate-500">
-                출발지·목적지를 선택하고 검색하면 해당 지역 업체를 보여줍니다.
+            <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+              <Text className="text-base font-bold text-kemix-text">출발지 기준 업체 검색</Text>
+              <Text className="mt-1 text-xs leading-5 text-kemix-text-secondary">
+                출발지(시·도·시군구)를 선택하면 해당 지역 및 인접 지역 업체를 우선 보여줍니다.
               </Text>
 
               <View className="mt-4">
@@ -336,39 +299,32 @@ export function PrivateEmsCallScreen() {
                   onPressSido={() => setPicker('departureSido')}
                   onPressSigungu={() => setPicker('departureSigungu')}
                 />
-                <RegionSelectRow
-                  label="목적지"
-                  sido={destination.sido}
-                  sigungu={destination.sigungu}
-                  onPressSido={() => setPicker('destinationSido')}
-                  onPressSigungu={() => setPicker('destinationSigungu')}
-                />
               </View>
 
               <Pressable
-                className="items-center rounded-xl bg-orange-600 py-3.5 active:bg-orange-700"
+                className="items-center rounded-xl bg-sky-700 py-3.5 active:bg-sky-800"
                 onPress={handleSearch}
               >
                 <Text className="font-bold text-white">업체 검색</Text>
               </Pressable>
 
               <Pressable
-                className="mt-2 items-center rounded-xl border border-slate-200 py-3 active:bg-slate-50"
+                className="mt-2 items-center rounded-xl border border-kemix-border py-3 active:bg-kemix-bg"
                 onPress={() => reloadNearby(locationSnapshot)}
               >
-                <Text className="font-semibold text-slate-600">내 위치 기준 다시 보기</Text>
+                <Text className="font-semibold text-kemix-text-secondary">내 위치 기준 다시 보기</Text>
               </Pressable>
             </View>
 
-            <Text className="text-sm font-bold text-slate-800">
+            <Text className="text-sm font-bold text-kemix-text">
               {searched ? '검색 결과' : '내 위치 인근 업체'} ({results.length})
             </Text>
           </View>
         }
         ListEmptyComponent={
-          <View className="items-center rounded-2xl border border-dashed border-slate-200 bg-white py-14">
+          <View className="items-center rounded-2xl border border-dashed border-kemix-border bg-kemix-surface py-14">
             <Ionicons name="car-outline" size={36} color="#cbd5e1" />
-            <Text className="mt-3 text-sm text-slate-500">표시할 업체가 없습니다</Text>
+            <Text className="mt-3 text-sm text-kemix-text-secondary">표시할 업체가 없습니다</Text>
           </View>
         }
         renderItem={({ item }) => <AmbulanceCard item={item} onCall={handleCall} />}
@@ -385,7 +341,7 @@ export function PrivateEmsCallScreen() {
           onClose={() => setPicker(null)}
         />
       ) : null}
-    </View>
+    </SafeAreaView>
   );
 }
 

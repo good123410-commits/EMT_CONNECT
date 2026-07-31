@@ -12,6 +12,7 @@ import {
   resolveAppRoute,
   type AppRouteKind,
 } from '@/utils/roleAccess';
+import { normalizeUserRole } from '@/utils/membershipRbac';
 
 type DevRolePreset = {
   role: UserRole;
@@ -50,11 +51,6 @@ const DEV_ROLE_PRESETS: Record<UserRole, DevRolePreset> = {
   user: { role: 'user', isApproved: false },
   associate_member: { role: 'associate_member', isApproved: true },
   regular_member: { role: 'regular_member', isApproved: true },
-  super_admin: { role: 'super_admin', isApproved: true },
-  sub_admin: { role: 'sub_admin', isApproved: true },
-  hospital: { role: 'hospital', isApproved: true },
-  paramedic: { role: 'paramedic', isApproved: true },
-  private_ems: { role: 'private_ems', isApproved: true },
   admin: { role: 'admin', isApproved: true },
 };
 
@@ -65,7 +61,7 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
   const [guideAdminVerified, setGuideAdminVerified] = useState(false);
   const [opsAdminVerified, setOpsAdminVerified] = useState(false);
 
-  const serverRole: UserRole = profile?.role ?? 'user';
+  const serverRole: UserRole = normalizeUserRole(profile?.role);
   const serverApproved = profile?.is_approved ?? false;
 
   const role = __DEV__ && devOverride ? devOverride.role : serverRole;

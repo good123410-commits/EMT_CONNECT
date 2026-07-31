@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useRoute } from '@react-navigation/native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,6 +18,7 @@ import { PartnerHospitalBadge } from '@/components/facility/PartnerHospitalBadge
 import { HospitalSpecialtyTags } from '@/components/facility/HospitalSpecialtyTags';
 import { HospitalWeeklyHours } from '@/components/facility/HospitalWeeklyHours';
 import { MoonlightHospitalBadge } from '@/components/facility/MoonlightHospitalBadge';
+import { MapModuleErrorBoundary } from '@/components/map/MapModuleErrorBoundary';
 import { EmergencyMapView } from '@/components/map/EmergencyMapView';
 import { DistanceText } from '@/components/map/DistanceText';
 import { PharmacyOpenBadge } from '@/components/map/PharmacyOpenBadge';
@@ -97,9 +98,15 @@ type MapModuleSharedProps = {
 
 type MapTab = 'aed' | 'er' | 'pharmacy' | 'pediatric';
 
+type MapScreenParams = {
+  initialTab?: MapTab;
+};
+
 export function MapScreen() {
+  const route = useRoute();
+  const routeParams = route.params as MapScreenParams | undefined;
   const isFocused = useIsFocused();
-  const [tab, setTab] = useState<MapTab>('aed');
+  const [tab, setTab] = useState<MapTab>(routeParams?.initialTab ?? 'aed');
   const [distanceUnitMode, setDistanceUnitMode] = useState<DistanceUnitMode>('auto');
   const [locationSnapshot, setLocationSnapshot] = useState<LocationSnapshot>(() =>
     getLocationWithRegionImmediate(),
@@ -107,6 +114,12 @@ export function MapScreen() {
 
   const facilitySearch = useFacilitySearchMode({ locationSnapshot });
   usePrefetchFacilityMarkers(facilitySearch.searchParams, isFocused);
+
+  useEffect(() => {
+    if (routeParams?.initialTab) {
+      setTab(routeParams.initialTab);
+    }
+  }, [routeParams?.initialTab]);
 
   const handleDistanceUnitChange = (mode: DistanceUnitMode) => {
     setDistanceUnitMode(mode);
@@ -125,19 +138,9 @@ export function MapScreen() {
     void ensureCustomHospitalDbHydrated();
   }, []);
 
-  const regionLabel =
-    locationSnapshot.permissionGranted
-      ? `${locationSnapshot.region.label} · GPS 기준`
-      : `${locationSnapshot.region.label} · 기본 위치`;
-
   return (
-    <View className="flex-1 bg-slate-50">
-      <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 pb-3">
-        <Text className="mb-1 text-xl font-bold text-slate-900">AED · 응급실 현황</Text>
-        <View className="mb-3 flex-row items-center">
-          <Ionicons name="location" size={14} color="#64748b" />
-          <Text className="ml-1 text-sm text-slate-500">{regionLabel}</Text>
-        </View>
+    <View className="flex-1 bg-kemix-bg">
+      <SafeAreaView edges={['top']} className="bg-kemix-surface px-4 pb-2 pt-1">
         <SegmentControl
           options={[
             { value: 'aed', label: 'AED' },
@@ -150,34 +153,42 @@ export function MapScreen() {
         />
       </SafeAreaView>
       <View style={{ flex: 1, display: tab === 'aed' ? 'flex' : 'none' }}>
-        <AedModule
-          locationSnapshot={locationSnapshot}
-          facilitySearch={facilitySearch}
-          {...mapModuleShared}
-        />
+        {tab === 'aed' ? (
+          <AedModule
+            locationSnapshot={locationSnapshot}
+            facilitySearch={facilitySearch}
+            {...mapModuleShared}
+          />
+        ) : null}
       </View>
       <View style={{ flex: 1, display: tab === 'er' ? 'flex' : 'none' }}>
-        <ErModule
-          active={isFocused && tab === 'er'}
-          locationSnapshot={locationSnapshot}
-          facilitySearch={facilitySearch}
-          {...mapModuleShared}
-        />
+        {tab === 'er' ? (
+          <ErModule
+            active={isFocused}
+            locationSnapshot={locationSnapshot}
+            facilitySearch={facilitySearch}
+            {...mapModuleShared}
+          />
+        ) : null}
       </View>
       <View style={{ flex: 1, display: tab === 'pharmacy' ? 'flex' : 'none' }}>
-        <PharmacyModule
-          locationSnapshot={locationSnapshot}
-          facilitySearch={facilitySearch}
-          {...mapModuleShared}
-        />
+        {tab === 'pharmacy' ? (
+          <PharmacyModule
+            locationSnapshot={locationSnapshot}
+            facilitySearch={facilitySearch}
+            {...mapModuleShared}
+          />
+        ) : null}
       </View>
       <View style={{ flex: 1, display: tab === 'pediatric' ? 'flex' : 'none' }}>
-        <PediatricModule
-          active={isFocused && tab === 'pediatric'}
-          locationSnapshot={locationSnapshot}
-          facilitySearch={facilitySearch}
-          {...mapModuleShared}
-        />
+        {tab === 'pediatric' ? (
+          <PediatricModule
+            active={isFocused}
+            locationSnapshot={locationSnapshot}
+            facilitySearch={facilitySearch}
+            {...mapModuleShared}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -232,15 +243,17 @@ function AedModule({
 
   return (
     <View className="flex-1">
-      <View className="h-[42%] min-h-[220px] border-b border-slate-200">
-        <EmergencyMapView
-          points={mapPoints}
-          kind="aed"
-          selectedId={selectedAED?.id}
-          loading={false}
-          center={mapCenter}
-          onMarkerPress={(point: { payload: LocalAedMarker }) => handleMarkerPress(point.payload)}
-        />
+      <View className="h-[42%] min-h-[220px] border-b border-kemix-border">
+        <MapModuleErrorBoundary>
+          <EmergencyMapView
+            points={mapPoints}
+            kind="aed"
+            selectedId={selectedAED?.id}
+            loading={false}
+            center={mapCenter}
+            onMarkerPress={(point: { payload: LocalAedMarker }) => handleMarkerPress(point.payload)}
+          />
+        </MapModuleErrorBoundary>
       </View>
 
       <View className="px-4 py-3">
@@ -324,20 +337,20 @@ function AedDetailContent({
 
   return (
     <View>
-      <View className="mb-4 h-32 items-center justify-center rounded-xl bg-slate-100">
+      <View className="mb-4 h-32 items-center justify-center rounded-xl bg-kemix-elevated">
         <Ionicons name="map" size={40} color="#94a3b8" />
-        <Text className="mt-2 text-xs text-slate-500">AED 설치 위치</Text>
-        <Text className="text-xs text-slate-400">
+        <Text className="mt-2 text-xs text-kemix-text-secondary">AED 설치 위치</Text>
+        <Text className="text-xs text-kemix-muted">
           {hasCoords
             ? `${aed.latitude.toFixed(4)}, ${aed.longitude.toFixed(4)}`
             : '좌표 정보 없음'}
         </Text>
       </View>
 
-      <Text className="text-sm font-semibold text-slate-900">{aed.name || 'AED'}</Text>
-      <Text className="mt-1 text-sm text-slate-600">{aed.address?.trim() || '주소 정보 없음'}</Text>
+      <Text className="text-sm font-semibold text-kemix-text">{aed.name || 'AED'}</Text>
+      <Text className="mt-1 text-sm text-kemix-text-secondary">{aed.address?.trim() || '주소 정보 없음'}</Text>
       {aed.location?.trim() ? (
-        <Text className="mt-1 text-sm text-slate-500">설치 위치: {aed.location}</Text>
+        <Text className="mt-1 text-sm text-kemix-text-secondary">설치 위치: {aed.location}</Text>
       ) : null}
 
       <View className="mt-4 flex-row gap-3">
@@ -357,16 +370,16 @@ function AedDetailContent({
 
       {phone ? (
         <Pressable
-          className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+          className="mt-4 rounded-xl border border-kemix-border bg-kemix-bg px-3 py-2"
           onPress={() => confirmPhoneCall(aed.name || 'AED', phone)}
         >
-          <Text className="text-xs text-slate-500">관리자 연락처</Text>
+          <Text className="text-xs text-kemix-text-secondary">관리자 연락처</Text>
           <Text className="text-sm font-bold text-blue-700">{phone}</Text>
         </Pressable>
       ) : (
-        <Text className="mt-4 text-xs text-slate-500">관리자 연락처: -</Text>
+        <Text className="mt-4 text-xs text-kemix-text-secondary">관리자 연락처: -</Text>
       )}
-      <Text className="mt-1 text-xs text-slate-400">로컬 내장 데이터 · 즉시 표시</Text>
+      <Text className="mt-1 text-xs text-kemix-muted">로컬 내장 데이터 · 즉시 표시</Text>
     </View>
   );
 }
@@ -480,15 +493,17 @@ function PediatricModule({
 
   return (
     <View className="flex-1">
-      <View className="h-[42%] min-h-[220px] border-b border-slate-200">
-        <EmergencyMapView
-          points={mapPoints}
-          kind="pediatric"
-          selectedId={selectedPlace?.hpid}
-          loading={loading}
-          center={mapCenter}
-          onMarkerPress={(point: { payload: HospitalFinderItem }) => handleMarkerPress(point.payload)}
-        />
+      <View className="h-[42%] min-h-[220px] border-b border-kemix-border">
+        <MapModuleErrorBoundary>
+          <EmergencyMapView
+            points={mapPoints}
+            kind="pediatric"
+            selectedId={selectedPlace?.hpid}
+            loading={loading}
+            center={mapCenter}
+            onMarkerPress={(point: { payload: HospitalFinderItem }) => handleMarkerPress(point.payload)}
+          />
+        </MapModuleErrorBoundary>
       </View>
 
       <FlashList
@@ -598,15 +613,15 @@ function PediatricHospitalDetailContent({
       ) : null}
 
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="text-sm font-semibold text-slate-900">{hospital.name}</Text>
+        <Text className="text-sm font-semibold text-kemix-text">{hospital.name}</Text>
         <View
           className={`rounded-full px-2.5 py-1 ${
-            hospital.isOpenNow ? 'bg-green-100' : 'bg-slate-200'
+            hospital.isOpenNow ? 'bg-green-100' : 'bg-kemix-elevated'
           }`}
         >
           <Text
             className={`text-[10px] font-bold ${
-              hospital.isOpenNow ? 'text-green-700' : 'text-slate-600'
+              hospital.isOpenNow ? 'text-green-700' : 'text-kemix-text-secondary'
             }`}
           >
             {hospital.openStatusLabel}
@@ -614,19 +629,19 @@ function PediatricHospitalDetailContent({
         </View>
       </View>
 
-      <Text className="text-sm text-slate-600">{hospital.address}</Text>
+      <Text className="text-sm text-kemix-text-secondary">{hospital.address}</Text>
       {hospital.customMemo ? (
         <Text className="mt-2 text-xs leading-5 text-amber-800">{hospital.customMemo}</Text>
       ) : null}
-      <Text className="mt-1 text-xs text-slate-500">{hospital.facilityType}</Text>
+      <Text className="mt-1 text-xs text-kemix-text-secondary">{hospital.facilityType}</Text>
 
       <View className="mt-3">
-        <Text className="mb-2 text-xs font-bold text-slate-700">진료 과목</Text>
+        <Text className="mb-2 text-xs font-bold text-kemix-text">진료 과목</Text>
         <HospitalSpecialtyTags specialties={hospital.specialties} maxTags={12} />
       </View>
 
       <View className="mt-4">
-        <Text className="mb-2 text-xs font-bold text-slate-700">요일별 진료시간</Text>
+        <Text className="mb-2 text-xs font-bold text-kemix-text">요일별 진료시간</Text>
         <HospitalWeeklyHours schedule={hospital.weeklySchedule} />
       </View>
 
@@ -648,7 +663,7 @@ function PediatricHospitalDetailContent({
       </View>
 
       {hospital.description ? (
-        <Text className="mt-3 text-xs leading-5 text-slate-500">{hospital.description}</Text>
+        <Text className="mt-3 text-xs leading-5 text-kemix-text-secondary">{hospital.description}</Text>
       ) : null}
     </View>
   );
@@ -699,15 +714,17 @@ function PharmacyModule({
 
   return (
     <View className="flex-1">
-      <View className="h-[42%] min-h-[220px] border-b border-slate-200">
-        <EmergencyMapView
-          points={mapPoints}
-          kind="pharmacy"
-          selectedId={selectedPlace?.i}
-          loading={false}
-          center={mapCenter}
-          onMarkerPress={(point: { payload: LocalPharmacyMarker }) => handleMarkerPress(point.payload)}
-        />
+      <View className="h-[42%] min-h-[220px] border-b border-kemix-border">
+        <MapModuleErrorBoundary>
+          <EmergencyMapView
+            points={mapPoints}
+            kind="pharmacy"
+            selectedId={selectedPlace?.i}
+            loading={false}
+            center={mapCenter}
+            onMarkerPress={(point: { payload: LocalPharmacyMarker }) => handleMarkerPress(point.payload)}
+          />
+        </MapModuleErrorBoundary>
       </View>
 
       <View className="px-4 py-3">
@@ -807,18 +824,18 @@ function PharmacyLocalDetailContent({
 
   return (
     <View>
-      <Text className="text-sm font-semibold text-slate-900">{place.n || '약국'}</Text>
-      <Text className="mt-1 text-sm text-slate-600">{place.a?.trim() || '주소 정보 없음'}</Text>
+      <Text className="text-sm font-semibold text-kemix-text">{place.n || '약국'}</Text>
+      <Text className="mt-1 text-sm text-kemix-text-secondary">{place.a?.trim() || '주소 정보 없음'}</Text>
 
       {openStatus.hasHours ? (
         <View className="mt-3">
           <PharmacyOpenBadge status={openStatus} />
-          <Text className="mt-2 text-sm text-slate-600">
+          <Text className="mt-2 text-sm text-kemix-text-secondary">
             {openStatus.dayLabel} 영업시간: {openStatus.hoursLabel}
           </Text>
         </View>
       ) : (
-        <Text className="mt-2 text-xs text-slate-400">심야약국 운영시간 데이터 없음</Text>
+        <Text className="mt-2 text-xs text-kemix-muted">심야약국 운영시간 데이터 없음</Text>
       )}
 
       <View className="mt-4 flex-row gap-3">
@@ -839,11 +856,11 @@ function PharmacyLocalDetailContent({
       </View>
 
       {hasCoords ? (
-        <Text className="mt-3 text-xs text-slate-400">
+        <Text className="mt-3 text-xs text-kemix-muted">
           좌표: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
         </Text>
       ) : null}
-      <Text className="mt-1 text-xs text-slate-400">로컬 내장 데이터 · 즉시 표시</Text>
+      <Text className="mt-1 text-xs text-kemix-muted">로컬 내장 데이터 · 즉시 표시</Text>
     </View>
   );
 }
@@ -1015,17 +1032,19 @@ function ErModule({
 
   return (
     <View className="flex-1">
-      <View className="h-[42%] min-h-[220px] border-b border-slate-200">
-        <EmergencyMapView
-          points={mapPoints}
-          kind="er"
-          selectedId={selectedPlace?.i}
-          loading={liveSyncing}
-          center={mapCenter}
-          onMarkerPress={(point: { payload: LocalHospitalMarkerWithLive }) =>
-            handleMarkerPress(point.payload)
-          }
-        />
+      <View className="h-[42%] min-h-[220px] border-b border-kemix-border">
+        <MapModuleErrorBoundary>
+          <EmergencyMapView
+            points={mapPoints}
+            kind="er"
+            selectedId={selectedPlace?.i}
+            loading={liveSyncing}
+            center={mapCenter}
+            onMarkerPress={(point: { payload: LocalHospitalMarkerWithLive }) =>
+              handleMarkerPress(point.payload)
+            }
+          />
+        </MapModuleErrorBoundary>
       </View>
 
       <FlashList
@@ -1076,7 +1095,7 @@ function ErModule({
                 </Pressable>
               </View>
             ) : liveSyncing ? (
-              <Text className="text-xs text-slate-400">실시간 병상 정보 동기화 중...</Text>
+              <Text className="text-xs text-kemix-muted">실시간 병상 정보 동기화 중...</Text>
             ) : null}
           </View>
         }
@@ -1156,11 +1175,11 @@ function ErMarkerCard({
           ? 'border-pink-400 bg-pink-50'
           : 'border-pink-200'
         : selected
-          ? 'border-slate-300 bg-slate-50'
-          : 'border-slate-200';
+          ? 'border-kemix-border bg-kemix-bg'
+          : 'border-kemix-border';
 
   return (
-    <Pressable className={`mb-3 rounded-2xl border bg-white p-4 ${borderClass}`} onPress={onPress}>
+    <Pressable className={`mb-3 rounded-2xl border bg-kemix-surface p-4 ${borderClass}`} onPress={onPress}>
       {place.isPartner ? (
         <View className="mb-2">
           <PartnerHospitalBadge compact />
@@ -1181,17 +1200,17 @@ function ErMarkerCard({
       ) : null}
 
       <View className="flex-row items-start justify-between">
-        <Text className="flex-1 pr-2 text-base font-bold text-slate-900">{place.n || '병원'}</Text>
+        <Text className="flex-1 pr-2 text-base font-bold text-kemix-text">{place.n || '병원'}</Text>
         <View className="flex-row items-center gap-1.5">
           {place.openStatusLabel !== '확인 필요' ? (
             <View
               className={`rounded-full px-2 py-0.5 ${
-                place.isOpenNow ? 'bg-green-100' : 'bg-slate-200'
+                place.isOpenNow ? 'bg-green-100' : 'bg-kemix-elevated'
               }`}
             >
               <Text
                 className={`text-[10px] font-bold ${
-                  place.isOpenNow ? 'text-green-700' : 'text-slate-600'
+                  place.isOpenNow ? 'text-green-700' : 'text-kemix-text-secondary'
                 }`}
               >
                 {place.openStatusLabel}
@@ -1210,7 +1229,7 @@ function ErMarkerCard({
       </View>
 
       {place.customMemo ? (
-        <Text className="mt-2 text-xs leading-5 text-slate-500">{place.customMemo}</Text>
+        <Text className="mt-2 text-xs leading-5 text-kemix-text-secondary">{place.customMemo}</Text>
       ) : null}
 
       {place.specialties && place.specialties.length > 0 ? (
@@ -1220,7 +1239,7 @@ function ErMarkerCard({
       ) : null}
 
       {todaySchedule ? (
-        <Text className="mt-2 text-xs text-slate-500">
+        <Text className="mt-2 text-xs text-kemix-text-secondary">
           오늘:{' '}
           {todaySchedule.closed || (!todaySchedule.start && !todaySchedule.end)
             ? '휴무'
@@ -1254,7 +1273,7 @@ function ErMarkerCard({
             />
           </View>
         ) : (
-          <Text className="text-xs text-slate-400">탭하여 주소·전화·상세 병상 확인</Text>
+          <Text className="text-xs text-kemix-muted">탭하여 주소·전화·상세 병상 확인</Text>
         )}
         {place.availablePediatricErBeds > 0 ? (
           <Text className="text-xs font-semibold text-pink-700">
@@ -1380,7 +1399,7 @@ function ErLocalDetailContent({
       {detailLoading ? (
         <View className="mb-3 items-center py-4">
           <ActivityIndicator size="small" color="#64748b" />
-          <Text className="mt-2 text-xs text-slate-400">실시간 병상·기관 정보 불러오는 중...</Text>
+          <Text className="mt-2 text-xs text-kemix-muted">실시간 병상·기관 정보 불러오는 중...</Text>
         </View>
       ) : null}
 
@@ -1423,29 +1442,29 @@ function ErLocalDetailContent({
 
       <View className="flex-row items-start gap-3">
         <View className="flex-1">
-          <Text className="text-sm font-semibold text-slate-900">
+          <Text className="text-sm font-semibold text-kemix-text">
             {detail?.hospitalName || place.n || '병원'}
           </Text>
-          <Text className="mt-1 text-sm text-slate-600">
+          <Text className="mt-1 text-sm text-kemix-text-secondary">
             {detail?.address?.trim() || place.a?.trim() || '주소 정보 없음'}
           </Text>
           {(detail?.emergencyClassName || place.td)?.trim() ? (
-            <Text className="mt-1 text-sm text-slate-500">
+            <Text className="mt-1 text-sm text-kemix-text-secondary">
               {detail?.emergencyClassName || place.td}
             </Text>
           ) : null}
           {place.sg?.trim() ? (
-            <Text className="mt-1 text-xs text-slate-400">{place.sg}</Text>
+            <Text className="mt-1 text-xs text-kemix-muted">{place.sg}</Text>
           ) : null}
           {openStatusLabel !== '확인 필요' ? (
             <View
               className={`mt-2 self-start rounded-full px-2.5 py-1 ${
-                isOpenNow ? 'bg-green-100' : 'bg-slate-200'
+                isOpenNow ? 'bg-green-100' : 'bg-kemix-elevated'
               }`}
             >
               <Text
                 className={`text-[10px] font-bold ${
-                  isOpenNow ? 'text-green-700' : 'text-slate-600'
+                  isOpenNow ? 'text-green-700' : 'text-kemix-text-secondary'
                 }`}
               >
                 {openStatusLabel}
@@ -1478,20 +1497,20 @@ function ErLocalDetailContent({
 
       {specialties.length > 0 ? (
         <View className="mt-3">
-          <Text className="mb-2 text-xs font-bold text-slate-700">진료 과목</Text>
+          <Text className="mb-2 text-xs font-bold text-kemix-text">진료 과목</Text>
           <HospitalSpecialtyTags specialties={specialties} maxTags={12} />
         </View>
       ) : null}
 
       {weeklySchedule.length > 0 ? (
         <View className="mt-4">
-          <Text className="mb-2 text-xs font-bold text-slate-700">요일별 진료시간</Text>
+          <Text className="mb-2 text-xs font-bold text-kemix-text">요일별 진료시간</Text>
           <HospitalWeeklyHours schedule={weeklySchedule} />
         </View>
       ) : null}
 
       <View className="mt-4 flex-row items-center justify-between">
-        <Text className="text-sm font-semibold text-slate-700">응급실 병상</Text>
+        <Text className="text-sm font-semibold text-kemix-text">응급실 병상</Text>
         <View
           className="rounded-full px-3 py-1"
           style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
@@ -1507,12 +1526,12 @@ function ErLocalDetailContent({
       </View>
 
       {bedRows.length > 0 ? (
-        <View className="mt-3 rounded-xl bg-slate-50 p-3">
-          <Text className="mb-2 text-xs font-bold text-slate-700">가용 병상 현황</Text>
+        <View className="mt-3 rounded-xl bg-kemix-bg p-3">
+          <Text className="mb-2 text-xs font-bold text-kemix-text">가용 병상 현황</Text>
           {bedRows.map((row) => (
             <View key={row.label} className="flex-row items-center justify-between py-1">
-              <Text className="text-xs text-slate-600">{row.label}</Text>
-              <Text className="text-xs font-semibold text-slate-900">{row.value}병상</Text>
+              <Text className="text-xs text-kemix-text-secondary">{row.label}</Text>
+              <Text className="text-xs font-semibold text-kemix-text">{row.value}병상</Text>
             </View>
           ))}
         </View>
@@ -1525,19 +1544,19 @@ function ErLocalDetailContent({
       ) : null}
 
       {detail?.onCallDoctor?.trim() ? (
-        <Text className="mt-3 text-xs text-slate-500">
+        <Text className="mt-3 text-xs text-kemix-text-secondary">
           당직의: {detail.onCallDoctor}
         </Text>
       ) : null}
 
       {detail?.updatedAt ? (
-        <Text className="mt-1 text-xs text-slate-400">
+        <Text className="mt-1 text-xs text-kemix-muted">
           갱신: {formatEmergencyUpdatedAt(detail.updatedAt)}
         </Text>
       ) : null}
 
       {detail?.description?.trim() ? (
-        <Text className="mt-3 text-xs leading-5 text-slate-500">{detail.description}</Text>
+        <Text className="mt-3 text-xs leading-5 text-kemix-text-secondary">{detail.description}</Text>
       ) : null}
 
       {place.customMemo ? (
@@ -1558,7 +1577,7 @@ function ErLocalDetailContent({
       </View>
 
       {hasCoords ? (
-        <Text className="mt-3 text-xs text-slate-400">
+        <Text className="mt-3 text-xs text-kemix-muted">
           좌표: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
         </Text>
       ) : null}
@@ -1582,7 +1601,7 @@ function InfoTile({
   const content = (
     <>
       <Ionicons name={icon} size={18} color="#64748b" />
-      <Text className="mt-1 text-xs text-slate-500">{label}</Text>
+      <Text className="mt-1 text-xs text-kemix-text-secondary">{label}</Text>
       <Text className="text-sm font-bold" style={{ color: valueColor }}>
         {value}
       </Text>
@@ -1590,12 +1609,12 @@ function InfoTile({
   );
 
   if (!onPress) {
-    return <View className="flex-1 rounded-xl bg-slate-50 p-3">{content}</View>;
+    return <View className="flex-1 rounded-xl bg-kemix-bg p-3">{content}</View>;
   }
 
   return (
     <Pressable
-      className="flex-1 rounded-xl bg-slate-50 p-3"
+      className="flex-1 rounded-xl bg-kemix-bg p-3"
       onPress={onPress}
       accessibilityRole="button"
     >

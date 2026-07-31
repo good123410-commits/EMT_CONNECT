@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -44,9 +44,9 @@ function RegionPickerModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 justify-end bg-black/40" onPress={onClose}>
-        <Pressable className="max-h-[60%] rounded-t-3xl bg-white" onPress={(e) => e.stopPropagation()}>
-          <View className="border-b border-slate-100 px-4 py-3">
-            <Text className="text-base font-bold text-slate-900">{title}</Text>
+        <Pressable className="max-h-[60%] rounded-t-3xl bg-kemix-surface" onPress={(e) => e.stopPropagation()}>
+          <View className="border-b border-kemix-border-light px-4 py-3">
+            <Text className="text-base font-bold text-kemix-text">{title}</Text>
           </View>
           <ScrollView className="max-h-80">
             {options.map((option) => {
@@ -60,7 +60,7 @@ function RegionPickerModal({
                     onClose();
                   }}
                 >
-                  <Text className={`text-sm ${active ? 'font-bold text-blue-700' : 'text-slate-700'}`}>
+                  <Text className={`text-sm ${active ? 'font-bold text-blue-700' : 'text-kemix-text'}`}>
                     {option}
                   </Text>
                 </Pressable>
@@ -103,23 +103,23 @@ export function FacilitySearchBarComponent({
   return (
     <View className="gap-3">
       <View>
-        <Text className="mb-2 text-xs font-semibold text-slate-500">지역 선택</Text>
+        <Text className="mb-2 text-xs font-semibold text-kemix-text-secondary">지역 선택</Text>
         <View className="flex-row gap-2">
           <Pressable
-            className="flex-1 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-3"
+            className="flex-1 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3"
             onPress={() => setPicker('sido')}
           >
-            <Text className={`text-sm ${sido ? 'text-slate-900' : 'text-slate-400'}`}>
+            <Text className={`text-sm ${sido ? 'text-kemix-text' : 'text-kemix-muted'}`}>
               {sido || '시·도'}
             </Text>
             <Ionicons name="chevron-down" size={16} color="#94a3b8" />
           </Pressable>
           <Pressable
-            className="flex-1 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-3"
+            className="flex-1 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3"
             onPress={() => sido && setPicker('sigungu')}
             disabled={!sido}
           >
-            <Text className={`text-sm ${sigungu ? 'text-slate-900' : 'text-slate-400'}`}>
+            <Text className={`text-sm ${sigungu ? 'text-kemix-text' : 'text-kemix-muted'}`}>
               {sigungu || '전체'}
             </Text>
             <Ionicons name="chevron-down" size={16} color="#94a3b8" />
@@ -129,7 +129,7 @@ export function FacilitySearchBarComponent({
 
       <Pressable
         className={`flex-row items-center justify-center rounded-xl border px-4 py-3 ${
-          gpsActive ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-white'
+          gpsActive ? 'border-red-200 bg-red-50' : 'border-kemix-border bg-kemix-surface'
         } ${gpsLoading ? 'opacity-80' : 'active:opacity-90'}`}
         onPress={onActivateGps}
         disabled={gpsLoading}
@@ -140,7 +140,7 @@ export function FacilitySearchBarComponent({
           <Ionicons name="navigate" size={18} color={gpsActive ? '#dc2626' : '#475569'} />
         )}
         <Text
-          className={`ml-2 text-sm font-semibold ${gpsActive ? 'text-red-700' : 'text-slate-700'}`}
+          className={`ml-2 text-sm font-semibold ${gpsActive ? 'text-red-700' : 'text-kemix-text'}`}
         >
           {gpsLoading ? '위치 확인 중...' : '현재 위치 기준으로 보기'}
         </Text>
@@ -152,7 +152,7 @@ export function FacilitySearchBarComponent({
       </Pressable>
 
       {statusLabel ? (
-        <Text className="text-xs text-slate-400">
+        <Text className="text-xs text-kemix-muted">
           {facilityLabel} · {statusLabel}
           {typeof resultCount === 'number' ? ` · ${resultCount}곳` : ''}
         </Text>

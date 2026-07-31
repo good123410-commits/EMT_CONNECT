@@ -1,4 +1,4 @@
-import { CommonActions } from '@react-navigation/native';
+﻿import { CommonActions } from '@react-navigation/native';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
@@ -62,16 +62,16 @@ export function AdminDashboardGuard({ children }: Props) {
 
   if (checking) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-50">
+      <View className="flex-1 items-center justify-center bg-kemix-bg">
         <ActivityIndicator color="#7c3aed" />
-        <Text className="mt-3 text-sm text-slate-500">관리자 권한 확인 중...</Text>
+        <Text className="mt-3 text-sm text-kemix-text-secondary">관리자 권한 확인 중...</Text>
       </View>
     );
   }
 
   if (!canEnterDashboard) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-50">
+      <View className="flex-1 items-center justify-center bg-kemix-bg">
         <ActivityIndicator color="#7c3aed" />
       </View>
     );

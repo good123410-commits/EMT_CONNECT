@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -60,11 +60,11 @@ export function GuestLoginPromptModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 items-center justify-center bg-black/50 px-6" onPress={onClose}>
         <Pressable
-          className="w-full max-w-md rounded-2xl bg-white p-5"
+          className="w-full max-w-md rounded-2xl bg-kemix-surface p-5"
           onPress={(event) => event.stopPropagation()}
         >
-          <Text className="text-center text-lg font-bold text-slate-900">{title}</Text>
-          <Text className="mt-2 text-center text-sm leading-6 text-slate-600">{description}</Text>
+          <Text className="text-center text-lg font-bold text-kemix-text">{title}</Text>
+          <Text className="mt-2 text-center text-sm leading-6 text-kemix-text-secondary">{description}</Text>
 
           <View className="mt-5 gap-2.5">
             <Pressable
@@ -80,14 +80,14 @@ export function GuestLoginPromptModal({
             </Pressable>
 
             <Pressable
-              className={`items-center rounded-xl border border-slate-200 py-3.5 ${busy ? 'bg-slate-50' : 'bg-white'}`}
+              className={`items-center rounded-xl border border-kemix-border py-3.5 ${busy ? 'bg-kemix-bg' : 'bg-kemix-surface'}`}
               disabled={busy}
               onPress={() => void handleOAuth('google')}
             >
               {oauthLoading === 'google' ? (
                 <ActivityIndicator color="#334155" />
               ) : (
-                <Text className="font-semibold text-slate-800">⚪ {googleLabel}</Text>
+                <Text className="font-semibold text-kemix-text">⚪ {googleLabel}</Text>
               )}
             </Pressable>
           </View>
@@ -101,7 +101,7 @@ export function GuestLoginPromptModal({
           </Pressable>
 
           <Pressable className="mt-3 items-center py-2" disabled={busy} onPress={onClose}>
-            <Text className="text-sm font-medium text-slate-500">{dismissLabel}</Text>
+            <Text className="text-sm font-medium text-kemix-text-secondary">{dismissLabel}</Text>
           </Pressable>
 
           {error ? (

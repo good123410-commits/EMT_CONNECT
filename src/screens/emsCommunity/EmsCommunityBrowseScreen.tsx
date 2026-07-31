@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
-import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
 import { supabase } from '@/lib/supabaseClient';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import type { BambooMessage, CaseStudyPost } from '@/data/paramedicMockData';
@@ -38,7 +37,7 @@ function BrowsePostCard({
 
   return (
     <Pressable
-      className="mb-3 rounded-2xl border border-slate-200 bg-white p-4 active:bg-slate-50"
+      className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4 active:bg-kemix-bg"
       onPress={() => onPress(item)}
     >
       <View className="flex-row items-center justify-between">
@@ -51,13 +50,13 @@ function BrowsePostCard({
           <Text className="text-[10px] font-bold text-orange-600">🔥 HOT</Text>
         ) : null}
       </View>
-      <Text className="mt-2 text-base font-bold text-slate-900" numberOfLines={2}>
+      <Text className="mt-2 text-base font-bold text-kemix-text" numberOfLines={2}>
         {title}
       </Text>
-      <Text className="mt-1 text-sm leading-6 text-slate-600" numberOfLines={2}>
+      <Text className="mt-1 text-sm leading-6 text-kemix-text-secondary" numberOfLines={2}>
         {summary}
       </Text>
-      <Text className="mt-2 text-xs text-slate-400">
+      <Text className="mt-2 text-xs text-kemix-muted">
         {item.post.anonymousLabel} · {item.post.postedAt}
       </Text>
     </Pressable>
@@ -74,24 +73,24 @@ function BrowsePostDetail({
   useHardwareBackHandler(onBack, true);
 
   return (
-    <View className="flex-1 bg-slate-50">
-      <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 py-3">
+    <View className="flex-1 bg-kemix-bg">
+      <SafeAreaView edges={['top']} className="border-b border-kemix-border bg-kemix-surface px-4 py-3">
         <Pressable className="flex-row items-center" onPress={onBack}>
           <Ionicons name="arrow-back" size={22} color="#0f172a" />
-          <Text className="ml-2 font-semibold text-slate-900">게시글</Text>
+          <Text className="ml-2 font-semibold text-kemix-text">게시글</Text>
         </Pressable>
       </SafeAreaView>
       <ScrollView contentContainerClassName="p-4 pb-10">
-        <View className="rounded-2xl border border-slate-200 bg-white p-4">
+        <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
           {item.kind === 'case_study' ? (
             <>
-              <Text className="text-lg font-bold text-slate-900">{item.post.title}</Text>
-              <Text className="mt-2 text-sm leading-7 text-slate-700">{item.post.body}</Text>
+              <Text className="text-lg font-bold text-kemix-text">{item.post.title}</Text>
+              <Text className="mt-2 text-sm leading-7 text-kemix-text">{item.post.body}</Text>
             </>
           ) : (
-            <Text className="text-sm leading-7 text-slate-700">{item.post.content}</Text>
+            <Text className="text-sm leading-7 text-kemix-text">{item.post.content}</Text>
           )}
-          <Text className="mt-4 text-xs text-slate-400">
+          <Text className="mt-4 text-xs text-kemix-muted">
             {item.post.anonymousLabel} · {item.post.postedAt}
           </Text>
         </View>
@@ -180,25 +179,18 @@ export function EmsCommunityBrowseScreen() {
   }
 
   return (
-    <View className="flex-1 bg-slate-50">
-      <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 pb-4">
-        <Text className="text-xl font-bold text-slate-900">{EMS_COMMUNITY_TAB_LABEL}</Text>
-        <Text className="mt-1 text-sm text-slate-500">
-          응급의료인들의 경험과 정보를 둘러보세요
-        </Text>
+    <SafeAreaView edges={['top']} className="flex-1 bg-kemix-bg">
+      <View className="px-4 pt-3 pb-4">
         <Pressable
-          className="mt-4 flex-row items-center justify-center rounded-2xl bg-green-700 py-3.5 active:bg-green-800"
+          className="flex-row items-center justify-center rounded-2xl bg-green-700 py-3.5 active:bg-green-800"
           onPress={() => openLogin('question-write')}
         >
           <Ionicons name="create-outline" size={20} color="#fff" />
           <Text className="ml-2 font-bold text-white">질문하기</Text>
         </Pressable>
-      </SafeAreaView>
+      </View>
 
-      <View className="flex-1 px-4 pt-4">
-        <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-          게시글 목록
-        </Text>
+      <View className="flex-1 px-4">
 
         {loading ? (
           <View className="items-center py-16">
@@ -220,9 +212,9 @@ export function EmsCommunityBrowseScreen() {
               <BrowsePostCard item={item} onPress={setSelected} />
             )}
             ListEmptyComponent={
-              <View className="items-center rounded-2xl border border-dashed border-slate-200 bg-white py-16">
+              <View className="items-center rounded-2xl border border-dashed border-kemix-border bg-kemix-surface py-16">
                 <Ionicons name="chatbubbles-outline" size={40} color="#cbd5e1" />
-                <Text className="mt-3 text-sm text-slate-500">아직 게시글이 없습니다</Text>
+                <Text className="mt-3 text-sm text-kemix-text-secondary">아직 게시글이 없습니다</Text>
               </View>
             }
             contentContainerStyle={{ paddingBottom: 96 }}
@@ -245,6 +237,6 @@ export function EmsCommunityBrowseScreen() {
         description={loginModalProps.description}
         intent={loginModalProps.intent}
       />
-    </View>
+    </SafeAreaView>
   );
 }

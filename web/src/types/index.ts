@@ -1,14 +1,4 @@
-export type UserRole =
-  | 'user'
-  | 'associate_member'
-  | 'regular_member'
-  | 'sub_admin'
-  | 'super_admin'
-  | 'hospital'
-  | 'paramedic'
-  | 'private_ems'
-  | 'admin';
-
+export type UserRole = 'user' | 'associate_member' | 'regular_member' | 'admin';
 export type ProfileJobRole = 'paramedic' | 'hospital' | 'private_ems' | 'user';
 
 export type UserProfile = {
@@ -181,6 +171,18 @@ export type OpeningSlide = {
   updated_at?: string;
 };
 
+export type HomeEventBanner = {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  link_url: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type AboutPageSlug = 'vision' | 'history' | 'structure' | 'dev-log';
 
 export type AboutItemPageSlug = 'history' | 'structure' | 'dev-log';
@@ -267,7 +269,12 @@ export type PaginatedPosts = {
   pageSize: number;
 };
 
-export type SiteSettingKey = 'privacy_policy' | 'terms_of_service' | 'service_info';
+export type SiteSettingKey =
+  | 'privacy_policy'
+  | 'terms_of_service'
+  | 'service_info'
+  | 'official_website'
+  | 'donation_notice';
 
 export type SiteSetting = {
   key: SiteSettingKey | string;

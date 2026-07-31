@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -51,7 +51,7 @@ function PostModerationCard({
   return (
     <View
       className={`mb-2 rounded-xl border p-3 ${
-        post.is_hidden ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200 bg-white'
+        post.is_hidden ? 'border-amber-200 bg-amber-50/60' : 'border-kemix-border bg-kemix-surface'
       }`}
     >
       <View className="flex-row flex-wrap items-center gap-2">
@@ -65,11 +65,11 @@ function PostModerationCard({
         ) : null}
       </View>
 
-      <Text className="mt-2 font-semibold text-slate-900">{title}</Text>
-      <Text className="mt-0.5 text-xs text-slate-500">
+      <Text className="mt-2 font-semibold text-kemix-text">{title}</Text>
+      <Text className="mt-0.5 text-xs text-kemix-text-secondary">
         {post.anonymous_label} · {formatAdminPostDate(post.created_at)}
       </Text>
-      <Text className="mt-2 text-sm leading-5 text-slate-600" numberOfLines={3}>
+      <Text className="mt-2 text-sm leading-5 text-kemix-text-secondary" numberOfLines={3}>
         {summarizeAdminPost(post)}
       </Text>
 
@@ -224,10 +224,10 @@ export function AdminCommunityModerationPanel() {
         onChange={setBoard}
       />
 
-      <View className="mt-3 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+      <View className="mt-3 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-2.5">
         <View className="flex-1 pr-3">
-          <Text className="text-sm font-semibold text-slate-800">블라인드 글 포함</Text>
-          <Text className="mt-0.5 text-[11px] text-slate-500">
+          <Text className="text-sm font-semibold text-kemix-text">블라인드 글 포함</Text>
+          <Text className="mt-0.5 text-[11px] text-kemix-text-secondary">
             {moderationBoardLabel(board)} 게시판 모니터링
           </Text>
         </View>
@@ -246,7 +246,7 @@ export function AdminCommunityModerationPanel() {
           contentContainerClassName="pb-6"
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-slate-500">
+            <Text className="py-8 text-center text-sm text-kemix-text-secondary">
               {includeHidden
                 ? '등록된 게시글이 없습니다.'
                 : '표시할 운영 중 게시글이 없습니다.'}

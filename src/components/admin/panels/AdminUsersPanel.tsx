@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -87,10 +87,10 @@ export function AdminUsersPanel() {
 
   return (
     <View className="flex-1">
-      <View className="mb-3 flex-row items-center rounded-xl border border-slate-200 bg-white px-3">
+      <View className="mb-3 flex-row items-center rounded-xl border border-kemix-border bg-kemix-surface px-3">
         <Ionicons name="search-outline" size={18} color="#94a3b8" />
         <TextInput
-          className="ml-2 flex-1 py-2.5 text-sm text-slate-900"
+          className="ml-2 flex-1 py-2.5 text-sm text-kemix-text"
           placeholder="이름 · 이메일 검색"
           placeholderTextColor="#94a3b8"
           value={search}
@@ -113,14 +113,14 @@ export function AdminUsersPanel() {
           keyExtractor={(item) => item.id}
           contentContainerClassName="pb-6"
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-slate-500">검색 결과가 없습니다.</Text>
+            <Text className="py-8 text-center text-sm text-kemix-text-secondary">검색 결과가 없습니다.</Text>
           }
           renderItem={({ item }) => (
-            <View className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
+            <View className="mb-2 rounded-xl border border-kemix-border bg-kemix-surface p-3">
               <View className="flex-row items-start justify-between">
                 <View className="flex-1 pr-2">
-                  <Text className="font-semibold text-slate-900">{item.name ?? '(이름 없음)'}</Text>
-                  <Text className="mt-0.5 text-xs text-slate-500">{item.email ?? '—'}</Text>
+                  <Text className="font-semibold text-kemix-text">{item.name ?? '(이름 없음)'}</Text>
+                  <Text className="mt-0.5 text-xs text-kemix-text-secondary">{item.email ?? '—'}</Text>
                   <View className="mt-2 flex-row flex-wrap gap-1.5">
                     <Badge label={getRoleLabel(item.role)} tone="slate" />
                     {item.is_approved ? <Badge label="승인" tone="green" /> : <Badge label="미승인" tone="amber" />}
@@ -129,10 +129,10 @@ export function AdminUsersPanel() {
                 </View>
                 <View className="gap-1.5">
                   <Pressable
-                    className="rounded-lg bg-slate-100 px-2.5 py-1.5"
+                    className="rounded-lg bg-kemix-elevated px-2.5 py-1.5"
                     onPress={() => void openActivity(item)}
                   >
-                    <Text className="text-[11px] font-bold text-slate-700">활동</Text>
+                    <Text className="text-[11px] font-bold text-kemix-text">활동</Text>
                   </Pressable>
                   <Pressable
                     className={`rounded-lg px-2.5 py-1.5 ${item.is_blocked ? 'bg-green-100' : 'bg-red-100'}`}
@@ -152,13 +152,13 @@ export function AdminUsersPanel() {
       )}
 
       <Modal visible={!!selected} animationType="slide" onRequestClose={() => setSelected(null)}>
-        <View className="flex-1 bg-slate-50">
-          <View className="border-b border-slate-200 bg-white px-4 py-4">
+        <View className="flex-1 bg-kemix-bg">
+          <View className="border-b border-kemix-border bg-kemix-surface px-4 py-4">
             <Pressable onPress={() => setSelected(null)}>
               <Text className="font-semibold text-violet-700">← 닫기</Text>
             </Pressable>
-            <Text className="mt-2 text-lg font-bold text-slate-900">{selected?.name ?? '활동 로그'}</Text>
-            <Text className="text-xs text-slate-500">{selected?.email}</Text>
+            <Text className="mt-2 text-lg font-bold text-kemix-text">{selected?.name ?? '활동 로그'}</Text>
+            <Text className="text-xs text-kemix-text-secondary">{selected?.email}</Text>
           </View>
           {activityLoading ? (
             <View className="flex-1 items-center justify-center">
@@ -175,21 +175,21 @@ export function AdminUsersPanel() {
               contentContainerClassName="p-4 pb-10"
               renderItem={({ item: section }) => (
                 <View className="mb-4">
-                  <Text className="mb-2 text-xs font-bold uppercase text-slate-400">
+                  <Text className="mb-2 text-xs font-bold uppercase text-kemix-muted">
                     {section.title} ({section.items.length})
                   </Text>
                   {section.items.length === 0 ? (
-                    <Text className="text-sm text-slate-400">없음</Text>
+                    <Text className="text-sm text-kemix-muted">없음</Text>
                   ) : (
                     section.items.map((row) => (
                       <View
                         key={'id' in row ? row.id : String(row)}
-                        className="mb-2 rounded-lg border border-slate-200 bg-white p-3"
+                        className="mb-2 rounded-lg border border-kemix-border bg-kemix-surface p-3"
                       >
-                        <Text className="text-sm font-medium text-slate-800">
+                        <Text className="text-sm font-medium text-kemix-text">
                           {'title' in row ? row.title : 'question_id' in row ? `질문 ${row.question_id.slice(0, 8)}…` : '—'}
                         </Text>
-                        <Text className="mt-1 text-[11px] text-slate-400">
+                        <Text className="mt-1 text-[11px] text-kemix-muted">
                           {new Date(row.created_at).toLocaleString('ko-KR')}
                           {'status' in row ? ` · ${row.status}` : ''}
                         </Text>
@@ -229,7 +229,7 @@ function Badge({
   tone: 'slate' | 'green' | 'amber' | 'red';
 }) {
   const toneMap = {
-    slate: { bg: 'bg-slate-100', text: 'text-slate-600' },
+    slate: { bg: 'bg-kemix-elevated', text: 'text-kemix-text-secondary' },
     green: { bg: 'bg-green-100', text: 'text-green-700' },
     amber: { bg: 'bg-amber-100', text: 'text-amber-700' },
     red: { bg: 'bg-red-100', text: 'text-red-700' },

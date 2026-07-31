@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { APP_COLORS } from '@/constants/appTheme';
 
 type EmptyStateProps = {
   message: string;
@@ -7,9 +8,21 @@ type EmptyStateProps = {
 
 export function EmptyState({ message, hint }: EmptyStateProps) {
   return (
-    <View className="items-center py-12">
-      <Text className="text-base font-medium text-slate-600">{message}</Text>
-      {hint ? <Text className="mt-2 text-center text-sm text-slate-400">{hint}</Text> : null}
+    <View className="items-center py-16">
+      <Text
+        className="text-kemix-body"
+        style={{ fontFamily: 'Pretendard-Medium', color: APP_COLORS.textSecondary }}
+      >
+        {message}
+      </Text>
+      {hint ? (
+        <Text
+          className="mt-3 text-center text-kemix-caption"
+          style={{ fontFamily: 'Pretendard', color: APP_COLORS.textMuted }}
+        >
+          {hint}
+        </Text>
+      ) : null}
     </View>
   );
 }

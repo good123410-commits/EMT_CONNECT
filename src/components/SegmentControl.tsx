@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { APP_COLORS, APP_RADIUS, APP_SHADOW } from '@/constants/appTheme';
 
 type SegmentOption<T extends string> = {
   value: T;
@@ -13,11 +14,7 @@ type SegmentControlProps<T extends string> = {
 
 const activeShadow = StyleSheet.create({
   segment: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...APP_SHADOW.cardSoft,
   },
 });
 
@@ -27,20 +24,38 @@ export function SegmentControl<T extends string>({
   onChange,
 }: SegmentControlProps<T>) {
   return (
-    <View className="flex-row rounded-xl bg-slate-100 p-1">
+    <View
+      className="flex-row p-1.5"
+      style={{
+        borderRadius: APP_RADIUS.sm,
+        backgroundColor: APP_COLORS.surfaceElevated,
+        borderWidth: 1,
+        borderColor: APP_COLORS.border,
+      }}
+    >
       {options.map((option) => {
         const active = option.value === value;
         return (
           <Pressable
             key={option.value}
-            className={`flex-1 rounded-lg py-2.5 ${active ? 'bg-white' : ''}`}
-            style={active ? activeShadow.segment : undefined}
+            className="flex-1"
+            style={[
+              {
+                borderRadius: APP_RADIUS.sm - 2,
+                paddingVertical: 12,
+                paddingHorizontal: 8,
+                backgroundColor: active ? APP_COLORS.surface : 'transparent',
+              },
+              active ? activeShadow.segment : undefined,
+            ]}
             onPress={() => onChange(option.value)}
           >
             <Text
-              className={`text-center text-sm font-semibold ${
-                active ? 'text-slate-900' : 'text-slate-500'
-              }`}
+              className="text-center text-sm"
+              style={{
+                fontFamily: active ? 'Pretendard-SemiBold' : 'Pretendard-Medium',
+                color: active ? APP_COLORS.textPrimary : APP_COLORS.textSecondary,
+              }}
             >
               {option.label}
             </Text>

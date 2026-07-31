@@ -499,6 +499,68 @@ export async function adminDeleteOpeningSlide(id: string) {
   if (error) rpcError(error);
 }
 
+// ── Home event banners (app home carousel) ──
+const HOME_EVENT_BANNERS_TABLE = 'kemix_home_event_banners';
+
+export async function adminListHomeEventBanners(): Promise<import('../types').HomeEventBanner[]> {
+  const { data, error } = await supabase
+    .from(HOME_EVENT_BANNERS_TABLE)
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false });
+  if (error) rpcError(error);
+  return (data ?? []) as import('../types').HomeEventBanner[];
+}
+
+export type UpsertHomeEventBannerInput = {
+  id?: string;
+  title: string;
+  description: string;
+  image_url?: string | null;
+  link_url: string;
+  is_active: boolean;
+  sort_order: number;
+};
+
+export async function adminUpsertHomeEventBanner(input: UpsertHomeEventBannerInput) {
+  const payload = {
+    title: input.title.trim(),
+    description: input.description.trim(),
+    image_url: input.image_url?.trim() || null,
+    link_url: input.link_url.trim(),
+    is_active: input.is_active,
+    sort_order: input.sort_order,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (input.id) {
+    const { data, error } = await supabase
+      .from(HOME_EVENT_BANNERS_TABLE)
+      .update(payload)
+      .eq('id', input.id)
+      .select('*')
+      .single();
+    if (error) rpcError(error);
+    return data as import('../types').HomeEventBanner;
+  }
+
+  const { data, error } = await supabase
+    .from(HOME_EVENT_BANNERS_TABLE)
+    .insert({
+      ...payload,
+      created_at: new Date().toISOString(),
+    })
+    .select('*')
+    .single();
+  if (error) rpcError(error);
+  return data as import('../types').HomeEventBanner;
+}
+
+export async function adminDeleteHomeEventBanner(id: string) {
+  const { error } = await supabase.from(HOME_EVENT_BANNERS_TABLE).delete().eq('id', id);
+  if (error) rpcError(error);
+}
+
 // ── About pages ──
 export async function adminListAboutPages(): Promise<import('../types').KemixAboutPage[]> {
   const { data, error } = await supabase.rpc('admin_list_about_pages');

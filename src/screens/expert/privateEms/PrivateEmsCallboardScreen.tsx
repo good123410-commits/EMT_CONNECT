@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { PrivateEmsHeader } from '@/components/expert/PrivateEmsHeader';
 import { usePrivateEmsDispatch } from '@/contexts/PrivateEmsDispatchContext';
@@ -14,7 +14,7 @@ function TransportRequestCard({
   const isUrgent = request.urgency === 'urgent';
 
   return (
-    <View className="mb-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <View className="mb-3 overflow-hidden rounded-2xl border border-kemix-border bg-kemix-surface shadow-sm">
       {isUrgent ? (
         <View className="bg-red-600 px-4 py-1">
           <Text className="text-xs font-bold text-white">🚨 긴급 이송</Text>
@@ -24,20 +24,20 @@ function TransportRequestCard({
       <View className="p-4">
         <View className="flex-row items-start justify-between">
           <View className="flex-1 pr-3">
-            <Text className="text-base font-bold text-slate-900">
+            <Text className="text-base font-bold text-kemix-text">
               {request.from} ➡️ {request.to}
             </Text>
-            <Text className="mt-1 text-sm text-slate-600">이송 원합니다</Text>
+            <Text className="mt-1 text-sm text-kemix-text-secondary">이송 원합니다</Text>
           </View>
           <View className="items-end">
             <Text className="text-lg font-bold text-orange-600">{formatFare(request.fare)}</Text>
-            <Text className="mt-0.5 text-xs text-slate-400">{request.distance}</Text>
+            <Text className="mt-0.5 text-xs text-kemix-muted">{request.distance}</Text>
           </View>
         </View>
 
         <View className="mt-3 flex-row flex-wrap gap-2">
-          <View className="rounded-full bg-slate-100 px-3 py-1">
-            <Text className="text-xs font-medium text-slate-700">{request.patientInfo}</Text>
+          <View className="rounded-full bg-kemix-elevated px-3 py-1">
+            <Text className="text-xs font-medium text-kemix-text">{request.patientInfo}</Text>
           </View>
           <View className="rounded-full bg-blue-50 px-3 py-1">
             <Text className="text-xs font-medium text-blue-700">{request.notes}</Text>
@@ -45,7 +45,7 @@ function TransportRequestCard({
         </View>
 
         <View className="mt-3 flex-row items-center justify-between">
-          <Text className="text-xs text-slate-400">{request.postedAt} 등록</Text>
+          <Text className="text-xs text-kemix-muted">{request.postedAt} 등록</Text>
           <Pressable
             className="rounded-xl bg-orange-600 px-5 py-2.5 active:bg-orange-700"
             onPress={() => onAccept(request)}
@@ -73,14 +73,14 @@ export function PrivateEmsCallboardScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-100">
+    <View className="flex-1 bg-kemix-elevated">
       <PrivateEmsHeader subtitle="정기 콜보드 · 실시간 환자 이송 요청" />
 
-      <View className="border-b border-slate-200 bg-white px-4 py-3">
+      <View className="border-b border-kemix-border bg-kemix-surface px-4 py-3">
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="text-sm font-bold text-slate-900">실시간 민간 배차 콜보드</Text>
-            <Text className="mt-0.5 text-xs text-slate-500">
+            <Text className="text-sm font-bold text-kemix-text">실시간 민간 배차 콜보드</Text>
+            <Text className="mt-0.5 text-xs text-kemix-text-secondary">
               {visibleRequests.length}건 대기 · 요양병원·일반인 이송 요청
             </Text>
           </View>
@@ -98,8 +98,8 @@ export function PrivateEmsCallboardScreen() {
         ListEmptyComponent={
           <View className="items-center py-16">
             <Ionicons name="checkmark-circle-outline" size={48} color="#94a3b8" />
-            <Text className="mt-4 text-base font-semibold text-slate-600">모든 콜이 수락되었습니다</Text>
-            <Text className="mt-1 text-sm text-slate-400">새 이송 요청을 기다리는 중...</Text>
+            <Text className="mt-4 text-base font-semibold text-kemix-text-secondary">모든 콜이 수락되었습니다</Text>
+            <Text className="mt-1 text-sm text-kemix-muted">새 이송 요청을 기다리는 중...</Text>
           </View>
         }
         renderItem={({ item }) => (

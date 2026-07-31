@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -162,7 +162,7 @@ export function AdminAmbulancePanel() {
 
   return (
     <View className="flex-1">
-      <Text className="mb-2 text-xs leading-5 text-slate-500">
+      <Text className="mb-2 text-xs leading-5 text-kemix-text-secondary">
         앱에 내장된 민간구급차 CSV 전체가 표시됩니다. 저장 시 Supabase에 반영되며 사용자 앱 검색에도 적용됩니다.
       </Text>
       <RegionFilterScroller>
@@ -188,8 +188,8 @@ export function AdminAmbulancePanel() {
 
       <AdminFormField label="기관명/전화 검색" value={search} onChangeText={setSearch} placeholder="검색어 입력 후 새로고침" />
       <View className="mb-3 flex-row gap-2">
-        <Pressable className="flex-1 items-center rounded-xl bg-slate-200 py-2.5" onPress={() => void loadRows()}>
-          <Text className="text-sm font-bold text-slate-700">새로고침</Text>
+        <Pressable className="flex-1 items-center rounded-xl bg-kemix-elevated py-2.5" onPress={() => void loadRows()}>
+          <Text className="text-sm font-bold text-kemix-text">새로고침</Text>
         </Pressable>
         <Pressable className="flex-1 items-center rounded-xl bg-violet-700 py-2.5" onPress={openCreate}>
           <Text className="text-sm font-bold text-white">+ 추가</Text>
@@ -206,24 +206,24 @@ export function AdminAmbulancePanel() {
           keyExtractor={(item) => item.catalog_id}
           contentContainerClassName="pb-6"
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-slate-500">
+            <Text className="py-8 text-center text-sm text-kemix-text-secondary">
               조건에 맞는 민간 구급차가 없습니다.
             </Text>
           }
           renderItem={({ item }) => (
-            <View className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
-              <Text className="font-semibold text-slate-900">{item.name}</Text>
-              <Text className="mt-0.5 text-xs text-slate-500">
+            <View className="mb-2 rounded-xl border border-kemix-border bg-kemix-surface p-3">
+              <Text className="font-semibold text-kemix-text">{item.name}</Text>
+              <Text className="mt-0.5 text-xs text-kemix-text-secondary">
                 {item.sido} {item.sigungu} · {item.phone}
               </Text>
               {item.vehicle_type ? (
-                <Text className="mt-1 text-xs text-slate-600">
+                <Text className="mt-1 text-xs text-kemix-text-secondary">
                   {item.vehicle_type} ({item.vehicle_count}대)
                 </Text>
               ) : null}
               <View className="mt-2 flex-row gap-2">
-                <Pressable className="rounded-lg bg-slate-100 px-2.5 py-1" onPress={() => openEdit(item)}>
-                  <Text className="text-[11px] font-bold text-slate-700">수정</Text>
+                <Pressable className="rounded-lg bg-kemix-elevated px-2.5 py-1" onPress={() => openEdit(item)}>
+                  <Text className="text-[11px] font-bold text-kemix-text">수정</Text>
                 </Pressable>
                 <Pressable className="rounded-lg bg-red-100 px-2.5 py-1" onPress={() => setDeleteTarget(item)}>
                   <Text className="text-[11px] font-bold text-red-700">삭제</Text>
@@ -235,9 +235,9 @@ export function AdminAmbulancePanel() {
       )}
 
       <Modal visible={formVisible} animationType="slide" onRequestClose={() => setFormVisible(false)}>
-        <View className="flex-1 bg-slate-50">
+        <View className="flex-1 bg-kemix-bg">
           <ScrollView contentContainerClassName="p-4 pb-10">
-            <Text className="mb-4 text-lg font-bold text-slate-900">
+            <Text className="mb-4 text-lg font-bold text-kemix-text">
               {editingRow ? '민간 구급차 수정' : '민간 구급차 추가'}
             </Text>
             <AdminFormField label="기관명 *" value={form.name} onChangeText={(v) => setForm((p) => ({ ...p, name: v }))} />
@@ -256,7 +256,7 @@ export function AdminAmbulancePanel() {
               <Text className="font-bold text-white">{submitting ? '저장 중...' : '저장'}</Text>
             </Pressable>
             <Pressable className="mt-3 items-center py-2" onPress={() => setFormVisible(false)}>
-              <Text className="font-semibold text-slate-500">취소</Text>
+              <Text className="font-semibold text-kemix-text-secondary">취소</Text>
             </Pressable>
           </ScrollView>
         </View>
@@ -333,11 +333,11 @@ function FilterChip({
   return (
     <Pressable
       style={filterScrollerStyles.chip}
-      className={`rounded-full px-3 py-1.5 ${active ? 'bg-violet-700' : 'bg-slate-100'}`}
+      className={`rounded-full px-3 py-1.5 ${active ? 'bg-violet-700' : 'bg-kemix-elevated'}`}
       onPress={onPress}
     >
       <Text
-        className={`text-xs font-semibold ${active ? 'text-white' : 'text-slate-600'}`}
+        className={`text-xs font-semibold ${active ? 'text-white' : 'text-kemix-text-secondary'}`}
         numberOfLines={1}
       >
         {label}

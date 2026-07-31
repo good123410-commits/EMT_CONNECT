@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+﻿import { Text, View } from 'react-native';
 import { parseInlineHtmlParts, splitHtmlBlocks } from '@/utils/guideHtmlSegments';
 
 type GuideRichTextBlockProps = {
@@ -12,14 +12,14 @@ export function GuideRichTextBlock({ html }: GuideRichTextBlockProps) {
     const parts = parseInlineHtmlParts(html);
     if (parts.length === 0) return null;
     return (
-      <Text className="mb-3 text-sm leading-7 text-slate-800" selectable>
+      <Text className="mb-3 text-sm leading-7 text-kemix-text" selectable>
         {parts.map((part, index) => (
           <Text
             key={index}
             className={[
               part.bold ? 'font-bold' : '',
               part.italic ? 'italic' : '',
-              'text-slate-800',
+              'text-kemix-text',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -42,16 +42,16 @@ export function GuideRichTextBlock({ html }: GuideRichTextBlockProps) {
           return (
             <View
               key={index}
-              className="mb-3 border-l-4 border-emerald-600 bg-slate-50 px-3 py-2"
+              className="mb-3 border-l-4 border-emerald-600 bg-kemix-bg px-3 py-2"
             >
-              <Text className="text-sm leading-7 text-slate-600" selectable>
+              <Text className="text-sm leading-7 text-kemix-text-secondary" selectable>
                 {parts.map((part, partIndex) => (
                   <Text
                     key={partIndex}
                     className={[
                       part.bold ? 'font-bold' : '',
                       part.italic ? 'italic' : '',
-                      'text-slate-600',
+                      'text-kemix-text-secondary',
                     ]
                       .filter(Boolean)
                       .join(' ')}
@@ -65,14 +65,14 @@ export function GuideRichTextBlock({ html }: GuideRichTextBlockProps) {
         }
 
         return (
-          <Text key={index} className="mb-3 text-sm leading-7 text-slate-800" selectable>
+          <Text key={index} className="mb-3 text-sm leading-7 text-kemix-text" selectable>
             {parts.map((part, partIndex) => (
               <Text
                 key={partIndex}
                 className={[
                   part.bold ? 'font-bold' : '',
                   part.italic ? 'italic' : '',
-                  'text-slate-800',
+                  'text-kemix-text',
                 ]
                   .filter(Boolean)
                   .join(' ')}

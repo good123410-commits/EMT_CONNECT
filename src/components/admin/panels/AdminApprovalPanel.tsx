@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import { AdminFormField } from '@/components/admin/AdminFormField';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,9 +89,9 @@ export function AdminApprovalPanel({ onApproved }: Props) {
   const canSubmit = Boolean(user?.id) && !isLoading;
 
   return (
-    <View className="rounded-2xl border border-slate-200 bg-white p-4">
-      <Text className="text-base font-bold text-slate-900">관리자 계정 승인</Text>
-      <Text className="mt-2 text-sm leading-6 text-slate-600">
+    <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+      <Text className="text-base font-bold text-kemix-text">관리자 계정 승인</Text>
+      <Text className="mt-2 text-sm leading-6 text-kemix-text-secondary">
         [승인 요청]을 누르면 현재 로그인 계정이 관리자(admin)로 승인됩니다.
       </Text>
 
@@ -100,9 +100,9 @@ export function AdminApprovalPanel({ onApproved }: Props) {
           <Text className="text-sm font-semibold text-red-700">로그인이 필요합니다</Text>
         </View>
       ) : (
-        <View className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <Text className="text-xs text-slate-500">로그인 계정</Text>
-          <Text className="mt-0.5 text-sm font-semibold text-slate-800">{user.email ?? '—'}</Text>
+        <View className="mt-3 rounded-xl border border-kemix-border bg-kemix-bg p-3">
+          <Text className="text-xs text-kemix-text-secondary">로그인 계정</Text>
+          <Text className="mt-0.5 text-sm font-semibold text-kemix-text">{user.email ?? '—'}</Text>
         </View>
       )}
 
@@ -135,7 +135,7 @@ export function AdminApprovalPanel({ onApproved }: Props) {
               ? 'border border-green-200 bg-green-50'
               : status === 'error'
                 ? 'border border-red-200 bg-red-50'
-                : 'border border-slate-200 bg-slate-50'
+                : 'border border-kemix-border bg-kemix-bg'
           }`}
         >
           <Text
@@ -144,7 +144,7 @@ export function AdminApprovalPanel({ onApproved }: Props) {
                 ? 'text-green-800'
                 : status === 'error'
                   ? 'text-red-700'
-                  : 'text-slate-600'
+                  : 'text-kemix-text-secondary'
             }`}
           >
             {statusMessage}

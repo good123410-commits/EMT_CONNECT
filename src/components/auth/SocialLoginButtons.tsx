@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { getOAuthLinkErrorMessage } from '@/services/authService';
@@ -40,7 +40,7 @@ export function SocialLoginButtons({
 
   return (
     <View>
-      <Text className="mb-3 text-center text-xs font-medium text-slate-500">
+      <Text className="mb-3 text-center text-xs font-medium text-kemix-text-secondary">
         소셜 계정으로 간편 로그인
       </Text>
 
@@ -57,14 +57,14 @@ export function SocialLoginButtons({
       </Pressable>
 
       <Pressable
-        className={`items-center rounded-xl border border-slate-200 py-3.5 ${busy ? 'bg-slate-50' : 'bg-white'}`}
+        className={`items-center rounded-xl border border-kemix-border py-3.5 ${busy ? 'bg-kemix-bg' : 'bg-kemix-surface'}`}
         disabled={busy}
         onPress={() => void handleOAuth('google')}
       >
         {oauthLoading === 'google' ? (
           <ActivityIndicator color="#334155" />
         ) : (
-          <Text className="font-semibold text-slate-800">⚪ {googleLabel}</Text>
+          <Text className="font-semibold text-kemix-text">⚪ {googleLabel}</Text>
         )}
       </Pressable>
 
@@ -80,9 +80,9 @@ export function SocialLoginButtons({
 export function AuthDivider() {
   return (
     <View className="my-6 flex-row items-center">
-      <View className="h-px flex-1 bg-slate-200" />
-      <Text className="mx-3 text-xs text-slate-400">또는 이메일로 계속</Text>
-      <View className="h-px flex-1 bg-slate-200" />
+      <View className="h-px flex-1 bg-kemix-elevated" />
+      <Text className="mx-3 text-xs text-kemix-muted">또는 이메일로 계속</Text>
+      <View className="h-px flex-1 bg-kemix-elevated" />
     </View>
   );
 }

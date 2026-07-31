@@ -1,5 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { APP_COLORS, APP_RADIUS } from '@/constants/appTheme';
 
 type BackHeaderProps = {
   title: string;
@@ -8,15 +9,26 @@ type BackHeaderProps = {
 
 export function BackHeader({ title, onBack }: BackHeaderProps) {
   return (
-    <View className="mb-4 flex-row items-center">
+    <View className="mb-5 flex-row items-center">
       <Pressable
-        className="mr-3 rounded-full bg-slate-100 p-2"
+        className="mr-3 p-2"
+        style={{
+          borderRadius: APP_RADIUS.pill,
+          backgroundColor: APP_COLORS.surfaceElevated,
+          borderWidth: 1,
+          borderColor: APP_COLORS.border,
+        }}
         onPress={onBack}
         hitSlop={8}
       >
-        <Ionicons name="arrow-back" size={22} color="#0f172a" />
+        <AppIcon name="arrow-left" size={22} color={APP_COLORS.textPrimary} />
       </Pressable>
-      <Text className="flex-1 text-lg font-bold text-slate-900">{title}</Text>
+      <Text
+        className="flex-1 text-kemix-title"
+        style={{ fontFamily: 'Pretendard-Bold', color: APP_COLORS.textPrimary }}
+      >
+        {title}
+      </Text>
     </View>
   );
 }

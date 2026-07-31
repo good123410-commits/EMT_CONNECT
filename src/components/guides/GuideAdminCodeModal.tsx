@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   Alert,
@@ -40,23 +40,23 @@ export function GuideAdminCodeModal({ visible, onClose }: GuideAdminCodeModalPro
         onPress={onClose}
       >
         <Pressable
-          className="rounded-2xl bg-white p-5"
+          className="rounded-2xl bg-kemix-surface p-5"
           onPress={(event) => event.stopPropagation()}
         >
           <View className="mb-4 flex-row items-center justify-between">
-            <Text className="text-lg font-bold text-slate-900">관리자 인증</Text>
+            <Text className="text-lg font-bold text-kemix-text">관리자 인증</Text>
             <Pressable onPress={onClose} hitSlop={12}>
               <Ionicons name="close" size={22} color="#94a3b8" />
             </Pressable>
           </View>
 
-          <Text className="mb-3 text-sm leading-5 text-slate-600">
+          <Text className="mb-3 text-sm leading-5 text-kemix-text-secondary">
             가이드 관리자 비밀코드를 입력하면 글쓰기 기능이 활성화됩니다.
             {isGuideAdmin ? '\n\n현재 관리자 권한이 적용 중입니다.' : ''}
           </Text>
 
           <TextInput
-            className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900"
+            className="mb-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base text-kemix-text"
             value={code}
             onChangeText={setCode}
             placeholder="관리자 비밀코드"

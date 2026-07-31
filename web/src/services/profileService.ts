@@ -1,4 +1,4 @@
-import { isAdminRole } from '../constants/roles';
+import { isAdminRole, normalizeUserRole } from '../constants/roles';
 import { isBootstrapAdminEmail } from '../constants/adminAccess';
 import { supabase } from '../lib/supabase';
 import type { ProfileSetupInput, UserProfile, UserRole } from '../types';
@@ -6,23 +6,12 @@ import type { ProfileSetupInput, UserProfile, UserRole } from '../types';
 const USER_PROFILES_TABLE = 'user_profiles';
 const LEGACY_PROFILES_TABLE = 'profiles';
 
-const VALID_ROLES: UserRole[] = [
-  'user',
-  'associate_member',
-  'regular_member',
-  'sub_admin',
-  'super_admin',
-  'hospital',
-  'paramedic',
-  'private_ems',
-  'admin',
-];
+const VALID_ROLES: UserRole[] = ['user', 'associate_member', 'regular_member', 'admin'];
 
 function mapRole(role: unknown): UserRole {
-  if (typeof role === 'string' && (VALID_ROLES as string[]).includes(role)) {
-    return role as UserRole;
+  if (typeof role === 'string') {
+    return normalizeUserRole(role);
   }
-  if (role === 'emt_certified') return 'paramedic';
   return 'user';
 }
 
@@ -157,11 +146,11 @@ async function completeProfileSetupDirect(input: ProfileSetupInput): Promise<Use
   await supabase.rpc('ensure_my_user_profile');
 
   const existing = await fetchProfile(userId);
-  let role: UserRole = input.role;
+  let role: UserRole = 'user';
   if (existing && isAdminRole(existing.role)) {
     role = existing.role;
   } else if (isBootstrapAdminEmail(email)) {
-    role = 'super_admin';
+    role = 'admin';
   }
 
   return upsertUserProfileRow({

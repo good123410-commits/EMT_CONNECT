@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+﻿import { Text, View } from 'react-native';
 import {
   SERVICE_POLICY_FOOTER,
   SERVICE_POLICY_INTRO,
@@ -9,7 +9,7 @@ import {
 function HighlightedBody({ section }: { section: ServicePolicySection }) {
   const highlights = section.highlights ?? [];
   if (highlights.length === 0) {
-    return <Text className="text-sm leading-7 text-slate-600">{section.body}</Text>;
+    return <Text className="text-sm leading-7 text-kemix-text-secondary">{section.body}</Text>;
   }
 
   let remaining = section.body;
@@ -41,10 +41,10 @@ function HighlightedBody({ section }: { section: ServicePolicySection }) {
   }
 
   return (
-    <Text className="text-sm leading-7 text-slate-600">
+    <Text className="text-sm leading-7 text-kemix-text-secondary">
       {parts.map((part, index) =>
         part.highlight ? (
-          <Text key={`${section.id}-hl-${index}`} className="font-bold text-slate-900">
+          <Text key={`${section.id}-hl-${index}`} className="font-bold text-kemix-text">
             {part.text}
           </Text>
         ) : (
@@ -64,16 +64,16 @@ export function ServicePolicyContent({ showIntro = true, showFooter = true }: Se
   return (
     <View className="gap-5">
       {showIntro ? (
-        <View className="rounded-2xl bg-slate-50 px-4 py-4">
-          <Text className="text-sm leading-7 text-slate-700">{SERVICE_POLICY_INTRO}</Text>
+        <View className="rounded-2xl bg-kemix-bg px-4 py-4">
+          <Text className="text-sm leading-7 text-kemix-text">{SERVICE_POLICY_INTRO}</Text>
         </View>
       ) : null}
 
       {SERVICE_POLICY_SECTIONS.map((section) => (
-        <View key={section.id} className="rounded-2xl border border-slate-100 bg-white px-4 py-4">
+        <View key={section.id} className="rounded-2xl border border-kemix-border-light bg-kemix-surface px-4 py-4">
           <View className="mb-3 flex-row items-center">
             <View className="mr-2 h-2 w-2 rounded-full bg-blue-500" />
-            <Text className="text-base font-bold text-slate-900">{section.title}</Text>
+            <Text className="text-base font-bold text-kemix-text">{section.title}</Text>
           </View>
           <HighlightedBody section={section} />
           {section.id === 'medical' ? (
@@ -87,7 +87,7 @@ export function ServicePolicyContent({ showIntro = true, showFooter = true }: Se
       ))}
 
       {showFooter ? (
-        <Text className="px-1 text-xs leading-5 text-slate-400">{SERVICE_POLICY_FOOTER}</Text>
+        <Text className="px-1 text-xs leading-5 text-kemix-muted">{SERVICE_POLICY_FOOTER}</Text>
       ) : null}
     </View>
   );

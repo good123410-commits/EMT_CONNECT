@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -83,8 +83,8 @@ export function HiddenChannelPanel({ accentColor = '#0f172a' }: HiddenChannelPan
     <View className="gap-4">
       <View className="flex-row items-center justify-between">
         <View>
-          <Text className="text-lg font-bold text-slate-900">히든 채널</Text>
-          <Text className="text-xs text-slate-500">
+          <Text className="text-lg font-bold text-kemix-text">히든 채널</Text>
+          <Text className="text-xs text-kemix-text-secondary">
             {getRoleLabel(role)} · 승인된 채널만 표시됩니다
           </Text>
         </View>
@@ -101,17 +101,17 @@ export function HiddenChannelPanel({ accentColor = '#0f172a' }: HiddenChannelPan
       </View>
 
       {composing ? (
-        <View className="rounded-2xl border border-slate-200 bg-white p-4">
-          <Text className="mb-2 text-sm font-medium text-slate-700">채널 선택</Text>
+        <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+          <Text className="mb-2 text-sm font-medium text-kemix-text">채널 선택</Text>
           <View className="mb-3 flex-row flex-wrap gap-2">
             {allowedTargets.map((t) => (
               <Pressable
                 key={t}
-                className={`rounded-full px-3 py-1.5 ${targetRole === t ? 'bg-slate-900' : 'bg-slate-100'}`}
+                className={`rounded-full px-3 py-1.5 ${targetRole === t ? 'bg-slate-900' : 'bg-kemix-elevated'}`}
                 onPress={() => setTargetRole(t)}
               >
                 <Text
-                  className={`text-xs font-medium ${targetRole === t ? 'text-white' : 'text-slate-600'}`}
+                  className={`text-xs font-medium ${targetRole === t ? 'text-white' : 'text-kemix-text-secondary'}`}
                 >
                   {getTargetRoleLabel(t)}
                 </Text>
@@ -119,13 +119,13 @@ export function HiddenChannelPanel({ accentColor = '#0f172a' }: HiddenChannelPan
             ))}
           </View>
           <TextInput
-            className="mb-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base"
+            className="mb-2 rounded-xl border border-kemix-border bg-kemix-bg px-3 py-2 text-base"
             placeholder="제목"
             value={title}
             onChangeText={setTitle}
           />
           <TextInput
-            className="mb-3 min-h-[80px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base"
+            className="mb-3 min-h-[80px] rounded-xl border border-kemix-border bg-kemix-bg px-3 py-2 text-base"
             placeholder="내용"
             value={content}
             onChangeText={setContent}
@@ -155,23 +155,23 @@ export function HiddenChannelPanel({ accentColor = '#0f172a' }: HiddenChannelPan
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
           ListEmptyComponent={
-            <View className="rounded-2xl border border-dashed border-slate-200 bg-white p-6">
-              <Text className="text-center text-sm text-slate-400">아직 게시글이 없습니다.</Text>
+            <View className="rounded-2xl border border-dashed border-kemix-border bg-kemix-surface p-6">
+              <Text className="text-center text-sm text-kemix-muted">아직 게시글이 없습니다.</Text>
             </View>
           }
           renderItem={({ item }) => (
-            <View className="mb-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <View className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4">
               <View className="mb-2 flex-row items-center justify-between">
-                <Text className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                <Text className="rounded-full bg-kemix-elevated px-2 py-0.5 text-xs text-kemix-text-secondary">
                   {getTargetRoleLabel(item.target_role)}
                 </Text>
-                <Text className="text-xs text-slate-400">
+                <Text className="text-xs text-kemix-muted">
                   {new Date(item.created_at).toLocaleDateString('ko-KR')}
                 </Text>
               </View>
-              <Text className="text-base font-bold text-slate-900">{item.title}</Text>
-              <Text className="mt-1 text-sm leading-5 text-slate-600">{item.content}</Text>
-              <Text className="mt-2 text-xs text-slate-400">
+              <Text className="text-base font-bold text-kemix-text">{item.title}</Text>
+              <Text className="mt-1 text-sm leading-5 text-kemix-text-secondary">{item.content}</Text>
+              <Text className="mt-2 text-xs text-kemix-muted">
                 {item.author?.name ?? profile?.name ?? '익명'}
                 {item.author?.company_name ? ` · ${item.author.company_name}` : ''}
               </Text>

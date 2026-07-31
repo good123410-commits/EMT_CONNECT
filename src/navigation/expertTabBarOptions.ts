@@ -44,6 +44,7 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
         tabBarActiveTintColor: theme.activeTintColor,
         tabBarInactiveTintColor: theme.inactiveTintColor,
         tabBarStyle: {
+          borderTopWidth: 1,
           borderTopColor: theme.borderTopColor,
           backgroundColor: theme.backgroundColor,
           height: tabBarHeight,
@@ -57,7 +58,7 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
         },
         tabBarLabelStyle: {
           fontSize: theme.labelFontSize ?? 11,
-          fontWeight: '600',
+          fontFamily: 'Pretendard-SemiBold',
           marginTop: 2,
           marginBottom: 0,
         },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { CommunityPledgeScreen } from '@/components/community/CommunityPledgeScreen';
 import { ServicePolicyModal } from '@/components/legal/ServicePolicyModal';
@@ -8,6 +8,7 @@ import { useServicePolicyAcknowledgment } from '@/hooks/useServicePolicyAcknowle
 import { ParamedicTabNavigator } from '@/navigation/ParamedicTabNavigator';
 import { EmsQaBoardScreen } from '@/screens/emsCommunity/EmsQaBoardScreen';
 import { PendingApprovalScreen } from '@/screens/PrivateEmsCallScreen';
+import { isExpertRole } from '@/utils/roleAccess';
 
 /**
  * EMS 커뮤니티 탭 — 질문 게시판(Q&A) 연동
@@ -37,7 +38,7 @@ export function ParamedicGateScreen() {
 
   if (policyLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-50">
+      <View className="flex-1 items-center justify-center bg-kemix-bg">
         <ActivityIndicator size="large" color="#0f172a" />
       </View>
     );
@@ -65,7 +66,7 @@ export function ParamedicGateScreen() {
     return <ParamedicTabNavigator key="ems-paramedic-tabs" />;
   }
 
-  if (role === 'paramedic' && !isApproved) {
+  if (isExpertRole(role) && !isApproved) {
     return <PendingApprovalScreen />;
   }
 

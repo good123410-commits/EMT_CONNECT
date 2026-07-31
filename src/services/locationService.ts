@@ -36,6 +36,20 @@ const DEFAULT_REGION: LocationRegion = {
 };
 
 const LOCATION_CACHE_TTL_MS = 60_000;
+const GPS_TIMEOUT_MS = 3_000;
+/** 기기에 캐시된 최근 위치 허용 최대 나이 (15분) */
+const LAST_KNOWN_MAX_AGE_MS = 15 * 60_000;
+const REGION_REUSE_MAX_METERS = 2_000;
+
+const FAST_LOCATION_OPTIONS: Location.LocationOptions = {
+  accuracy: Location.Accuracy.Low,
+};
+
+const INTERIM_REGION: LocationRegion = {
+  stage1: '',
+  stage2: '',
+  label: '현재 위치 확인 중…',
+};
 
 let cachedSnapshot: LocationSnapshot | null = null;
 let cacheTimestamp = 0;
@@ -129,6 +143,74 @@ function isCacheFresh(): boolean {
   return cachedSnapshot !== null && Date.now() - cacheTimestamp < LOCATION_CACHE_TTL_MS;
 }
 
+function coordsNear(a: GeoCoordinate, b: GeoCoordinate, maxMeters: number): boolean {
+  const earthRadiusM = 6_371_000;
+  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+  const dLon = ((b.longitude - a.longitude) * Math.PI) / 180;
+  const lat1 = (a.latitude * Math.PI) / 180;
+  const lat2 = (b.latitude * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 2 * earthRadiusM * Math.asin(Math.sqrt(h)) <= maxMeters;
+}
+
+function pickReusableRegion(coordinate: GeoCoordinate): LocationRegion | null {
+  if (cachedSnapshot && coordsNear(cachedSnapshot.coordinate, coordinate, REGION_REUSE_MAX_METERS)) {
+    return cachedSnapshot.region;
+  }
+  return null;
+}
+
+function coordinateFromPosition(position: Location.LocationObject): GeoCoordinate {
+  return {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+  };
+}
+
+function buildInterimSnapshot(
+  coordinate: GeoCoordinate,
+  permissionGranted: boolean,
+): LocationSnapshot {
+  return {
+    coordinate,
+    region: pickReusableRegion(coordinate) ?? INTERIM_REGION,
+    permissionGranted,
+  };
+}
+
+function commitSnapshot(snapshot: LocationSnapshot): void {
+  cachedSnapshot = snapshot;
+  cacheTimestamp = Date.now();
+  notifyListeners(snapshot);
+}
+
+async function readLastKnownCoordinate(): Promise<GeoCoordinate | null> {
+  try {
+    const lastKnown = await Location.getLastKnownPositionAsync({
+      maxAge: LAST_KNOWN_MAX_AGE_MS,
+    });
+    return lastKnown ? coordinateFromPosition(lastKnown) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function readFreshCoordinate(): Promise<GeoCoordinate | null> {
+  try {
+    const position = await Promise.race([
+      Location.getCurrentPositionAsync(FAST_LOCATION_OPTIONS),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new LocationServiceError('GPS timeout')), GPS_TIMEOUT_MS);
+      }),
+    ]);
+    return coordinateFromPosition(position);
+  } catch {
+    return null;
+  }
+}
+
 export async function requestLocationPermission(): Promise<Location.PermissionStatus> {
   const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
   if (existingStatus === Location.PermissionStatus.GRANTED) {
@@ -146,22 +228,19 @@ export async function getCurrentCoordinates(): Promise<GeoCoordinate> {
     throw new LocationServiceError('위치 권한이 필요합니다. 설정에서 위치 접근을 허용해 주세요.');
   }
 
-  const lastKnown = await Location.getLastKnownPositionAsync();
+  const lastKnown = await readLastKnownCoordinate();
   if (lastKnown) {
-    return {
-      latitude: lastKnown.coords.latitude,
-      longitude: lastKnown.coords.longitude,
-    };
+    return lastKnown;
   }
 
-  const position = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.Balanced,
-  });
+  const fresh = await readFreshCoordinate();
+  if (fresh) {
+    return fresh;
+  }
 
-  return {
-    latitude: position.coords.latitude,
-    longitude: position.coords.longitude,
-  };
+  throw new LocationServiceError(
+    '현재 위치를 가져올 수 없습니다. GPS 신호가 약하거나 실내일 수 있습니다.',
+  );
 }
 
 export async function resolveRegionFromCoordinate(
@@ -187,33 +266,41 @@ async function fetchFreshLocation(): Promise<LocationSnapshot> {
       return getDefaultSnapshot();
     }
 
-    const lastKnown = await Location.getLastKnownPositionAsync();
-    let coordinate: GeoCoordinate;
-
-    if (lastKnown) {
-      coordinate = {
-        latitude: lastKnown.coords.latitude,
-        longitude: lastKnown.coords.longitude,
-      };
-    } else {
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      coordinate = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      };
+    const lastKnownCoordinate = await readLastKnownCoordinate();
+    if (lastKnownCoordinate) {
+      commitSnapshot(buildInterimSnapshot(lastKnownCoordinate, true));
     }
 
-    const region = await resolveRegionFromCoordinate(coordinate);
-    return { coordinate, region, permissionGranted: true };
+    const freshCoordinate = await readFreshCoordinate();
+    const resolvedCoordinate = freshCoordinate ?? lastKnownCoordinate;
+
+    if (!resolvedCoordinate) {
+      return getDefaultSnapshot();
+    }
+
+    const region = await resolveRegionFromCoordinate(resolvedCoordinate);
+    return { coordinate: resolvedCoordinate, region, permissionGranted: true };
   } catch {
-    return getDefaultSnapshot();
+    return cachedSnapshot ?? getDefaultSnapshot();
   }
 }
 
-/** 앱 시작 시 백그라운드에서 위치 캐시를 미리 채움 */
+/** 앱 시작 시 백그라운드에서 위치 캐시를 미리 채움 (권한이 있으면 최근 위치 즉시 반영) */
 export function warmUpLocationCache(): void {
+  void (async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== Location.PermissionStatus.GRANTED) return;
+
+      const lastKnownCoordinate = await readLastKnownCoordinate();
+      if (lastKnownCoordinate) {
+        commitSnapshot(buildInterimSnapshot(lastKnownCoordinate, true));
+      }
+    } catch {
+      // warm-up 실패는 무시하고 전체 갱신에 맡김
+    }
+  })();
+
   void refreshLocationCache();
 }
 
@@ -223,9 +310,7 @@ export async function refreshLocationCache(): Promise<LocationSnapshot> {
 
   refreshPromise = fetchFreshLocation()
     .then((snapshot) => {
-      cachedSnapshot = snapshot;
-      cacheTimestamp = Date.now();
-      notifyListeners(snapshot);
+      commitSnapshot(snapshot);
       return snapshot;
     })
     .finally(() => {
@@ -235,7 +320,7 @@ export async function refreshLocationCache(): Promise<LocationSnapshot> {
   return refreshPromise;
 }
 
-/** 위치 갱신 구독 — 즉시 기본값 전달 후 GPS 확정 시 콜백 */
+/** 위치 갱신 구독 — 즉시 기본/캐시 값 전달 후 백그라운드 GPS 갱신 */
 export function subscribeToLocationUpdates(
   callback: (snapshot: LocationSnapshot) => void,
 ): () => void {

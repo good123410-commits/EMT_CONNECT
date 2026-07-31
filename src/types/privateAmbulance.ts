@@ -27,7 +27,5 @@ export type PrivateAmbulanceRegionQuery = {
   sigungu: string;
 };
 
-export type PrivateAmbulanceSearchQuery = {
-  departure: PrivateAmbulanceRegionQuery;
-  destination: PrivateAmbulanceRegionQuery;
-};
+/** 출발지 기준 업체 검색 */
+export type PrivateAmbulanceSearchQuery = PrivateAmbulanceRegionQuery;

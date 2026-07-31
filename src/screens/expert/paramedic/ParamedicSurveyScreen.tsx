@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
@@ -32,17 +32,17 @@ function ParamedicSurveyForm({ survey, onBack }: { survey: Survey; onBack: () =>
         <Text className="ml-2 font-semibold text-green-900">설문 목록</Text>
       </Pressable>
 
-      <View className="rounded-2xl border border-green-200 bg-white p-4">
-        <Text className="text-lg font-bold text-slate-900">{survey.title}</Text>
-        <Text className="mt-1 text-sm text-slate-500">{survey.description}</Text>
+      <View className="rounded-2xl border border-green-200 bg-kemix-surface p-4">
+        <Text className="text-lg font-bold text-kemix-text">{survey.title}</Text>
+        <Text className="mt-1 text-sm text-kemix-text-secondary">{survey.description}</Text>
         <Text className="mt-2 text-xs font-semibold text-green-700">
           완료 시 +{survey.rewardPoints}P 적립
         </Text>
       </View>
 
       {survey.questions.map((q, idx) => (
-        <View key={q.id} className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-          <Text className="text-sm font-bold text-slate-900">
+        <View key={q.id} className="mt-4 rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+          <Text className="text-sm font-bold text-kemix-text">
             {idx + 1}. {q.question}
           </Text>
           {q.options.map((opt) => {
@@ -50,11 +50,11 @@ function ParamedicSurveyForm({ survey, onBack }: { survey: Survey; onBack: () =>
             return (
               <Pressable
                 key={opt}
-                className={`mt-2 rounded-xl border p-3 ${selected ? 'border-green-700 bg-green-50' : 'border-slate-200'}`}
+                className={`mt-2 rounded-xl border p-3 ${selected ? 'border-green-700 bg-green-50' : 'border-kemix-border'}`}
                 onPress={() => !submitted && setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
                 disabled={submitted}
               >
-                <Text className="text-sm text-slate-700">{opt}</Text>
+                <Text className="text-sm text-kemix-text">{opt}</Text>
               </Pressable>
             );
           })}
@@ -72,11 +72,11 @@ function ParamedicSurveyForm({ survey, onBack }: { survey: Survey; onBack: () =>
         </View>
       ) : (
         <Pressable
-          className={`mt-4 items-center rounded-xl py-4 ${allAnswered ? 'bg-green-700' : 'bg-slate-200'}`}
+          className={`mt-4 items-center rounded-xl py-4 ${allAnswered ? 'bg-green-700' : 'bg-kemix-elevated'}`}
           onPress={handleSubmit}
           disabled={!allAnswered}
         >
-          <Text className={`font-bold ${allAnswered ? 'text-white' : 'text-slate-400'}`}>
+          <Text className={`font-bold ${allAnswered ? 'text-white' : 'text-kemix-muted'}`}>
             제출하고 {survey.rewardPoints}P 받기
           </Text>
         </Pressable>
@@ -105,12 +105,12 @@ function SponsorshipPanel() {
       </View>
 
       {SPONSORSHIP_TIERS.map((tier) => (
-        <View key={tier.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+        <View key={tier.id} className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
           <View className="flex-row items-center">
             <Text className="text-3xl">{tier.emoji}</Text>
             <View className="ml-3 flex-1">
-              <Text className="text-base font-bold text-slate-900">{tier.name}</Text>
-              <Text className="mt-0.5 text-xs text-slate-500">{tier.description}</Text>
+              <Text className="text-base font-bold text-kemix-text">{tier.name}</Text>
+              <Text className="mt-0.5 text-xs text-kemix-text-secondary">{tier.description}</Text>
             </View>
             <Text className="text-lg font-bold text-green-700">
               {tier.amount.toLocaleString()}원
@@ -136,7 +136,7 @@ export function ParamedicSurveyScreen() {
   if (selectedSurvey) {
     return (
       <View className="flex-1 bg-green-50/30">
-        <ParamedicHeader subtitle="설문/후원 · 현장 개선 조사" />
+        <ParamedicHeader />
         <ParamedicSurveyForm survey={selectedSurvey} onBack={() => setSelectedSurvey(null)} />
       </View>
     );
@@ -146,7 +146,7 @@ export function ParamedicSurveyScreen() {
     <View className="flex-1 bg-green-50/30">
       <ParamedicHeader subtitle="설문/후원 · 현장 개선 조사" />
 
-      <View className="border-b border-green-200 bg-white px-4 py-3">
+      <View className="border-b border-green-200 bg-kemix-surface px-4 py-3">
         <SegmentControl
           options={[
             { value: 'survey', label: '전문가 설문' },
@@ -164,18 +164,18 @@ export function ParamedicSurveyScreen() {
             return (
               <Pressable
                 key={survey.id}
-                className={`rounded-2xl border p-4 ${done ? 'border-green-300 bg-green-50' : 'border-slate-200 bg-white active:bg-slate-50'}`}
+                className={`rounded-2xl border p-4 ${done ? 'border-green-300 bg-green-50' : 'border-kemix-border bg-kemix-surface active:bg-kemix-bg'}`}
                 onPress={() => !done && setSelectedSurvey(survey)}
                 disabled={done}
               >
                 <View className="flex-row items-start justify-between">
                   <View className="flex-1">
-                    <Text className="text-base font-bold text-slate-900">{survey.title}</Text>
-                    <Text className="mt-1 text-sm text-slate-500">{survey.description}</Text>
+                    <Text className="text-base font-bold text-kemix-text">{survey.title}</Text>
+                    <Text className="mt-1 text-sm text-kemix-text-secondary">{survey.description}</Text>
                     <View className="mt-3 flex-row items-center gap-3">
                       <View className="flex-row items-center">
                         <Ionicons name="time-outline" size={14} color="#64748b" />
-                        <Text className="ml-1 text-xs text-slate-500">약 {survey.estimatedMin}분</Text>
+                        <Text className="ml-1 text-xs text-kemix-text-secondary">약 {survey.estimatedMin}분</Text>
                       </View>
                       <View className="flex-row items-center">
                         <Ionicons name="gift-outline" size={14} color="#64748b" />

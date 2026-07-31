@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useUserRole } from '@/contexts/UserRoleContext';
 
@@ -16,7 +16,7 @@ export function HiddenChannelEntryScreen() {
   }, [enterExpertMode, isExpert]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-slate-50">
+    <View className="flex-1 items-center justify-center bg-kemix-bg">
       <ActivityIndicator size="large" color="#7c3aed" />
     </View>
   );

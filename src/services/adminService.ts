@@ -51,7 +51,7 @@ function parseRpcError(message: string, fn?: string): string {
     message.includes('user_profiles_role_check') ||
     message.includes('23514')
   ) {
-    return "DB에 'admin' 역할이 허용되지 않습니다. Supabase에서 migration_v5_admin_email_approval.sql을 실행해 주세요.";
+    return "DB role 제약 조건 오류입니다. Supabase에서 migration_v52_admin_job_posts_roles_fix.sql을 실행해 주세요.";
   }
   if (
     message.includes('Could not find the function') ||
@@ -59,7 +59,7 @@ function parseRpcError(message: string, fn?: string): string {
     message.includes('schema cache')
   ) {
     const fnHint = fn ? ` (${fn})` : '';
-    return `Supabase RPC 함수가 없습니다${fnHint}. migration_v5_admin_email_approval.sql을 SQL Editor에서 실행한 뒤 1분 후 다시 시도해 주세요.`;
+    return `Supabase RPC 함수가 없습니다${fnHint}. Supabase SQL Editor에서 migration_v52_admin_job_posts_roles_fix.sql을 실행한 뒤 1분 후 다시 시도해 주세요.`;
   }
   if (message.includes('permission denied') || message.includes('42501')) {
     return 'RPC 실행 권한이 없습니다. migration_v5의 GRANT EXECUTE를 적용해 주세요.';

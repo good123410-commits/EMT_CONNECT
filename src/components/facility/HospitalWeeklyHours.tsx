@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+﻿import { Text, View } from 'react-native';
 import type { HospitalDutyDay } from '@/utils/hospitalHours';
 import { DUTY_DAY_FULL_LABELS, getTreatmentDayCode } from '@/utils/hospitalHours';
 
@@ -17,7 +17,7 @@ export function HospitalWeeklyHours({ schedule, compact = false }: Props) {
   const todayCode = getTreatmentDayCode();
 
   if (schedule.length === 0) {
-    return <Text className="text-xs text-slate-500">운영시간 정보 없음</Text>;
+    return <Text className="text-xs text-kemix-text-secondary">운영시간 정보 없음</Text>;
   }
 
   return (
@@ -28,15 +28,15 @@ export function HospitalWeeklyHours({ schedule, compact = false }: Props) {
           <View
             key={day.dayCode}
             className={`flex-row items-center justify-between rounded-lg px-2 py-1 ${
-              isToday ? 'bg-violet-50' : 'bg-slate-50'
+              isToday ? 'bg-violet-50' : 'bg-kemix-bg'
             }`}
           >
             <Text
-              className={`text-xs font-semibold ${isToday ? 'text-violet-800' : 'text-slate-600'}`}
+              className={`text-xs font-semibold ${isToday ? 'text-violet-800' : 'text-kemix-text-secondary'}`}
             >
               {compact ? day.dayLabel : DUTY_DAY_FULL_LABELS[day.dayCode] ?? day.dayLabel}
             </Text>
-            <Text className={`text-xs ${isToday ? 'text-violet-700' : 'text-slate-500'}`}>
+            <Text className={`text-xs ${isToday ? 'text-violet-700' : 'text-kemix-text-secondary'}`}>
               {formatDayHours(day)}
             </Text>
           </View>

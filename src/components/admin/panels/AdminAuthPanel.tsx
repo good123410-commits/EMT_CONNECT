@@ -1,9 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Platform,
   Pressable,
   ScrollView,
@@ -26,7 +25,7 @@ import type { AdminInvitationCode, AdminVerificationRow } from '@/types/admin';
 import type { UserRole } from '@/lib/supabaseClient';
 import { getRoleLabel } from '@/utils/roleAccess';
 
-const INVITE_ROLES: UserRole[] = ['paramedic', 'hospital', 'private_ems', 'admin'];
+const INVITE_ROLES: UserRole[] = ['associate_member', 'regular_member', 'admin'];
 
 function showAlert(title: string, message: string) {
   if (Platform.OS === 'web') {
@@ -40,7 +39,7 @@ export function AdminAuthPanel() {
   const [verifications, setVerifications] = useState<AdminVerificationRow[]>([]);
   const [codes, setCodes] = useState<AdminInvitationCode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [inviteRole, setInviteRole] = useState<UserRole>('paramedic');
+  const [inviteRole, setInviteRole] = useState<UserRole>('associate_member');
   const [inviteEmail, setInviteEmail] = useState('');
   const [creatingCode, setCreatingCode] = useState(false);
   const [sendingCodeId, setSendingCodeId] = useState<string | null>(null);
@@ -131,17 +130,17 @@ export function AdminAuthPanel() {
   }
 
   return (
-    <ScrollView contentContainerClassName="pb-10">
-      <Text className="mb-2 text-xs font-bold uppercase text-slate-400">자격증 승인 대기</Text>
+    <ScrollView className="flex-1" contentContainerClassName="pb-10">
+      <Text className="mb-2 text-xs font-bold uppercase text-kemix-muted">자격증 승인 대기</Text>
       {verifications.length === 0 ? (
-        <View className="mb-5 rounded-xl border border-dashed border-slate-200 bg-white py-8">
-          <Text className="text-center text-sm text-slate-500">대기 중인 인증 요청이 없습니다.</Text>
+        <View className="mb-5 rounded-xl border border-dashed border-kemix-border bg-kemix-surface py-8">
+          <Text className="text-center text-sm text-kemix-text-secondary">대기 중인 인증 요청이 없습니다.</Text>
         </View>
       ) : (
         verifications.map((row) => (
-          <View key={row.id} className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
-            <Text className="text-xs text-slate-400">유저 {row.user_id.slice(0, 8)}…</Text>
-            <Text className="mt-1 text-sm text-slate-700" numberOfLines={1}>
+          <View key={row.id} className="mb-2 rounded-xl border border-kemix-border bg-kemix-surface p-3">
+            <Text className="text-xs text-kemix-muted">유저 {row.user_id.slice(0, 8)}…</Text>
+            <Text className="mt-1 text-sm text-kemix-text" numberOfLines={1}>
               {row.document_url}
             </Text>
             <View className="mt-3 flex-row gap-2">
@@ -162,9 +161,9 @@ export function AdminAuthPanel() {
         ))
       )}
 
-      <Text className="mb-2 mt-4 text-xs font-bold uppercase text-slate-400">초대 코드 생성 · 이메일 전송</Text>
-      <View className="rounded-xl border border-slate-200 bg-white p-3">
-        <Text className="mb-2 text-xs text-slate-500">대상 역할</Text>
+      <Text className="mb-2 mt-4 text-xs font-bold uppercase text-kemix-muted">초대 코드 생성 · 이메일 전송</Text>
+      <View className="rounded-xl border border-kemix-border bg-kemix-surface p-3">
+        <Text className="mb-2 text-xs text-kemix-text-secondary">대상 역할</Text>
         <SegmentControl
           options={INVITE_ROLES.map((role) => ({ value: role, label: getRoleLabel(role) }))}
           value={inviteRole}
@@ -189,39 +188,35 @@ export function AdminAuthPanel() {
           </Text>
         </Pressable>
         {statusMessage ? (
-          <Text className="mt-3 text-xs leading-5 text-slate-600">{statusMessage}</Text>
+          <Text className="mt-3 text-xs leading-5 text-kemix-text-secondary">{statusMessage}</Text>
         ) : null}
-        <Text className="mt-3 text-[11px] leading-5 text-slate-400">
+        <Text className="mt-3 text-[11px] leading-5 text-kemix-muted">
           Resend API로 실제 메일이 발송됩니다. Supabase Edge Functions Secrets에 RESEND_API_KEY가
           필요합니다(앱 .env 아님). scripts\set-edge-function-secrets.ps1 또는 대시보드에서 등록하세요.
         </Text>
       </View>
 
-      <Text className="mb-2 mt-5 text-xs font-bold uppercase text-slate-400">발급 코드 목록</Text>
-      <FlatList
-        data={codes}
-        scrollEnabled={false}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <Text className="py-4 text-center text-sm text-slate-500">발급된 코드가 없습니다.</Text>
-        }
-        renderItem={({ item }) => (
-          <View className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
+      <Text className="mb-2 mt-5 text-xs font-bold uppercase text-kemix-muted">발급 코드 목록</Text>
+      {codes.length === 0 ? (
+        <Text className="py-4 text-center text-sm text-kemix-text-secondary">발급된 코드가 없습니다.</Text>
+      ) : (
+        codes.map((item) => (
+          <View key={item.id} className="mb-2 rounded-xl border border-kemix-border bg-kemix-surface p-3">
             <View className="flex-row items-center justify-between">
-              <Text className="font-mono text-sm font-bold text-slate-900">{item.code}</Text>
-              <Text className="text-xs text-slate-500">{getRoleLabel(item.target_role)}</Text>
+              <Text className="font-mono text-sm font-bold text-kemix-text">{item.code}</Text>
+              <Text className="text-xs text-kemix-text-secondary">{getRoleLabel(item.target_role)}</Text>
             </View>
-            <Text className="mt-1 text-[11px] text-slate-400">
+            <Text className="mt-1 text-[11px] text-kemix-muted">
               {new Date(item.created_at).toLocaleString('ko-KR')}
               {item.used_at ? ' · 사용됨' : ' · 미사용'}
             </Text>
             <View className="mt-2 flex-row gap-2">
               <Pressable
-                className="flex-row items-center rounded-lg bg-slate-100 px-2.5 py-1.5"
+                className="flex-row items-center rounded-lg bg-kemix-elevated px-2.5 py-1.5"
                 onPress={() => void Share.share({ message: item.code })}
               >
                 <Ionicons name="copy-outline" size={14} color="#475569" />
-                <Text className="ml-1 text-[11px] font-bold text-slate-700">공유</Text>
+                <Text className="ml-1 text-[11px] font-bold text-kemix-text">공유</Text>
               </Pressable>
               <Pressable
                 className={`flex-row items-center rounded-lg px-2.5 py-1.5 ${
@@ -237,8 +232,8 @@ export function AdminAuthPanel() {
               </Pressable>
             </View>
           </View>
-        )}
-      />
+        ))
+      )}
     </ScrollView>
   );
 }

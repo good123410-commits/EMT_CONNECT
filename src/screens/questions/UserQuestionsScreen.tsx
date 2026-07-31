@@ -1,4 +1,4 @@
-import { FlashList } from '@shopify/flash-list';
+﻿import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
@@ -61,19 +61,19 @@ const QuestionCard = memo(function QuestionCard({ item, onPress }: QuestionCardP
 
   return (
     <Pressable
-      className="mb-3 rounded-2xl border border-slate-200 bg-white p-4 active:bg-slate-50"
+      className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4 active:bg-kemix-bg"
       onPress={handlePress}
     >
       <View className="flex-row items-start justify-between">
-        <Text className="flex-1 pr-2 text-base font-bold text-slate-900" numberOfLines={2}>
+        <Text className="flex-1 pr-2 text-base font-bold text-kemix-text" numberOfLines={2}>
           {item.title}
         </Text>
         <StatusBadge status={item.status} />
       </View>
-      <Text className="mt-2 text-sm leading-6 text-slate-600" numberOfLines={2}>
+      <Text className="mt-2 text-sm leading-6 text-kemix-text-secondary" numberOfLines={2}>
         {item.content}
       </Text>
-      <Text className="mt-2 text-xs text-slate-400">
+      <Text className="mt-2 text-xs text-kemix-muted">
         {new Date(item.created_at).toLocaleString('ko-KR')}
       </Text>
     </Pressable>
@@ -186,9 +186,9 @@ export function UserQuestionsScreen() {
 
   const listEmpty = useMemo(
     () => (
-      <View className="items-center rounded-2xl border border-dashed border-slate-200 bg-white py-16">
+      <View className="items-center rounded-2xl border border-dashed border-kemix-border bg-kemix-surface py-16">
         <Ionicons name="chatbox-ellipses-outline" size={40} color="#cbd5e1" />
-        <Text className="mt-3 text-sm text-slate-500">아직 등록한 질문이 없습니다</Text>
+        <Text className="mt-3 text-sm text-kemix-text-secondary">아직 등록한 질문이 없습니다</Text>
       </View>
     ),
     [],
@@ -209,21 +209,21 @@ export function UserQuestionsScreen() {
 
   if (detail) {
     return (
-      <View className="flex-1 bg-slate-50">
-        <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 py-3">
+      <View className="flex-1 bg-kemix-bg">
+        <SafeAreaView edges={['top']} className="border-b border-kemix-border bg-kemix-surface px-4 py-3">
           <Pressable className="flex-row items-center" onPress={() => setDetail(null)}>
             <Ionicons name="arrow-back" size={22} color="#0f172a" />
-            <Text className="ml-2 font-semibold text-slate-900">내 질문</Text>
+            <Text className="ml-2 font-semibold text-kemix-text">내 질문</Text>
           </Pressable>
         </SafeAreaView>
         <ScrollView contentContainerClassName="p-4 pb-10">
-          <View className="rounded-2xl border border-slate-200 bg-white p-4">
+          <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
             <View className="flex-row items-center justify-between">
-              <Text className="flex-1 text-lg font-bold text-slate-900">{detail.title}</Text>
+              <Text className="flex-1 text-lg font-bold text-kemix-text">{detail.title}</Text>
               <StatusBadge status={detail.status} />
             </View>
-            <Text className="mt-3 text-sm leading-7 text-slate-700">{detail.content}</Text>
-            <Text className="mt-3 text-xs text-slate-400">
+            <Text className="mt-3 text-sm leading-7 text-kemix-text">{detail.content}</Text>
+            <Text className="mt-3 text-xs text-kemix-muted">
               {new Date(detail.created_at).toLocaleString('ko-KR')}
             </Text>
           </View>
@@ -262,10 +262,10 @@ export function UserQuestionsScreen() {
   const showInitialSkeleton = isLoading && questions.length === 0;
 
   return (
-    <View className="flex-1 bg-slate-50">
-      <SafeAreaView edges={['top']} className="border-b border-slate-200 bg-white px-4 pb-4">
-        <Text className="text-xl font-bold text-slate-900">구급대원에게 질문하기</Text>
-        <Text className="mt-1 text-sm text-slate-500">
+    <View className="flex-1 bg-kemix-bg">
+      <SafeAreaView edges={['top']} className="border-b border-kemix-border bg-kemix-surface px-4 pb-4">
+        <Text className="text-xl font-bold text-kemix-text">구급대원에게 질문하기</Text>
+        <Text className="mt-1 text-sm text-kemix-text-secondary">
           참고용 안내 · 진단·처방을 대신하지 않습니다
         </Text>
         <Pressable
@@ -278,7 +278,7 @@ export function UserQuestionsScreen() {
       </SafeAreaView>
 
       <View className="flex-1 px-4 pt-4">
-        <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+        <Text className="mb-2 text-xs font-bold uppercase tracking-wide text-kemix-muted">
           내 질문 목록
         </Text>
 
@@ -310,13 +310,13 @@ export function UserQuestionsScreen() {
       </View>
 
       <Modal visible={formVisible} animationType="slide" onRequestClose={() => setFormVisible(false)}>
-        <SafeAreaView className="flex-1 bg-slate-50">
+        <SafeAreaView className="flex-1 bg-kemix-bg">
           <KeyboardAvoidingView
             className="flex-1"
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
-            <View className="flex-row items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-              <Text className="text-lg font-bold text-slate-900">질문 작성</Text>
+            <View className="flex-row items-center justify-between border-b border-kemix-border bg-kemix-surface px-4 py-3">
+              <Text className="text-lg font-bold text-kemix-text">질문 작성</Text>
               <Pressable onPress={() => setFormVisible(false)}>
                 <Ionicons name="close" size={24} color="#64748b" />
               </Pressable>
@@ -327,16 +327,16 @@ export function UserQuestionsScreen() {
                   응급·생명 위협 상황은 119에 즉시 신고하세요. 본 질문은 참고용입니다.
                 </Text>
               </View>
-              <Text className="mb-1 text-xs font-semibold text-slate-500">제목</Text>
+              <Text className="mb-1 text-xs font-semibold text-kemix-text-secondary">제목</Text>
               <TextInput
-                className="mb-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm"
+                className="mb-3 rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3 text-sm"
                 placeholder="예: 가슴 통증 환자 이송 시 주의점"
                 value={title}
                 onChangeText={setTitle}
               />
-              <Text className="mb-1 text-xs font-semibold text-slate-500">내용</Text>
+              <Text className="mb-1 text-xs font-semibold text-kemix-text-secondary">내용</Text>
               <TextInput
-                className="min-h-[140px] rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm"
+                className="min-h-[140px] rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3 text-sm"
                 placeholder="상황을 구체적으로 적어 주세요. 환자 실명·연락처는 입력하지 마세요."
                 value={content}
                 onChangeText={setContent}

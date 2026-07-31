@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -172,7 +172,7 @@ export function AdminChatRoomsPanel() {
   return (
     <View className="flex-1">
       <Pressable
-        className="flex-row items-center justify-between rounded-xl border border-violet-200 bg-white px-4 py-3 active:bg-violet-50"
+        className="flex-row items-center justify-between rounded-xl border border-violet-200 bg-kemix-surface px-4 py-3 active:bg-violet-50"
         onPress={toggleCreateForm}
       >
         <Text className="text-sm font-bold text-violet-800">+ 채팅방 개설하기</Text>
@@ -221,7 +221,7 @@ export function AdminChatRoomsPanel() {
         </View>
       ) : null}
 
-      <Text className="mb-2 mt-3 text-sm font-bold text-slate-900">채팅방 목록 · 모니터링</Text>
+      <Text className="mb-2 mt-3 text-sm font-bold text-kemix-text">채팅방 목록 · 모니터링</Text>
 
       <FlatList
         data={rooms}
@@ -230,19 +230,19 @@ export function AdminChatRoomsPanel() {
         contentContainerStyle={{ paddingBottom: 4 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text className="py-6 text-center text-sm text-slate-500">등록된 채팅방이 없습니다.</Text>
+          <Text className="py-6 text-center text-sm text-kemix-text-secondary">등록된 채팅방이 없습니다.</Text>
         }
         renderItem={({ item }) => {
           const active = selectedRoomId === item.id;
           return (
             <View
-              className={`mb-2 rounded-xl border p-3 ${active ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white'}`}
+              className={`mb-2 rounded-xl border p-3 ${active ? 'border-violet-400 bg-violet-50' : 'border-kemix-border bg-kemix-surface'}`}
             >
               <Pressable onPress={() => setSelectedRoomId(item.id)}>
                 <View className="flex-row items-center justify-between">
                   <View className="flex-1 pr-2">
-                    <Text className="font-semibold text-slate-900">{item.roomName}</Text>
-                    <Text className="mt-0.5 text-xs text-slate-500">
+                    <Text className="font-semibold text-kemix-text">{item.roomName}</Text>
+                    <Text className="mt-0.5 text-xs text-kemix-text-secondary">
                       {[item.region, item.category].filter(Boolean).join(' · ') || '분류 없음'}
                     </Text>
                   </View>
@@ -262,8 +262,8 @@ export function AdminChatRoomsPanel() {
         }}
       />
 
-      <View className="mt-2 min-h-0 flex-1 rounded-2xl border border-slate-200 bg-white p-3">
-        <Text className="mb-2 text-sm font-bold text-slate-900">
+      <View className="mt-2 min-h-0 flex-1 rounded-2xl border border-kemix-border bg-kemix-surface p-3">
+        <Text className="mb-2 text-sm font-bold text-kemix-text">
           {selectedRoom ? `${selectedRoom.roomName} 대화` : '채팅방을 선택하세요'}
         </Text>
         {messagesLoading ? (
@@ -271,15 +271,15 @@ export function AdminChatRoomsPanel() {
         ) : (
           <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
             {messages.length === 0 ? (
-              <Text className="py-8 text-center text-sm text-slate-500">메시지가 없습니다.</Text>
+              <Text className="py-8 text-center text-sm text-kemix-text-secondary">메시지가 없습니다.</Text>
             ) : (
               messages.map((message) => (
-                <View key={message.id} className="mb-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <View key={message.id} className="mb-2 rounded-xl border border-kemix-border-light bg-kemix-bg p-3">
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-xs font-bold text-slate-700">{message.anonymousLabel}</Text>
-                    <Text className="text-[10px] text-slate-400">{message.postedAt}</Text>
+                    <Text className="text-xs font-bold text-kemix-text">{message.anonymousLabel}</Text>
+                    <Text className="text-[10px] text-kemix-muted">{message.postedAt}</Text>
                   </View>
-                  <Text className="mt-1 text-sm text-slate-700">{message.content}</Text>
+                  <Text className="mt-1 text-sm text-kemix-text">{message.content}</Text>
                 </View>
               ))
             )}

@@ -12,13 +12,25 @@ import {
   ScrollView,
   Switch,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminFormField } from '@/components/admin/AdminFormField';
+import {
+  LoungeBody,
+  LoungeCard,
+  LoungeErrorBanner,
+  LoungeMetaText,
+  LoungePrimaryButton,
+  LoungeScreen,
+  LoungeTag,
+  LoungeTitle,
+  LoungeWriteBar,
+  loungeListContent,
+} from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
-import { MIRAE_EXTERNAL_LINKS, RESOURCE_CATEGORIES } from '@/constants/emsCommunity';
+import { RESOURCE_CATEGORIES } from '@/constants/emsCommunity';
+import { EMS_LOUNGE, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import type { ResourceDocument } from '@/data/paramedicMockData';
 import { useExpertSettingsAccess } from '@/hooks/useExpertSettingsAccess';
@@ -57,40 +69,71 @@ function ResourceCard({
   onDelete: (doc: ResourceDocument) => void;
 }) {
   return (
-    <View className="mb-3 rounded-2xl border border-slate-200 bg-white p-4">
-      <Pressable onPress={() => void openExternalUrl(doc.url, doc.title)}>
+    <LoungeCard>
+      <Pressable onPress={() => void openExternalUrl(doc.url, doc.title)} className="active:opacity-95">
         <View className="flex-row items-start justify-between">
-          <View className="flex-1 pr-2">
-            <View className="self-start rounded-full bg-blue-50 px-2 py-0.5">
-              <Text className="text-[10px] font-bold text-blue-700">{doc.category}</Text>
-            </View>
-            <Text className="mt-2 text-base font-bold text-slate-900">{doc.title}</Text>
-            <Text className="mt-1 text-sm text-slate-600">{doc.description}</Text>
-            <Text className="mt-2 text-xs text-slate-400">업데이트 {doc.updatedAt}</Text>
+        <View className="flex-1 pr-3">
+          <LoungeTag label={doc.category} />
+          <View className="mt-3">
+            <LoungeTitle numberOfLines={2}>{doc.title}</LoungeTitle>
           </View>
-          <Ionicons name="open-outline" size={20} color="#64748b" />
+          <View className="mt-2">
+            <LoungeBody numberOfLines={2}>{doc.description}</LoungeBody>
+          </View>
+          <View className="mt-3">
+            <LoungeMetaText>{`업데이트 ${doc.updatedAt}`}</LoungeMetaText>
+          </View>
         </View>
-        {doc.isExternal ? (
-          <Text className="mt-2 text-xs text-amber-700">외부 웹에서 열림 · 앱 내 결제/모금 없음</Text>
-        ) : null}
+        <Ionicons name="open-outline" size={20} color={EMS_LOUNGE.textMuted} />
+      </View>
+      {doc.isExternal ? (
+        <Text
+          style={{
+            marginTop: 10,
+            fontFamily: 'Pretendard',
+            fontSize: 11,
+            color: EMS_LOUNGE.amberText,
+          }}
+        >
+          외부 웹에서 열림 · 앱 내 결제/모금 없음
+        </Text>
+      ) : null}
       </Pressable>
       {canManage ? (
-        <View className="mt-3 flex-row gap-2 border-t border-slate-100 pt-3">
+        <View className="mt-4 flex-row gap-2">
           <Pressable
-            className="rounded-lg bg-slate-100 px-3 py-1.5"
+            className="rounded-lg px-3 py-1.5 active:opacity-80"
+            style={{ backgroundColor: EMS_LOUNGE.borderLight }}
             onPress={() => onEdit(doc)}
           >
-            <Text className="text-[11px] font-bold text-slate-700">수정</Text>
+            <Text
+              style={{
+                fontFamily: 'Pretendard-SemiBold',
+                fontSize: 11,
+                color: EMS_LOUNGE.textSecondary,
+              }}
+            >
+              수정
+            </Text>
           </Pressable>
           <Pressable
-            className="rounded-lg bg-red-100 px-3 py-1.5"
+            className="rounded-lg px-3 py-1.5 active:opacity-80"
+            style={{ backgroundColor: EMS_LOUNGE.errorBg }}
             onPress={() => onDelete(doc)}
           >
-            <Text className="text-[11px] font-bold text-red-700">삭제</Text>
+            <Text
+              style={{
+                fontFamily: 'Pretendard-SemiBold',
+                fontSize: 11,
+                color: EMS_LOUNGE.error,
+              }}
+            >
+              삭제
+            </Text>
           </Pressable>
         </View>
       ) : null}
-    </View>
+    </LoungeCard>
   );
 }
 
@@ -177,78 +220,47 @@ export function EmsResourcesScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-100">
-      <ParamedicHeader subtitle="자료실 · 프로토콜 · 학술회" />
+    <LoungeScreen>
+      <ParamedicHeader />
 
-      <View className="border-b border-slate-200 bg-white px-4 py-3">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1 pr-3">
-            <Text className="text-sm font-bold text-slate-900">학술회 · 가이드라인 · 교육 자료</Text>
-            <Text className="mt-1 text-xs text-slate-500">
-              PDF·공지는 외부 웹 또는 브라우저에서 열람합니다.
-            </Text>
-          </View>
-          {canManageResources ? (
-            <Pressable className="rounded-xl bg-blue-700 px-4 py-2" onPress={openCreateForm}>
-              <Text className="text-xs font-bold text-white">자료 추가</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
-
-      {error ? (
-        <View className="mx-4 mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
-          <Text className="text-sm text-red-700">{error}</Text>
-        </View>
+      {canManageResources ? (
+        <LoungeWriteBar label="자료 추가" onPress={openCreateForm} icon="add-outline" />
       ) : null}
+
+      {error ? <LoungeErrorBanner message={error} /> : null}
 
       {loading && resourceDocuments.length === 0 ? (
         <View className="flex-1 items-center justify-center py-16">
-          <ActivityIndicator color="#1d4ed8" />
+          <ActivityIndicator color={EMS_LOUNGE.navy} />
         </View>
       ) : (
         <FlatList
           data={resourceDocuments}
           keyExtractor={(item) => item.id}
-          contentContainerClassName="p-4 pb-6"
+          contentContainerStyle={loungeListContent}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-slate-500">등록된 자료가 없습니다.</Text>
-              {canManageResources ? (
-                <Text className="mt-1 text-xs text-slate-400">상단의 자료 추가 버튼으로 등록해 주세요.</Text>
-              ) : null}
-            </View>
-          }
-          ListFooterComponent={
-            <View className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <Text className="text-sm font-bold text-amber-900">미래회 외부 안내 (앱 내 결제 없음)</Text>
-              <Text className="mt-2 text-xs leading-5 text-amber-800">
-                모금·공동구매·후원은 앱에서 처리하지 않습니다. 아래 버튼으로 공식 웹사이트에서만
-                진행해 주세요.
+              <Text
+                style={{
+                  fontFamily: 'Pretendard',
+                  fontSize: 14,
+                  color: EMS_LOUNGE.textSecondary,
+                }}
+              >
+                등록된 자료가 없습니다.
               </Text>
-              <View className="mt-3 gap-2">
-                <Pressable
-                  className="flex-row items-center justify-between rounded-xl bg-white px-4 py-3"
-                  onPress={() => void openExternalUrl(MIRAE_EXTERNAL_LINKS.officialSite, '미래회 공식')}
+              {canManageResources ? (
+                <Text
+                  style={{
+                    marginTop: 4,
+                    fontFamily: 'Pretendard',
+                    fontSize: 12,
+                    color: EMS_LOUNGE.textMuted,
+                  }}
                 >
-                  <Text className="text-sm font-semibold text-slate-800">미래회 공식 홈페이지</Text>
-                  <Ionicons name="globe-outline" size={18} color="#64748b" />
-                </Pressable>
-                <Pressable
-                  className="flex-row items-center justify-between rounded-xl bg-white px-4 py-3"
-                  onPress={() => void openExternalUrl(MIRAE_EXTERNAL_LINKS.groupBuy, '공동구매')}
-                >
-                  <Text className="text-sm font-semibold text-slate-800">공동구매 안내 (외부)</Text>
-                  <Ionicons name="open-outline" size={18} color="#64748b" />
-                </Pressable>
-                <Pressable
-                  className="flex-row items-center justify-between rounded-xl bg-white px-4 py-3"
-                  onPress={() => void openExternalUrl(MIRAE_EXTERNAL_LINKS.donation, '후원')}
-                >
-                  <Text className="text-sm font-semibold text-slate-800">후원·모금 안내 (외부)</Text>
-                  <Ionicons name="open-outline" size={18} color="#64748b" />
-                </Pressable>
-              </View>
+                  상단의 자료 추가 버튼으로 등록해 주세요.
+                </Text>
+              ) : null}
             </View>
           }
           renderItem={({ item }) => (
@@ -264,11 +276,19 @@ export function EmsResourcesScreen() {
 
       <Modal visible={formVisible} animationType="slide" onRequestClose={() => setFormVisible(false)}>
         <KeyboardAvoidingView
-          className="flex-1 bg-slate-50"
+          className="flex-1"
+          style={{ backgroundColor: EMS_LOUNGE.background }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView contentContainerClassName="p-4 pb-10">
-            <Text className="mb-4 text-lg font-bold text-slate-900">
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+            <Text
+              style={{
+                marginBottom: 16,
+                fontFamily: 'Pretendard-Bold',
+                fontSize: 18,
+                color: EMS_LOUNGE.navy,
+              }}
+            >
               {editingId ? '자료 수정' : '자료 추가'}
             </Text>
             <AdminFormField
@@ -277,24 +297,24 @@ export function EmsResourcesScreen() {
               onChangeText={(value) => setForm((prev) => ({ ...prev, title: value }))}
               placeholder="자료 제목"
             />
-            <Text className="mb-1 text-xs font-semibold text-slate-600">분류</Text>
+            <Text
+              style={{
+                marginBottom: 4,
+                fontFamily: 'Pretendard-SemiBold',
+                fontSize: 12,
+                color: EMS_LOUNGE.textSecondary,
+              }}
+            >
+              분류
+            </Text>
             <View className="mb-3 flex-row flex-wrap gap-2">
               {RESOURCE_CATEGORIES.map((category) => (
-                <Pressable
+                <LoungeTag
                   key={category}
+                  label={category}
+                  active={form.category === category}
                   onPress={() => setForm((prev) => ({ ...prev, category }))}
-                  className={`rounded-full px-3 py-1.5 ${
-                    form.category === category ? 'bg-blue-700' : 'bg-slate-200'
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-medium ${
-                      form.category === category ? 'text-white' : 'text-slate-600'
-                    }`}
-                  >
-                    {category}
-                  </Text>
-                </Pressable>
+                />
               ))}
             </View>
             <AdminFormField
@@ -310,25 +330,57 @@ export function EmsResourcesScreen() {
               onChangeText={(value) => setForm((prev) => ({ ...prev, url: value }))}
               placeholder="https://..."
             />
-            <View className="mb-4 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-3">
+            <View
+              className="mb-4 flex-row items-center justify-between"
+              style={{
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: EMS_LOUNGE.border,
+                backgroundColor: EMS_LOUNGE.surface,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+              }}
+            >
               <View className="flex-1 pr-3">
-                <Text className="text-sm font-semibold text-slate-800">외부 링크</Text>
-                <Text className="mt-0.5 text-xs text-slate-500">외부 웹에서 열리는 자료로 표시</Text>
+                <Text
+                  style={{
+                    fontFamily: 'Pretendard-SemiBold',
+                    fontSize: 14,
+                    color: EMS_LOUNGE.text,
+                  }}
+                >
+                  외부 링크
+                </Text>
+                <Text
+                  style={{
+                    marginTop: 2,
+                    fontFamily: 'Pretendard',
+                    fontSize: 12,
+                    color: EMS_LOUNGE.textMuted,
+                  }}
+                >
+                  외부 웹에서 열리는 자료로 표시
+                </Text>
               </View>
               <Switch
                 value={form.isExternal}
                 onValueChange={(value) => setForm((prev) => ({ ...prev, isExternal: value }))}
               />
             </View>
-            <Pressable
-              className={`items-center rounded-xl py-3 ${submitting ? 'bg-blue-300' : 'bg-blue-700'}`}
-              disabled={submitting}
+            <LoungePrimaryButton
+              label={submitting ? '저장 중...' : '저장'}
               onPress={() => void handleSave()}
-            >
-              <Text className="font-bold text-white">{submitting ? '저장 중...' : '저장'}</Text>
-            </Pressable>
+            />
             <Pressable className="mt-3 items-center py-2" onPress={() => setFormVisible(false)}>
-              <Text className="font-semibold text-slate-500">취소</Text>
+              <Text
+                style={{
+                  fontFamily: 'Pretendard-SemiBold',
+                  fontSize: 14,
+                  color: EMS_LOUNGE.textMuted,
+                }}
+              >
+                취소
+              </Text>
             </Pressable>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -344,6 +396,6 @@ export function EmsResourcesScreen() {
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
-    </View>
+    </LoungeScreen>
   );
 }

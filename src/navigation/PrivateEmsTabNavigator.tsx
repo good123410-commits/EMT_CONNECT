@@ -1,6 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { PrivateEmsDispatchProvider } from '@/contexts/PrivateEmsDispatchContext';
+import { APP_COLORS } from '@/constants/appTheme';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
 import { PrivateEmsCallboardScreen } from '@/screens/expert/privateEms/PrivateEmsCallboardScreen';
 import { PrivateEmsEmptyVehicleScreen } from '@/screens/expert/privateEms/PrivateEmsEmptyVehicleScreen';
@@ -14,22 +15,19 @@ export type PrivateEmsTabParamList = {
 
 const Tab = createBottomTabNavigator<PrivateEmsTabParamList>();
 
-type TabIconName = keyof typeof Ionicons.glyphMap;
-
-function TabBarIcon({ name, color }: { name: TabIconName; color: string }) {
-  return <Ionicons name={name} size={24} color={color} />;
+function TabBarIcon({ name, color }: { name: AppIconName; color: string }) {
+  return <AppIcon name={name} size={24} color={color} />;
 }
 
 /**
- * 사설 구급차(private_ems) 전용 Root Tab Navigator.
- * 일반인용 탭과 완전 분리 — 3개 전용 탭만 존재.
+ * 사설 구급차 전용 Root Tab Navigator.
  */
 export function PrivateEmsTabNavigator() {
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
-    activeTintColor: '#f97316',
-    inactiveTintColor: '#64748b',
-    backgroundColor: '#0f172a',
-    borderTopColor: '#1e293b',
+    activeTintColor: '#F97316',
+    inactiveTintColor: APP_COLORS.tabInactive,
+    backgroundColor: APP_COLORS.surface,
+    borderTopColor: APP_COLORS.border,
     labelFontSize: 11,
   });
 
@@ -41,7 +39,7 @@ export function PrivateEmsTabNavigator() {
           component={PrivateEmsCallboardScreen}
           options={{
             tabBarLabel: '정기 콜보드',
-            tabBarIcon: ({ color }) => <TabBarIcon name="list-outline" color={color} />,
+            tabBarIcon: ({ color }) => <TabBarIcon name="format-list-bulleted" color={color} />,
           }}
         />
         <Tab.Screen
@@ -49,7 +47,7 @@ export function PrivateEmsTabNavigator() {
           component={PrivateEmsEmptyVehicleScreen}
           options={{
             tabBarLabel: '공차 매칭',
-            tabBarIcon: ({ color }) => <TabBarIcon name="swap-horizontal-outline" color={color} />,
+            tabBarIcon: ({ color }) => <TabBarIcon name="swap-horizontal" color={color} />,
           }}
         />
         <Tab.Screen
@@ -57,7 +55,7 @@ export function PrivateEmsTabNavigator() {
           component={PrivateEmsMyControlScreen}
           options={{
             tabBarLabel: '내 관제',
-            tabBarIcon: ({ color }) => <TabBarIcon name="speedometer-outline" color={color} />,
+            tabBarIcon: ({ color }) => <TabBarIcon name="speedometer" color={color} />,
           }}
         />
       </Tab.Navigator>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -269,12 +269,12 @@ export function AdminHospitalsPanel() {
 
   return (
     <View className="flex-1">
-      <Text className="mb-2 text-xs leading-5 text-slate-500">
+      <Text className="mb-2 text-xs leading-5 text-kemix-text-secondary">
         공공 API 보완용 자체 병원 데이터입니다. 저장 즉시 응급실·소아 탭에 반영되며, 숨김 처리된 병원은
         사용자 화면에서 제외됩니다.
       </Text>
 
-      <Text className="mb-1 text-xs font-semibold text-slate-600">시·도</Text>
+      <Text className="mb-1 text-xs font-semibold text-kemix-text-secondary">시·도</Text>
       <RegionFilterScroller>
         <FilterChip label="전체 시도" active={!sido} onPress={() => { setSido(''); setSigungu(''); }} />
         {sidoOptions.map((opt) => (
@@ -289,7 +289,7 @@ export function AdminHospitalsPanel() {
 
       {sido ? (
         <>
-          <Text className="mb-1 mt-1 text-xs font-semibold text-slate-600">시·군·구</Text>
+          <Text className="mb-1 mt-1 text-xs font-semibold text-kemix-text-secondary">시·군·구</Text>
           <RegionFilterScroller>
           <FilterChip label="전체 구군" active={!sigungu} onPress={() => setSigungu('')} />
           {sigunguOptions.map((opt) => (
@@ -307,8 +307,8 @@ export function AdminHospitalsPanel() {
       />
 
       <View className="mb-3 flex-row gap-2">
-        <Pressable className="flex-1 items-center rounded-xl bg-slate-200 py-2.5" onPress={() => void loadRows()}>
-          <Text className="text-sm font-bold text-slate-700">새로고침</Text>
+        <Pressable className="flex-1 items-center rounded-xl bg-kemix-elevated py-2.5" onPress={() => void loadRows()}>
+          <Text className="text-sm font-bold text-kemix-text">새로고침</Text>
         </Pressable>
         <Pressable className="flex-1 items-center rounded-xl bg-violet-700 py-2.5" onPress={openCreate}>
           <Text className="text-sm font-bold text-white">+ 병원 추가</Text>
@@ -325,39 +325,39 @@ export function AdminHospitalsPanel() {
           keyExtractor={(item) => item.catalog_id}
           contentContainerClassName="pb-6"
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-slate-500">
+            <Text className="py-8 text-center text-sm text-kemix-text-secondary">
               조건에 맞는 병원이 없습니다.
             </Text>
           }
           renderItem={({ item }) => (
             <View
-              className={`mb-2 rounded-xl border bg-white p-3 ${
-                item.is_hidden ? 'border-slate-300 opacity-70' : 'border-slate-200'
+              className={`mb-2 rounded-xl border bg-kemix-surface p-3 ${
+                item.is_hidden ? 'border-kemix-border opacity-70' : 'border-kemix-border'
               }`}
             >
               <View className="flex-row items-start justify-between">
-                <Text className="flex-1 font-semibold text-slate-900">{item.name}</Text>
+                <Text className="flex-1 font-semibold text-kemix-text">{item.name}</Text>
                 <Text className="text-[10px] font-bold text-violet-700">
                   {CUSTOM_HOSPITAL_TYPE_LABELS[item.hospital_type]}
                 </Text>
               </View>
-              <Text className="mt-0.5 text-xs text-slate-500">
+              <Text className="mt-0.5 text-xs text-kemix-text-secondary">
                 {item.sido} {item.sigungu} · {item.tel || '-'}
               </Text>
               {item.is_partner ? (
                 <Text className="mt-1 text-[10px] font-bold text-amber-700">⭐ 제휴</Text>
               ) : null}
               {item.is_hidden ? (
-                <Text className="mt-1 text-[10px] font-bold text-slate-500">숨김</Text>
+                <Text className="mt-1 text-[10px] font-bold text-kemix-text-secondary">숨김</Text>
               ) : null}
               {item.custom_memo ? (
-                <Text className="mt-1 text-xs text-slate-600" numberOfLines={2}>
+                <Text className="mt-1 text-xs text-kemix-text-secondary" numberOfLines={2}>
                   {item.custom_memo}
                 </Text>
               ) : null}
               <View className="mt-2 flex-row gap-2">
-                <Pressable className="rounded-lg bg-slate-100 px-2.5 py-1" onPress={() => openEdit(item)}>
-                  <Text className="text-[11px] font-bold text-slate-700">수정</Text>
+                <Pressable className="rounded-lg bg-kemix-elevated px-2.5 py-1" onPress={() => openEdit(item)}>
+                  <Text className="text-[11px] font-bold text-kemix-text">수정</Text>
                 </Pressable>
                 <Pressable className="rounded-lg bg-red-100 px-2.5 py-1" onPress={() => setDeleteTarget(item)}>
                   <Text className="text-[11px] font-bold text-red-700">삭제</Text>
@@ -369,20 +369,20 @@ export function AdminHospitalsPanel() {
       )}
 
       <Modal visible={formVisible} animationType="slide" onRequestClose={() => setFormVisible(false)}>
-        <View className="flex-1 bg-slate-50">
+        <View className="flex-1 bg-kemix-bg">
           <ScrollView contentContainerClassName="p-4 pb-10">
-            <Text className="mb-4 text-lg font-bold text-slate-900">
+            <Text className="mb-4 text-lg font-bold text-kemix-text">
               {editingRow ? '병원 정보 수정' : '병원 추가'}
             </Text>
 
             <AdminFormField label="병원명 *" value={form.name} onChangeText={(v) => setForm((p) => ({ ...p, name: v }))} />
-            <Text className="mb-2 text-xs font-semibold text-slate-600">분류</Text>
+            <Text className="mb-2 text-xs font-semibold text-kemix-text-secondary">분류</Text>
             <View className="mb-3 flex-row flex-wrap gap-2">
               {HOSPITAL_TYPES.map((type) => (
                 <Pressable
                   key={type}
                   className={`rounded-full px-3 py-1.5 ${
-                    form.hospitalType === type ? 'bg-violet-700' : 'bg-slate-200'
+                    form.hospitalType === type ? 'bg-violet-700' : 'bg-kemix-elevated'
                   }`}
                   onPress={() =>
                     setForm((p) => ({
@@ -394,7 +394,7 @@ export function AdminHospitalsPanel() {
                 >
                   <Text
                     className={`text-xs font-bold ${
-                      form.hospitalType === type ? 'text-white' : 'text-slate-700'
+                      form.hospitalType === type ? 'text-white' : 'text-kemix-text'
                     }`}
                   >
                     {CUSTOM_HOSPITAL_TYPE_LABELS[type]}
@@ -435,21 +435,21 @@ export function AdminHospitalsPanel() {
             <AdminFormField label="위도" value={form.latitude} onChangeText={(v) => setForm((p) => ({ ...p, latitude: v }))} keyboardType="numeric" />
             <AdminFormField label="경도" value={form.longitude} onChangeText={(v) => setForm((p) => ({ ...p, longitude: v }))} keyboardType="numeric" />
 
-            <View className="mb-3 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-3">
-              <Text className="text-sm font-semibold text-slate-700">응급실 운영</Text>
+            <View className="mb-3 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3">
+              <Text className="text-sm font-semibold text-kemix-text">응급실 운영</Text>
               <Switch value={form.erCapable} onValueChange={(v) => setForm((p) => ({ ...p, erCapable: v }))} />
             </View>
-            <View className="mb-3 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-3">
-              <Text className="text-sm font-semibold text-slate-700">제휴 병원</Text>
+            <View className="mb-3 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3">
+              <Text className="text-sm font-semibold text-kemix-text">제휴 병원</Text>
               <Switch value={form.isPartner} onValueChange={(v) => setForm((p) => ({ ...p, isPartner: v }))} />
             </View>
-            <View className="mb-4 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-3">
-              <Text className="text-sm font-semibold text-slate-700">숨김 (사용자 화면 제외)</Text>
+            <View className="mb-4 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3">
+              <Text className="text-sm font-semibold text-kemix-text">숨김 (사용자 화면 제외)</Text>
               <Switch value={form.isHidden} onValueChange={(v) => setForm((p) => ({ ...p, isHidden: v }))} />
             </View>
 
-            <Text className="mb-2 text-sm font-bold text-slate-800">응급 장비·연락처 오버라이드</Text>
-            <Text className="mb-3 text-xs text-slate-500">Y/N 또는 병상 수. 비우면 공공 API 값을 따릅니다.</Text>
+            <Text className="mb-2 text-sm font-bold text-kemix-text">응급 장비·연락처 오버라이드</Text>
+            <Text className="mb-3 text-xs text-kemix-text-secondary">Y/N 또는 병상 수. 비우면 공공 API 값을 따릅니다.</Text>
             <AdminFormField label="CT (hvctayn)" value={form.hvctayn} onChangeText={(v) => setForm((p) => ({ ...p, hvctayn: v }))} placeholder="Y / N" />
             <AdminFormField label="MRI (hvmriayn)" value={form.hvmriayn} onChangeText={(v) => setForm((p) => ({ ...p, hvmriayn: v }))} placeholder="Y / N" />
             <AdminFormField label="조영촬영 (hvangioayn)" value={form.hvangioayn} onChangeText={(v) => setForm((p) => ({ ...p, hvangioayn: v }))} placeholder="Y / N" />
@@ -470,7 +470,7 @@ export function AdminHospitalsPanel() {
               <Text className="font-bold text-white">{submitting ? '저장 중...' : '저장'}</Text>
             </Pressable>
             <Pressable className="mt-3 items-center py-2" onPress={() => setFormVisible(false)}>
-              <Text className="font-semibold text-slate-500">취소</Text>
+              <Text className="font-semibold text-kemix-text-secondary">취소</Text>
             </Pressable>
           </ScrollView>
         </View>
@@ -517,11 +517,11 @@ function FilterChip({
   return (
     <Pressable
       style={filterScrollerStyles.chip}
-      className={`rounded-full px-3 py-2 ${active ? 'bg-violet-700' : 'bg-slate-100'}`}
+      className={`rounded-full px-3 py-2 ${active ? 'bg-violet-700' : 'bg-kemix-elevated'}`}
       onPress={onPress}
     >
       <Text
-        className={`text-xs font-semibold ${active ? 'text-white' : 'text-slate-700'}`}
+        className={`text-xs font-semibold ${active ? 'text-white' : 'text-kemix-text'}`}
         numberOfLines={1}
       >
         {label}

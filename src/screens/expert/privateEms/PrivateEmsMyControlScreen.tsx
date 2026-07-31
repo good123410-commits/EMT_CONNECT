@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { PrivateEmsHeader } from '@/components/expert/PrivateEmsHeader';
 import { usePrivateEmsDispatch } from '@/contexts/PrivateEmsDispatchContext';
@@ -31,21 +31,21 @@ export function PrivateEmsMyControlScreen() {
   const totalEarnings = acceptedDispatches.reduce((sum, d) => sum + d.fare, 0);
 
   return (
-    <View className="flex-1 bg-slate-100">
+    <View className="flex-1 bg-kemix-elevated">
       <PrivateEmsHeader subtitle="내 관제 · 매칭 내역 및 정산" />
 
       <ScrollView className="flex-1" contentContainerClassName="gap-4 p-4 pb-28">
-        <View className="rounded-2xl border border-slate-200 bg-white p-4">
-          <Text className="text-sm font-bold text-slate-900">운용자 정보</Text>
+        <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+          <Text className="text-sm font-bold text-kemix-text">운용자 정보</Text>
           <View className="mt-3 flex-row items-center">
             <View className="mr-3 h-12 w-12 items-center justify-center rounded-full bg-slate-900">
               <Text className="text-lg">🚑</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-base font-bold text-slate-900">
+              <Text className="text-base font-bold text-kemix-text">
                 {profile?.company_name ?? profile?.name ?? '운용사'}
               </Text>
-              <Text className="text-sm text-slate-500">
+              <Text className="text-sm text-kemix-text-secondary">
                 {getRoleLabel(role)} · {isApproved ? '승인 완료' : '승인 대기'}
               </Text>
             </View>
@@ -63,44 +63,44 @@ export function PrivateEmsMyControlScreen() {
           </View>
         </View>
 
-        <View className="rounded-2xl border border-slate-200 bg-white p-4">
+        <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
           <View className="mb-3 flex-row items-center justify-between">
-            <Text className="text-base font-bold text-slate-900">진행 중 매칭</Text>
-            <Text className="text-xs text-slate-400">{activeDispatches.length}건</Text>
+            <Text className="text-base font-bold text-kemix-text">진행 중 매칭</Text>
+            <Text className="text-xs text-kemix-muted">{activeDispatches.length}건</Text>
           </View>
 
           {activeDispatches.length === 0 ? (
             <View className="items-center py-6">
               <Ionicons name="document-text-outline" size={32} color="#cbd5e1" />
-              <Text className="mt-2 text-sm text-slate-400">아직 수락한 콜이 없습니다</Text>
-              <Text className="mt-1 text-xs text-slate-400">정기 콜보드에서 이송을 수락해 보세요</Text>
+              <Text className="mt-2 text-sm text-kemix-muted">아직 수락한 콜이 없습니다</Text>
+              <Text className="mt-1 text-xs text-kemix-muted">정기 콜보드에서 이송을 수락해 보세요</Text>
             </View>
           ) : (
             activeDispatches.map((dispatch) => (
               <View
                 key={dispatch.id}
-                className="mb-3 rounded-xl border border-slate-100 bg-slate-50 p-3"
+                className="mb-3 rounded-xl border border-kemix-border-light bg-kemix-bg p-3"
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center">
-                    <Text className="text-xs font-bold text-slate-500">
+                    <Text className="text-xs font-bold text-kemix-text-secondary">
                       {dispatch.type === 'empty_return' ? '공차 복귀' : '정기 이송'}
                     </Text>
                     <View className="ml-2">
                       <StatusBadge status={dispatch.status} />
                     </View>
                   </View>
-                  <Text className="text-xs text-slate-400">{dispatch.acceptedAt}</Text>
+                  <Text className="text-xs text-kemix-muted">{dispatch.acceptedAt}</Text>
                 </View>
-                <Text className="mt-2 text-sm font-bold text-slate-900">
+                <Text className="mt-2 text-sm font-bold text-kemix-text">
                   {dispatch.from} ➡️ {dispatch.to}
                 </Text>
-                <Text className="mt-1 text-xs text-slate-500">
+                <Text className="mt-1 text-xs text-kemix-text-secondary">
                   {dispatch.patientInfo} · {dispatch.notes}
                 </Text>
                 <View className="mt-2 flex-row items-center justify-between">
                   <Text className="text-sm font-bold text-orange-600">{formatFare(dispatch.fare)}</Text>
-                  <Text className="text-xs text-slate-400">{dispatch.distance}</Text>
+                  <Text className="text-xs text-kemix-muted">{dispatch.distance}</Text>
                 </View>
                 {dispatch.status === 'accepted' ? (
                   <Pressable
@@ -116,15 +116,15 @@ export function PrivateEmsMyControlScreen() {
         </View>
 
         {completedDispatches.length > 0 ? (
-          <View className="rounded-2xl border border-slate-200 bg-white p-4">
-            <Text className="mb-3 text-base font-bold text-slate-900">완료 내역</Text>
+          <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+            <Text className="mb-3 text-base font-bold text-kemix-text">완료 내역</Text>
             {completedDispatches.map((dispatch) => (
               <View key={dispatch.id} className="mb-2 flex-row items-center justify-between py-2">
                 <View className="flex-1">
-                  <Text className="text-sm text-slate-700">
+                  <Text className="text-sm text-kemix-text">
                     {dispatch.from} → {dispatch.to}
                   </Text>
-                  <Text className="text-xs text-slate-400">{dispatch.acceptedAt}</Text>
+                  <Text className="text-xs text-kemix-muted">{dispatch.acceptedAt}</Text>
                 </View>
                 <Text className="text-sm font-semibold text-emerald-600">{formatFare(dispatch.fare)}</Text>
               </View>
@@ -132,15 +132,15 @@ export function PrivateEmsMyControlScreen() {
           </View>
         ) : null}
 
-        <View className="rounded-2xl border border-slate-200 bg-white p-4">
-          <Text className="mb-3 text-base font-bold text-slate-900">설정</Text>
+        <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+          <Text className="mb-3 text-base font-bold text-kemix-text">설정</Text>
           <Pressable
-            className="flex-row items-center justify-between rounded-xl bg-slate-50 px-4 py-3"
+            className="flex-row items-center justify-between rounded-xl bg-kemix-bg px-4 py-3"
             onPress={exitExpertMode}
           >
             <View className="flex-row items-center">
               <Ionicons name="arrow-back-outline" size={18} color="#64748b" />
-              <Text className="ml-3 text-sm font-medium text-slate-700">일반 모드로 전환</Text>
+              <Text className="ml-3 text-sm font-medium text-kemix-text">일반 모드로 전환</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
           </Pressable>

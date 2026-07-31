@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +22,7 @@ export function PrivateEmsHeader({ subtitle }: PrivateEmsHeaderProps) {
             </View>
             <View className="flex-1">
               <Text className="text-lg font-bold text-white">사설 구급차 관제 센터</Text>
-              <Text className="mt-0.5 text-xs text-slate-400">
+              <Text className="mt-0.5 text-xs text-kemix-muted">
                 {subtitle ?? `${profile?.company_name ?? profile?.name ?? '운용사'} · 실시간 관제`}
               </Text>
             </View>

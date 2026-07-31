@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Image, View } from 'react-native';
 
@@ -14,7 +14,7 @@ export function MedicineImage({ uri, size = 72 }: MedicineImageProps) {
 
   return (
     <View
-      className="items-center justify-center overflow-hidden rounded-2xl bg-slate-100"
+      className="items-center justify-center overflow-hidden rounded-2xl bg-kemix-elevated"
       style={{ width: size, height: size }}
     >
       {showImage ? (

@@ -1,21 +1,27 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { UserRoleProvider } from '@/contexts/UserRoleContext';
 import { WalletProvider } from '@/contexts/WalletContext';
+import { EmergencyOverlayBootstrap } from '@/components/utilities/EmergencyOverlayBootstrap';
+import { AppLaunchGate } from '@/components/intro/AppLaunchGate';
+import { BrandSplashView } from '@/components/intro/BrandSplashView';
+import { APP_COLORS } from '@/constants/appTheme';
+import { useAppFonts } from '@/hooks/useAppFonts';
 import { queryClient } from '@/lib/queryClient';
+import { applyDefaultFont } from '@/utils/applyDefaultFont';
 
 import './src/global.css';
 
 function AppShell() {
   return (
     <View style={styles.shell}>
-      <ActivityIndicator size="large" color="#dc2626" />
-      <StatusBar style="auto" />
+      <BrandSplashView showLoadingHint />
+      <StatusBar style="light" />
     </View>
   );
 }
@@ -23,31 +29,38 @@ function AppShell() {
 import { V1_STORE_BUILD } from '@/constants/releaseFlags';
 
 function AppProviders() {
+  const { ready: fontsReady, loaded: fontsLoaded } = useAppFonts();
   const AppNavigation = require('@/navigation/AppNavigation').AppNavigation;
 
-  /*
-   * v1 스토어 심사: DevRoleCheatMenu(구급/병원/사설 역할 전환) 비활성화
-   *
-   * const DevRoleCheatMenu = __DEV__
-   *   ? require('@/components/DevRoleCheatMenu').DevRoleCheatMenu
-   *   : null;
-   */
   const DevRoleCheatMenu =
     __DEV__ && !V1_STORE_BUILD
       ? require('@/components/DevRoleCheatMenu').DevRoleCheatMenu
       : null;
 
+  useEffect(() => {
+    if (fontsLoaded) {
+      applyDefaultFont();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsReady) {
+    return <AppShell />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <UserRoleProvider>
-          <WalletProvider>
-            <View style={styles.root}>
-              <AppNavigation />
-              {DevRoleCheatMenu ? <DevRoleCheatMenu /> : null}
-            </View>
-          </WalletProvider>
-        </UserRoleProvider>
+        <AppLaunchGate>
+          <UserRoleProvider>
+            <WalletProvider>
+              <View style={styles.root}>
+                <EmergencyOverlayBootstrap />
+                <AppNavigation />
+                {DevRoleCheatMenu ? <DevRoleCheatMenu /> : null}
+              </View>
+            </WalletProvider>
+          </UserRoleProvider>
+        </AppLaunchGate>
       </AuthProvider>
     </QueryClientProvider>
   );
@@ -78,7 +91,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: APP_COLORS.background,
   },
   root: {
     flex: 1,

@@ -1,5 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { APP_COLORS } from '@/constants/appTheme';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
 
@@ -11,10 +12,8 @@ export type HospitalTabParamList = {
 
 const Tab = createBottomTabNavigator<HospitalTabParamList>();
 
-type TabIconName = keyof typeof Ionicons.glyphMap;
-
-function TabBarIcon({ name, color }: { name: TabIconName; color: string }) {
-  return <Ionicons name={name} size={24} color={color} />;
+function TabBarIcon({ name, color }: { name: AppIconName; color: string }) {
+  return <AppIcon name={name} size={24} color={color} />;
 }
 
 const HospitalDashboardScreen = createDeferredScreen(
@@ -25,10 +24,10 @@ const RewardsScreen = createDeferredScreen(() => require('@/screens/RewardsScree
 
 export function HospitalTabNavigator() {
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
-    activeTintColor: '#1d4ed8',
-    inactiveTintColor: '#94a3b8',
-    backgroundColor: '#ffffff',
-    borderTopColor: '#e2e8f0',
+    activeTintColor: APP_COLORS.blue,
+    inactiveTintColor: APP_COLORS.tabInactive,
+    backgroundColor: APP_COLORS.surface,
+    borderTopColor: APP_COLORS.border,
     labelFontSize: 11,
   });
 
@@ -45,7 +44,7 @@ export function HospitalTabNavigator() {
         component={HospitalDashboardScreen}
         options={{
           tabBarLabel: '관제',
-          tabBarIcon: ({ color }) => <TabBarIcon name="medical-outline" color={color} />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="hospital-box-outline" color={color} />,
         }}
       />
       <Tab.Screen

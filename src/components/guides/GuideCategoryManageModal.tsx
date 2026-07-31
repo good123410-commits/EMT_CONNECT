@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -67,13 +67,13 @@ export function GuideCategoryManageModal({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable className="flex-1 justify-end bg-black/40" onPress={onClose}>
         <Pressable
-          className="max-h-[70%] rounded-t-3xl bg-white"
+          className="max-h-[70%] rounded-t-3xl bg-kemix-surface"
           style={{ paddingBottom: insets.bottom + 16 }}
           onPress={(event) => event.stopPropagation()}
         >
-          <View className="border-b border-slate-200 px-4 py-4">
-            <Text className="text-center text-base font-bold text-slate-900">분류 관리</Text>
-            <Text className="mt-1 text-center text-xs text-slate-500">
+          <View className="border-b border-kemix-border px-4 py-4">
+            <Text className="text-center text-base font-bold text-kemix-text">분류 관리</Text>
+            <Text className="mt-1 text-center text-xs text-kemix-text-secondary">
               글이 없는 분류만 삭제할 수 있습니다
             </Text>
           </View>
@@ -87,14 +87,14 @@ export function GuideCategoryManageModal({
               return (
                 <View
                   key={category.id}
-                  className="flex-row items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
+                  className="flex-row items-center rounded-xl border border-kemix-border bg-kemix-bg px-3 py-3"
                 >
-                  <View className="mr-3 rounded-lg bg-white p-2">
+                  <View className="mr-3 rounded-lg bg-kemix-surface p-2">
                     <Ionicons name={iconName} size={18} color="#dc2626" />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-slate-900">{category.name}</Text>
-                    <Text className="text-xs text-slate-500">
+                    <Text className="text-sm font-semibold text-kemix-text">{category.name}</Text>
+                    <Text className="text-xs text-kemix-text-secondary">
                       {canDelete ? '삭제 가능' : '자동 표시 분류'}
                     </Text>
                   </View>
@@ -116,11 +116,11 @@ export function GuideCategoryManageModal({
               );
             })}
             {categories.length === 0 ? (
-              <Text className="py-8 text-center text-sm text-slate-500">등록된 분류가 없습니다.</Text>
+              <Text className="py-8 text-center text-sm text-kemix-text-secondary">등록된 분류가 없습니다.</Text>
             ) : null}
           </ScrollView>
 
-          <View className="border-t border-slate-200 px-4 pt-3">
+          <View className="border-t border-kemix-border px-4 pt-3">
             <Pressable className="items-center rounded-xl bg-slate-900 py-3" onPress={onClose}>
               <Text className="text-sm font-bold text-white">닫기</Text>
             </Pressable>

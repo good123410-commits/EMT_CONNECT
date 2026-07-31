@@ -151,14 +151,63 @@ function sigunguMatches(recordSigungu: string, querySigungu: string): boolean {
   return recordKey === queryKey || recordKey.includes(queryKey) || queryKey.includes(recordKey);
 }
 
-function matchesRegionQuery(record: PrivateAmbulanceRecord, query: PrivateAmbulanceRegionQuery): boolean {
-  if (!query.sido && !query.sigungu) return true;
+function recordCoversSigungu(record: PrivateAmbulanceRecord, querySigungu: string): boolean {
+  const queryKey = normalizeFacilityName(querySigungu);
+  if (!queryKey) return false;
+  const hay = normalizeFacilityName(`${record.r} ${record.a} ${record.sg}`);
+  const recordKey = normalizeFacilityName(record.sg);
+  if (recordKey === queryKey || recordKey.includes(queryKey) || queryKey.includes(recordKey)) {
+    return true;
+  }
+  return hay.includes(queryKey);
+}
+
+/** 출발지 매칭 우선순위 — 0: 동일 시군구, 1: 서비스 지역 텍스트 커버, 2: 동일 시도(인접) */
+function departureMatchTier(
+  record: PrivateAmbulanceRecord,
+  departure: PrivateAmbulanceRegionQuery,
+): number | null {
+  const hasSido = Boolean(departure.sido.trim());
+  const hasSigungu = Boolean(departure.sigungu.trim());
+  if (!hasSido && !hasSigungu) return null;
 
   const recordSido = normalizeSidoShort(record.sd);
-  const querySido = normalizeSidoShort(query.sido);
-  if (querySido && recordSido !== querySido) return false;
-  if (query.sigungu) return sigunguMatches(record.sg, query.sigungu);
-  return true;
+  const querySido = normalizeSidoShort(departure.sido);
+
+  if (hasSido && querySido && recordSido !== querySido) return null;
+
+  if (!hasSigungu) {
+    return hasSido ? 0 : null;
+  }
+
+  if (sigunguMatches(record.sg, departure.sigungu)) return 0;
+  if (recordCoversSigungu(record, departure.sigungu)) return 1;
+  if (hasSido && querySido && recordSido === querySido) return 2;
+
+  return null;
+}
+
+function sortByDeparturePriority(
+  items: PrivateAmbulanceListItem[],
+  departure: PrivateAmbulanceRegionQuery,
+): PrivateAmbulanceListItem[] {
+  const scored = items
+    .map((item) => ({ item, tier: departureMatchTier(item, departure) }))
+    .filter((entry) => entry.tier !== null);
+
+  scored.sort((a, b) => {
+    const tierDiff = (a.tier as number) - (b.tier as number);
+    if (tierDiff !== 0) return tierDiff;
+
+    const distA = a.item.distanceM;
+    const distB = b.item.distanceM;
+    if (distA != null && distB != null) return distA - distB;
+    if (distA != null) return -1;
+    if (distB != null) return 1;
+    return a.item.n.localeCompare(b.item.n, 'ko');
+  });
+
+  return scored.map((entry) => entry.item);
 }
 
 function withDistance(
@@ -214,30 +263,20 @@ export function listNearbyPrivateAmbulances(
   return sortByProximity(withDistance(pool, coordinate)).slice(0, limit);
 }
 
-/** 출발지·목적지 지역 필터 검색 */
+/** 출발지(시·도·시군구) 기준 검색 — 동일·커버·인접(동일 시도) 순 */
 export function searchPrivateAmbulances(
-  query: PrivateAmbulanceSearchQuery,
+  departure: PrivateAmbulanceSearchQuery,
   coordinate?: GeoCoordinate,
   limit = 60,
 ): PrivateAmbulanceListItem[] {
   void ensurePrivateAmbulanceDbHydrated();
-  const { departure, destination } = query;
-  const hasDeparture = Boolean(departure.sido || departure.sigungu);
-  const hasDestination = Boolean(destination.sido || destination.sigungu);
 
-  let filtered = getRecords();
-
-  if (hasDeparture || hasDestination) {
-    filtered = filtered.filter((record) => {
-      const depMatch = hasDeparture ? matchesRegionQuery(record, departure) : false;
-      const destMatch = hasDestination ? matchesRegionQuery(record, destination) : false;
-      if (hasDeparture && hasDestination) return depMatch || destMatch;
-      if (hasDeparture) return depMatch;
-      return destMatch;
-    });
+  if (!departure.sido.trim() && !departure.sigungu.trim()) {
+    return [];
   }
 
-  return sortByProximity(withDistance(filtered, coordinate)).slice(0, limit);
+  const all = withDistance(getRecords(), coordinate);
+  return sortByDeparturePriority(all, departure).slice(0, limit);
 }
 
 export function formatAmbulancePhone(phone: string): string {
@@ -256,12 +295,6 @@ export function phoneDialUri(phone: string): string | null {
   if (digits.length < 8) return null;
   return `tel:${digits}`;
 }
-
-export const PRIVATE_AMBULANCE_DISCLAIMER =
-  '※ 본 서비스는 사설 구급차 업체 정보를 제공합니다. 실제 연결 시 \'EMS Connect에서 연결된 요청\'임을 언급하면 원활한 상담이 가능합니다.';
-
-export const PRIVATE_AMBULANCE_CALL_GUIDE =
-  'EMS Connect를 통해 연결된 구급차 요청건임을 밝히고 상담을 시작하세요.';
 
 export type AdminPrivateAmbulanceCatalogItem = AdminPrivateAmbulance & {
   source: 'bundled' | 'database';

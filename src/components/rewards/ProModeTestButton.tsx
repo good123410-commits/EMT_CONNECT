@@ -1,9 +1,9 @@
-import { Pressable, Text, View } from 'react-native';
+﻿import { Pressable, Text, View } from 'react-native';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import type { UserRole } from '@/lib/supabaseClient';
 import { getRoleLabel } from '@/utils/roleAccess';
 
-const TEST_ROLES: UserRole[] = ['user', 'paramedic', 'hospital', 'private_ems'];
+const TEST_ROLES: UserRole[] = ['user', 'associate_member', 'regular_member', 'admin'];
 
 /** @deprecated DevRoleCheatMenu(플로팅 FAB)로 대체됨 */
 export function ProModeTestButton() {
@@ -17,10 +17,10 @@ export function ProModeTestButton() {
 
   return (
     <Pressable
-      className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3"
+      className="rounded-xl border border-dashed border-kemix-border bg-kemix-bg px-4 py-3"
       onPress={cycleRole}
     >
-      <Text className="text-xs text-slate-500">
+      <Text className="text-xs text-kemix-text-secondary">
         (구) 역할 순환 — 상단 DEV 바를 사용하세요 · 현재: {getRoleLabel(role)}
       </Text>
     </Pressable>

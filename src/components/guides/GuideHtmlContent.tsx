@@ -1,4 +1,4 @@
-import { Platform, Image, Text, View } from 'react-native';
+﻿import { Platform, Image, Text, View } from 'react-native';
 import { GuideRichTextBlock } from '@/components/guides/GuideRichTextBlock';
 import { parseGuideContent } from '@/utils/guideContentFormat';
 import { splitGuideHtmlSegments } from '@/utils/guideHtmlSegments';
@@ -12,7 +12,7 @@ export function GuideHtmlContent({ content }: GuideHtmlContentProps) {
   const trimmed = body.trim();
 
   if (!trimmed) {
-    return <Text className="text-sm text-slate-500">본문이 없습니다.</Text>;
+    return <Text className="text-sm text-kemix-text-secondary">본문이 없습니다.</Text>;
   }
 
   const isHtml = /<[a-z][\s\S]*>/i.test(trimmed);
@@ -28,7 +28,7 @@ export function GuideHtmlContent({ content }: GuideHtmlContentProps) {
 
   if (!isHtml) {
     return (
-      <Text className="text-sm leading-7 text-slate-800" selectable>
+      <Text className="text-sm leading-7 text-kemix-text" selectable>
         {trimmed.split(/\n\n+/).join('\n\n')}
       </Text>
     );

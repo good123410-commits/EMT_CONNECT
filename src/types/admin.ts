@@ -133,9 +133,9 @@ export type AdminDashboardTab =
   | 'users'
   | 'auth'
   | 'content'
+  | 'home'
   | 'moderation'
   | 'chat'
   | 'questions'
   | 'ambulance'
-  | 'hospitals'
-  | 'blog';
+  | 'hospitals';

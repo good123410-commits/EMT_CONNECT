@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
@@ -93,7 +93,7 @@ export function SignUpScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-kemix-surface">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -101,16 +101,16 @@ export function SignUpScreen({ navigation }: Props) {
         <ScrollView contentContainerClassName="px-6 py-8" keyboardShouldPersistTaps="handled">
           <Pressable className="mb-6 flex-row items-center" onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={22} color="#0f172a" />
-            <Text className="ml-2 font-semibold text-slate-900">로그인으로</Text>
+            <Text className="ml-2 font-semibold text-kemix-text">로그인으로</Text>
           </Pressable>
 
           <View className="mb-6 items-center">
             <View className="mb-3 flex-row items-end gap-2">
-              <Text className="text-2xl font-black tracking-tight text-slate-900">{BRAND_NAME}</Text>
+              <Text className="text-2xl font-black tracking-tight text-kemix-text">{BRAND_NAME}</Text>
               <Text className="pb-0.5 text-sm font-semibold text-emerald-700">{BRAND_NAME_KO}</Text>
             </View>
-            <Text className="text-center text-xl font-bold text-slate-900">회원가입</Text>
-            <Text className="mt-2 text-center text-sm text-slate-500">
+            <Text className="text-center text-xl font-bold text-kemix-text">회원가입</Text>
+            <Text className="mt-2 text-center text-sm text-kemix-text-secondary">
               이메일과 비밀번호로 KEMIX 계정을 만듭니다.
             </Text>
           </View>
@@ -119,18 +119,18 @@ export function SignUpScreen({ navigation }: Props) {
 
           <AuthDivider />
 
-          <Text className="mb-1 text-sm font-medium text-slate-700">이름</Text>
+          <Text className="mb-1 text-sm font-medium text-kemix-text">이름</Text>
           <TextInput
-            className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+            className="mb-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base"
             value={name}
             onChangeText={setName}
             placeholder="홍길동"
             placeholderTextColor="#94a3b8"
           />
 
-          <Text className="mb-1 text-sm font-medium text-slate-700">전화번호 (휴대폰 번호)</Text>
+          <Text className="mb-1 text-sm font-medium text-kemix-text">전화번호 (휴대폰 번호)</Text>
           <TextInput
-            className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+            className="mb-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base"
             value={phone}
             onChangeText={setPhone}
             placeholder="01012345678"
@@ -138,9 +138,9 @@ export function SignUpScreen({ navigation }: Props) {
             keyboardType="phone-pad"
           />
 
-          <Text className="mb-1 text-sm font-medium text-slate-700">이메일</Text>
+          <Text className="mb-1 text-sm font-medium text-kemix-text">이메일</Text>
           <TextInput
-            className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+            className="mb-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base"
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
@@ -149,9 +149,9 @@ export function SignUpScreen({ navigation }: Props) {
             autoCapitalize="none"
           />
 
-          <Text className="mb-1 text-sm font-medium text-slate-700">비밀번호</Text>
+          <Text className="mb-1 text-sm font-medium text-kemix-text">비밀번호</Text>
           <TextInput
-            className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+            className="mb-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base"
             value={password}
             onChangeText={setPassword}
             placeholder="8자 이상"
@@ -159,9 +159,9 @@ export function SignUpScreen({ navigation }: Props) {
             secureTextEntry
           />
 
-          <Text className="mb-1 text-sm font-medium text-slate-700">비밀번호 확인</Text>
+          <Text className="mb-1 text-sm font-medium text-kemix-text">비밀번호 확인</Text>
           <TextInput
-            className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+            className="mb-4 rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base"
             value={confirm}
             onChangeText={setConfirm}
             placeholder="비밀번호 재입력"
@@ -169,7 +169,7 @@ export function SignUpScreen({ navigation }: Props) {
             secureTextEntry
           />
 
-          <Text className="mb-4 text-xs leading-5 text-slate-500">
+          <Text className="mb-4 text-xs leading-5 text-kemix-text-secondary">
             가입 후 커뮤니티용 별명은 프로필 설정에서 등록할 수 있습니다.
           </Text>
 

@@ -3,7 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import {
   canAccessAdminDashboard,
-  canAccessExpertAnswerInbox,
   canAccessIntegratedAdminDashboard,
   canAccessOpsAdminPortal,
   isApprovedDbAdmin,
@@ -22,15 +21,10 @@ export function useExpertSettingsAccess() {
       role,
       isApproved,
       opsAdminVerified,
-      canOpenAnswerInbox: canAccessExpertAnswerInbox(role, isApproved, opsAdminVerified),
       canOpenAdminDashboard: canAccessIntegratedAdminDashboard(role, isApproved, opsAdminVerified),
       canOpenOpsAdminPortal: canAccessOpsAdminPortal(role, isApproved, opsAdminVerified),
       canOpenQaDashboard: canAccessAdminDashboard(role, isApproved, opsAdminVerified),
       isDbAdmin: isApprovedDbAdmin(role, isApproved),
-      showExpertSettingsMenu:
-        canAccessExpertAnswerInbox(role, isApproved, opsAdminVerified) ||
-        canAccessIntegratedAdminDashboard(role, isApproved, opsAdminVerified) ||
-        canAccessOpsAdminPortal(role, isApproved, opsAdminVerified),
     }),
     [role, isApproved, opsAdminVerified],
   );

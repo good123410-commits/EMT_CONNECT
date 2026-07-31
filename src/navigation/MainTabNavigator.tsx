@@ -1,12 +1,15 @@
-import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
+import { APP_ICON_SIZE } from '@/constants/appTheme';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
+import { useMainTabBarConfig } from '@/navigation/mainTabBarOptions';
 
 export type MainTabParamList = {
   Home: undefined;
+  Guide: undefined;
   Chemical: undefined;
-  Map: undefined;
+  Map: { initialTab?: 'aed' | 'er' | 'pharmacy' | 'pediatric' } | undefined;
   EmsCall: undefined;
   Paramedic: undefined;
   Settings: undefined;
@@ -17,13 +20,43 @@ export type PublicTabParamList = MainTabParamList;
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-type TabIconName = keyof typeof Ionicons.glyphMap;
+type TabIconConfig = {
+  active: AppIconName;
+  inactive: AppIconName;
+};
 
-function TabBarIcon({ name, color }: { name: TabIconName; color: string }) {
-  return <Ionicons name={name} size={24} color={color} />;
+function TabBarIcon({
+  config,
+  color,
+  focused,
+}: {
+  config: TabIconConfig;
+  color: string;
+  focused: boolean;
+}) {
+  return (
+    <AppIcon
+      name={focused ? config.active : config.inactive}
+      size={focused ? APP_ICON_SIZE.tab : APP_ICON_SIZE.md}
+      color={color}
+    />
+  );
 }
 
+const TAB_ICONS: Record<string, TabIconConfig> = {
+  Home: { active: 'home', inactive: 'home-outline' },
+  Guide: { active: 'medical-bag', inactive: 'medical-bag' },
+  Chemical: { active: 'flask', inactive: 'flask-outline' },
+  Map: { active: 'map', inactive: 'map-outline' },
+  EmsCall: { active: 'car', inactive: 'car-outline' },
+  Paramedic: { active: 'account-group', inactive: 'account-group-outline' },
+  Settings: { active: 'cog', inactive: 'cog-outline' },
+};
+
 const HomeScreen = createDeferredScreen(() => require('@/screens/HomeScreen').HomeScreen);
+const EmergencyGuideScreen = createDeferredScreen(
+  () => require('@/screens/EmergencyGuideScreen').EmergencyGuideScreen,
+);
 const ChemicalScreen = createDeferredScreen(() => require('@/screens/ChemicalScreen').ChemicalScreen);
 const MapScreen = createDeferredScreen(() => require('@/screens/MapScreen').MapScreen);
 const PrivateEmsCallScreen = createDeferredScreen(
@@ -36,35 +69,35 @@ const ParamedicGateScreen = createDeferredScreen(
   () => require('@/screens/ParamedicGateScreen').ParamedicGateScreen,
 );
 
-/*
- * v1 스토어 심사: 리워드·히든 통합 탭 제거 → EMS 커뮤니티 탭 + 승인 게이트(ParamedicGateScreen)
- * 병원관계자 채널: ExpertModeNavigator에서 주석 처리
- * 구 설문/후원·공동구매 탭은 제거 — 외부 웹 링크만 자료실에서 제공
- *
- * <Tab.Screen name="Rewards" component={RewardsScreen} ... />
- * <Tab.Screen name="Hidden" component={HiddenChannelEntryScreen} ... />
- */
-
 export function MainTabNavigator() {
+  const { screenOptions, safeAreaInsets } = useMainTabBarConfig();
+
   return (
     <Tab.Navigator
+      safeAreaInsets={safeAreaInsets}
       screenOptions={{
+        ...screenOptions,
         lazy: true,
-        headerShown: false,
-        tabBarActiveTintColor: '#0f172a',
-        tabBarInactiveTintColor: '#94a3b8',
-        tabBarStyle: {
-          borderTopColor: '#e2e8f0',
-          backgroundColor: '#ffffff',
-        },
       }}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
-          tabBarLabel: '가이드',
-          tabBarIcon: ({ color }) => <TabBarIcon name="medkit-outline" color={color} />,
+          tabBarLabel: '홈',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon config={TAB_ICONS.Home} color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Guide"
+        component={EmergencyGuideScreen}
+        options={{
+          tabBarLabel: '응급 가이드',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon config={TAB_ICONS.Guide} color={color} focused={focused} />
+          ),
         }}
       />
       <Tab.Screen
@@ -72,7 +105,9 @@ export function MainTabNavigator() {
         component={ChemicalScreen}
         options={{
           tabBarLabel: '약물/화학',
-          tabBarIcon: ({ color }) => <TabBarIcon name="flask-outline" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon config={TAB_ICONS.Chemical} color={color} focused={focused} />
+          ),
         }}
       />
       <Tab.Screen
@@ -80,7 +115,9 @@ export function MainTabNavigator() {
         component={MapScreen}
         options={{
           tabBarLabel: '지도',
-          tabBarIcon: ({ color }) => <TabBarIcon name="map-outline" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon config={TAB_ICONS.Map} color={color} focused={focused} />
+          ),
         }}
       />
       <Tab.Screen
@@ -88,7 +125,9 @@ export function MainTabNavigator() {
         component={PrivateEmsCallScreen}
         options={{
           tabBarLabel: '민간 구급차',
-          tabBarIcon: ({ color }) => <TabBarIcon name="car-outline" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon config={TAB_ICONS.EmsCall} color={color} focused={focused} />
+          ),
         }}
       />
       <Tab.Screen
@@ -96,8 +135,9 @@ export function MainTabNavigator() {
         component={ParamedicGateScreen}
         options={{
           tabBarLabel: EMS_COMMUNITY_TAB_LABEL,
-          tabBarIcon: ({ color }) => <TabBarIcon name="people-outline" color={color} />,
-          tabBarActiveTintColor: '#15803d',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon config={TAB_ICONS.Paramedic} color={color} focused={focused} />
+          ),
         }}
       />
       <Tab.Screen
@@ -105,7 +145,9 @@ export function MainTabNavigator() {
         component={SettingsStackNavigator}
         options={{
           tabBarLabel: '설정',
-          tabBarIcon: ({ color }) => <TabBarIcon name="settings-outline" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon config={TAB_ICONS.Settings} color={color} focused={focused} />
+          ),
         }}
       />
     </Tab.Navigator>

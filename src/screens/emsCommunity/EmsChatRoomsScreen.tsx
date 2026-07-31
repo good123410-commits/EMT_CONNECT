@@ -15,7 +15,19 @@ import {
 } from 'react-native';
 import { AdminFormField } from '@/components/admin/AdminFormField';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
+import {
+  LoungeAnonymousBadge,
+  LoungeBody,
+  LoungeCard,
+  LoungeErrorBanner,
+  LoungeFilterPill,
+  LoungeMetaText,
+  LoungePrimaryButton,
+  LoungeScreen,
+  loungeListContent,
+} from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
+import { EMS_LOUNGE, EMS_LOUNGE_SHADOW, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import type { ChatMessage } from '@/data/paramedicMockData';
 import { useExpertSettingsAccess } from '@/hooks/useExpertSettingsAccess';
@@ -31,13 +43,15 @@ const EMPTY_ROOM_FORM = {
 
 function ChatBubble({ message }: { message: ChatMessage }) {
   return (
-    <View className="mb-3 rounded-2xl border border-slate-200 bg-white p-4">
+    <LoungeCard>
       <View className="flex-row items-center justify-between">
-        <Text className="text-sm font-bold text-slate-800">{message.anonymousLabel}</Text>
-        <Text className="text-xs text-slate-400">{message.postedAt}</Text>
+        <LoungeAnonymousBadge label={message.anonymousLabel} />
+        <LoungeMetaText>{message.postedAt}</LoungeMetaText>
       </View>
-      <Text className="mt-2 text-sm leading-6 text-slate-700">{message.content}</Text>
-      <View className="mt-3 flex-row justify-end border-t border-slate-100 pt-2">
+      <View className="mt-3">
+        <LoungeBody>{message.content}</LoungeBody>
+      </View>
+      <View className="mt-3 flex-row justify-end">
         <ReportContentButton
           contentId={message.id}
           contentType="chat"
@@ -45,7 +59,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
           compact
         />
       </View>
-    </View>
+    </LoungeCard>
   );
 }
 
@@ -59,14 +73,7 @@ function RoomTab({
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      className={`rounded-xl px-4 py-2 ${active ? 'bg-green-700' : 'bg-slate-100'}`}
-    >
-      <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-slate-600'}`}>
-        {room.roomName}
-      </Text>
-    </Pressable>
+    <LoungeFilterPill label={room.roomName} active={active} onPress={onPress} />
   );
 }
 
@@ -170,15 +177,30 @@ export function EmsChatRoomsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-100">
-      <ParamedicHeader subtitle="소통창구 · 동적 챗방" />
+    <LoungeScreen>
+      <ParamedicHeader />
 
-      <View className="border-b border-slate-200 bg-white px-2 py-2">
-        <View className="flex-row items-center justify-between px-2 pb-2">
-          <Text className="text-xs font-semibold text-slate-500">채팅방 선택</Text>
+      <View
+        style={{
+          paddingHorizontal: EMS_LOUNGE_SPACING.screen,
+          paddingTop: EMS_LOUNGE_SPACING.screenTop,
+          paddingBottom: 12,
+        }}
+      >
+        <View className="flex-row items-center justify-between pb-3">
+          <Text
+            style={{
+              fontFamily: 'Pretendard-SemiBold',
+              fontSize: 12,
+              color: EMS_LOUNGE.textMuted,
+            }}
+          >
+            채팅방 선택
+          </Text>
           {canManageRooms ? (
             <Pressable
-              className="h-8 w-8 items-center justify-center rounded-full bg-green-700"
+              className="h-9 w-9 items-center justify-center rounded-full active:opacity-90"
+              style={{ backgroundColor: EMS_LOUNGE.navy, ...EMS_LOUNGE_SHADOW.cardSoft }}
               onPress={() => setFormVisible(true)}
             >
               <Ionicons name="add" size={20} color="#fff" />
@@ -186,9 +208,16 @@ export function EmsChatRoomsScreen() {
           ) : null}
         </View>
         {chatRoomsLoading ? (
-          <ActivityIndicator color="#15803d" className="py-3" />
+          <ActivityIndicator color={EMS_LOUNGE.navy} className="py-3" />
         ) : chatRooms.length === 0 ? (
-          <Text className="px-3 py-3 text-sm text-slate-500">
+          <Text
+            style={{
+              fontFamily: 'Pretendard',
+              fontSize: 14,
+              color: EMS_LOUNGE.textSecondary,
+              paddingVertical: 8,
+            }}
+          >
             열린 채팅방이 없습니다.{canManageRooms ? ' + 버튼으로 생성해 주세요.' : ''}
           </Text>
         ) : (
@@ -197,7 +226,7 @@ export function EmsChatRoomsScreen() {
             data={chatRooms}
             keyExtractor={(item) => item.id}
             showsHorizontalScrollIndicator={false}
-            contentContainerClassName="gap-2 px-2"
+            contentContainerStyle={{ gap: 8 }}
             renderItem={({ item }) => (
               <RoomTab
                 room={item}
@@ -208,7 +237,14 @@ export function EmsChatRoomsScreen() {
           />
         )}
         {selectedRoom ? (
-          <Text className="px-3 pb-1 text-xs text-slate-500">
+          <Text
+            style={{
+              marginTop: 8,
+              fontFamily: 'Pretendard',
+              fontSize: 12,
+              color: EMS_LOUNGE.textMuted,
+            }}
+          >
             {[selectedRoom.region, selectedRoom.category].filter(Boolean).join(' · ') ||
               selectedRoom.description ||
               '익명 소통'}
@@ -225,48 +261,88 @@ export function EmsChatRoomsScreen() {
         <FlatList
           data={roomMessages}
           keyExtractor={(item) => item.id}
-          contentContainerClassName="p-4 pb-4"
-          ListHeaderComponent={
-            error ? (
-              <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
-                <Text className="text-sm text-red-700">{error}</Text>
-              </View>
-            ) : null
-          }
+          contentContainerStyle={loungeListContent}
+          ListHeaderComponent={error ? <LoungeErrorBanner message={error} /> : null}
           ListEmptyComponent={
             !roomId ? (
               <View className="items-center py-16">
-                <Ionicons name="chatbubbles-outline" size={40} color="#94a3b8" />
-                <Text className="mt-3 text-sm text-slate-500">채팅방을 선택해 주세요</Text>
+                <Ionicons name="chatbubbles-outline" size={40} color={EMS_LOUNGE.textMuted} />
+                <Text
+                  style={{
+                    marginTop: 12,
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    color: EMS_LOUNGE.textSecondary,
+                  }}
+                >
+                  채팅방을 선택해 주세요
+                </Text>
               </View>
             ) : loading ? (
               <View className="items-center py-16">
-                <ActivityIndicator color="#15803d" />
+                <ActivityIndicator color={EMS_LOUNGE.navy} />
               </View>
             ) : (
               <View className="items-center py-16">
-                <Ionicons name="chatbubbles-outline" size={40} color="#94a3b8" />
-                <Text className="mt-3 text-sm text-slate-500">아직 메시지가 없습니다</Text>
+                <Ionicons name="chatbubbles-outline" size={40} color={EMS_LOUNGE.textMuted} />
+                <Text
+                  style={{
+                    marginTop: 12,
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    color: EMS_LOUNGE.textSecondary,
+                  }}
+                >
+                  아직 메시지가 없습니다
+                </Text>
               </View>
             )
           }
           renderItem={({ item }) => <ChatBubble message={item} />}
         />
 
-        <View className="border-t border-slate-200 bg-white px-4 py-3">
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: EMS_LOUNGE.border,
+            backgroundColor: EMS_LOUNGE.surface,
+            paddingHorizontal: EMS_LOUNGE_SPACING.screen,
+            paddingVertical: 12,
+          }}
+        >
           <View className="flex-row items-end gap-2">
             <TextInput
-              className="max-h-24 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              style={{
+                maxHeight: 96,
+                flex: 1,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: EMS_LOUNGE.border,
+                backgroundColor: EMS_LOUNGE.background,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                fontFamily: 'Pretendard',
+                fontSize: 14,
+                color: EMS_LOUNGE.text,
+              }}
               placeholder={
                 roomId ? '익명 메시지 (개인정보·비방 금지)' : '채팅방을 먼저 선택해 주세요'
               }
+              placeholderTextColor={EMS_LOUNGE.textMuted}
               value={draft}
               onChangeText={setDraft}
               multiline
               editable={Boolean(roomId)}
             />
             <Pressable
-              className={`rounded-xl px-4 py-3 ${roomId ? 'bg-green-700' : 'bg-slate-300'}`}
+              className="active:opacity-90"
+              style={{
+                borderRadius: 14,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: roomId ? EMS_LOUNGE.navy : EMS_LOUNGE.border,
+                ...EMS_LOUNGE_SHADOW.cardSoft,
+              }}
               disabled={!roomId}
               onPress={() => void handleSend()}
             >
@@ -278,11 +354,21 @@ export function EmsChatRoomsScreen() {
 
       <Modal visible={formVisible} animationType="slide" onRequestClose={() => setFormVisible(false)}>
         <KeyboardAvoidingView
-          className="flex-1 bg-slate-50"
+          className="flex-1"
+          style={{ backgroundColor: EMS_LOUNGE.background }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView contentContainerClassName="p-4 pb-10">
-            <Text className="mb-4 text-lg font-bold text-slate-900">새 채팅방 만들기</Text>
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+            <Text
+              style={{
+                marginBottom: 16,
+                fontFamily: 'Pretendard-Bold',
+                fontSize: 18,
+                color: EMS_LOUNGE.navy,
+              }}
+            >
+              새 채팅방 만들기
+            </Text>
             <AdminFormField
               label="방 이름"
               value={form.roomName}
@@ -308,19 +394,24 @@ export function EmsChatRoomsScreen() {
               placeholder="채팅방 안내 문구"
               multiline
             />
-            <Pressable
-              className={`items-center rounded-xl py-3 ${submitting ? 'bg-green-300' : 'bg-green-700'}`}
-              disabled={submitting}
+            <LoungePrimaryButton
+              label={submitting ? '생성 중...' : '채팅방 생성'}
               onPress={() => void handleCreateRoom()}
-            >
-              <Text className="font-bold text-white">{submitting ? '생성 중...' : '채팅방 생성'}</Text>
-            </Pressable>
+            />
             <Pressable className="mt-3 items-center py-2" onPress={() => setFormVisible(false)}>
-              <Text className="font-semibold text-slate-500">취소</Text>
+              <Text
+                style={{
+                  fontFamily: 'Pretendard-SemiBold',
+                  fontSize: 14,
+                  color: EMS_LOUNGE.textMuted,
+                }}
+              >
+                취소
+              </Text>
             </Pressable>
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </LoungeScreen>
   );
 }

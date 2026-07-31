@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ADMIN_ROLE_OPTIONS, getRoleLabel, LEGACY_ROLE_OPTIONS, MEMBERSHIP_ROLES } from '../../constants/roles';
+import { USER_ROLES, getRoleLabel, normalizeUserRole } from '../../constants/roles';
 import { useToast } from '../../contexts/ToastContext';
 import {
   adminListPendingVerifications,
@@ -15,6 +15,8 @@ import type { AdminUserRow, UserRole } from '../../types';
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('ko-KR');
 }
+
+const MEMBER_TIER_ROLES: UserRole[] = ['associate_member', 'regular_member'];
 
 export function AdminUsersPanel() {
   const { showToast } = useToast();
@@ -108,8 +110,8 @@ export function AdminUsersPanel() {
     <section className="admin-panel">
       <h2>유저 관리</h2>
       <p className="muted">
-        가입 유저의 등급(일반 · 준회원 · 정회원 · 관리자)과 회비 납부 상태를 관리합니다. 구급대원
-        비밀코드 인증 요청은 아래에서 승인할 수 있습니다.
+        회원 등급은 관리자 · 정회원(투표권) · 준회원(인증·회비 미납) · 일반회원 4단계입니다. 회비
+        납부 체크 시 정회원으로 즉시 승격됩니다.
       </p>
 
       {pendingVerifications.length > 0 ? (
@@ -193,7 +195,9 @@ export function AdminUsersPanel() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const normalizedRole = normalizeUserRole(row.role);
+              return (
               <tr key={row.id} className={row.is_blocked ? 'admin-row--inactive' : ''}>
                 <td>{row.email ?? '-'}</td>
                 <td>{row.name ?? '-'}</td>
@@ -201,45 +205,28 @@ export function AdminUsersPanel() {
                 <td>
                   <select
                     className="modal-input admin-role-select"
-                    value={row.role}
+                    value={normalizedRole}
                     disabled={savingId === row.id}
                     onChange={(e) => void handleRoleChange(row.id, e.target.value as UserRole)}
                   >
-                    <optgroup label="회원 등급">
-                      {MEMBERSHIP_ROLES.map((role) => (
-                        <option key={role} value={role}>
-                          {getRoleLabel(role)}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="관리자">
-                      {ADMIN_ROLE_OPTIONS.map((role) => (
-                        <option key={role} value={role}>
-                          {getRoleLabel(role)}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="직군(레거시)">
-                      {LEGACY_ROLE_OPTIONS.map((role) => (
-                        <option key={role} value={role}>
-                          {getRoleLabel(role)}
-                        </option>
-                      ))}
-                    </optgroup>
+                    {USER_ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {getRoleLabel(role)}
+                      </option>
+                    ))}
                   </select>
                 </td>
                 <td>
                   <label className="admin-checkbox admin-checkbox--inline">
                     <input
                       type="checkbox"
-                      checked={Boolean(row.membership_dues_paid) || row.role === 'regular_member'}
+                      checked={Boolean(row.membership_dues_paid) || normalizedRole === 'regular_member'}
                       disabled={
-                        savingId === row.id ||
-                        !['associate_member', 'regular_member', 'paramedic'].includes(row.role)
+                        savingId === row.id || !MEMBER_TIER_ROLES.includes(normalizedRole)
                       }
                       onChange={(e) => void handleDuesChange(row.id, e.target.checked)}
                     />
-                    {row.membership_dues_paid || row.role === 'regular_member' ? '납부' : '미납'}
+                    {row.membership_dues_paid || normalizedRole === 'regular_member' ? '납부' : '미납'}
                   </label>
                 </td>
                 <td>
@@ -262,7 +249,8 @@ export function AdminUsersPanel() {
                   </button>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>

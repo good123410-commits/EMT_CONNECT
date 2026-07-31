@@ -6,15 +6,6 @@ export function isApprovedDbAdmin(role: UserRole, isApproved: boolean): boolean 
   return isAdminRole(role) && isApproved;
 }
 
-/** 설정 히든 메뉴 — 승인된 구급대원·관리자 */
-export function canAccessExpertAnswerInbox(
-  role: UserRole,
-  isApproved: boolean,
-  opsAdminVerified = false,
-): boolean {
-  return opsAdminVerified || canAccessParamedicSpace(role, isApproved);
-}
-
 /** Q&A 운영 대시보드 — 구급대원·관리자·운영코드 */
 export function canAccessAdminDashboard(
   role: UserRole,
@@ -24,7 +15,7 @@ export function canAccessAdminDashboard(
   return opsAdminVerified || canAccessParamedicSpace(role, isApproved);
 }
 
-/** 운영 비밀코드 포털 — Q&A·답변함·구급대원 공간 */
+/** 운영 비밀코드 포털 — Q&A·구급대원 공간 */
 export function canAccessOpsAdminPortal(
   role: UserRole,
   isApproved: boolean,

@@ -7,7 +7,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AuthStackScreen = createDeferredScreen(() => require('@/navigation/AuthStack').AuthStack);
 const MainTabScreen = createDeferredScreen(
-  () => require('@/navigation/MainTabNavigator').MainTabNavigator,
+  () => require('@/navigation/MainTabShell').MainTabShell,
+);
+const UtilitiesStackScreen = createDeferredScreen(
+  () => require('@/navigation/UtilitiesStackNavigator').UtilitiesStackNavigator,
 );
 const ExpertRouteScreen = createDeferredScreen(
   () => require('@/navigation/ExpertRouteScreen').ExpertRouteScreen,
@@ -23,6 +26,14 @@ export function RootNavigator() {
       <Stack.Screen name="Loading" component={LoadingScreen} />
       <Stack.Screen name="Auth" component={AuthStackScreen} />
       <Stack.Screen name="Main" component={MainTabScreen} />
+      <Stack.Screen
+        name="Utilities"
+        component={UtilitiesStackScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
       <Stack.Screen
         name="Expert"
         component={ExpertRouteScreen}

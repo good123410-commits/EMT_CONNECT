@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -141,7 +141,7 @@ export function AdminBlogPanel() {
 
   return (
     <View className="flex-1">
-      <Text className="mb-2 text-xs leading-5 text-slate-500">
+      <Text className="mb-2 text-xs leading-5 text-kemix-text-secondary">
         KEMIX 공식 홈페이지·앱 가이드 탭에 노출되는 생활 응급처치 블로그입니다. SEO 메타 태그를 설정하면
         웹 검색 노출에 도움이 됩니다.
       </Text>
@@ -154,8 +154,8 @@ export function AdminBlogPanel() {
       />
 
       <View className="mb-3 flex-row gap-2">
-        <Pressable className="flex-1 items-center rounded-xl bg-slate-200 py-2.5" onPress={() => void loadRows()}>
-          <Text className="text-sm font-bold text-slate-700">새로고침</Text>
+        <Pressable className="flex-1 items-center rounded-xl bg-kemix-elevated py-2.5" onPress={() => void loadRows()}>
+          <Text className="text-sm font-bold text-kemix-text">새로고침</Text>
         </Pressable>
         <Pressable className="flex-1 items-center rounded-xl bg-emerald-700 py-2.5" onPress={openCreate}>
           <Text className="text-sm font-bold text-white">+ 글 작성</Text>
@@ -172,25 +172,25 @@ export function AdminBlogPanel() {
           keyExtractor={(item) => item.id}
           contentContainerClassName="pb-6"
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-slate-500">등록된 글이 없습니다.</Text>
+            <Text className="py-8 text-center text-sm text-kemix-text-secondary">등록된 글이 없습니다.</Text>
           }
           renderItem={({ item }) => (
-            <View className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
+            <View className="mb-2 rounded-xl border border-kemix-border bg-kemix-surface p-3">
               <View className="flex-row items-start justify-between">
-                <Text className="flex-1 font-semibold text-slate-900">{item.title}</Text>
+                <Text className="flex-1 font-semibold text-kemix-text">{item.title}</Text>
                 <Text
                   className={`text-[10px] font-bold ${
-                    item.is_published ? 'text-emerald-700' : 'text-slate-500'
+                    item.is_published ? 'text-emerald-700' : 'text-kemix-text-secondary'
                   }`}
                 >
                   {item.is_published ? '공개' : '비공개'}
                 </Text>
               </View>
-              <Text className="mt-0.5 text-xs text-slate-500">/{item.slug}</Text>
-              <Text className="mt-1 text-[10px] text-slate-400">조회 {item.views}</Text>
+              <Text className="mt-0.5 text-xs text-kemix-text-secondary">/{item.slug}</Text>
+              <Text className="mt-1 text-[10px] text-kemix-muted">조회 {item.views}</Text>
               <View className="mt-2 flex-row gap-2">
-                <Pressable className="rounded-lg bg-slate-100 px-2.5 py-1" onPress={() => openEdit(item)}>
-                  <Text className="text-[11px] font-bold text-slate-700">수정</Text>
+                <Pressable className="rounded-lg bg-kemix-elevated px-2.5 py-1" onPress={() => openEdit(item)}>
+                  <Text className="text-[11px] font-bold text-kemix-text">수정</Text>
                 </Pressable>
                 <Pressable className="rounded-lg bg-red-100 px-2.5 py-1" onPress={() => setDeleteTarget(item)}>
                   <Text className="text-[11px] font-bold text-red-700">삭제</Text>
@@ -202,9 +202,9 @@ export function AdminBlogPanel() {
       )}
 
       <Modal visible={formVisible} animationType="slide" onRequestClose={() => setFormVisible(false)}>
-        <View className="flex-1 bg-slate-50">
+        <View className="flex-1 bg-kemix-bg">
           <ScrollView contentContainerClassName="p-4 pb-10">
-            <Text className="mb-4 text-lg font-bold text-slate-900">
+            <Text className="mb-4 text-lg font-bold text-kemix-text">
               {editingRow ? '블로그 글 수정' : '블로그 글 작성'}
             </Text>
 
@@ -238,8 +238,8 @@ export function AdminBlogPanel() {
               multiline
             />
 
-            <View className="mb-4 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-3">
-              <Text className="text-sm font-semibold text-slate-700">공개 (웹·앱 노출)</Text>
+            <View className="mb-4 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3">
+              <Text className="text-sm font-semibold text-kemix-text">공개 (웹·앱 노출)</Text>
               <Switch
                 value={form.isPublished}
                 onValueChange={(v) => setForm((p) => ({ ...p, isPublished: v }))}
@@ -248,10 +248,10 @@ export function AdminBlogPanel() {
 
             <View className="flex-row gap-2">
               <Pressable
-                className="flex-1 items-center rounded-xl bg-slate-200 py-3"
+                className="flex-1 items-center rounded-xl bg-kemix-elevated py-3"
                 onPress={() => setFormVisible(false)}
               >
-                <Text className="font-bold text-slate-700">취소</Text>
+                <Text className="font-bold text-kemix-text">취소</Text>
               </Pressable>
               <Pressable
                 className="flex-1 items-center rounded-xl bg-emerald-700 py-3"

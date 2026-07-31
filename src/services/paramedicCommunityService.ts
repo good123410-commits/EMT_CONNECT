@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabaseClient';
+import { normalizeUserRole } from '@/utils/membershipRbac';
 
 const PLEDGE_STORAGE_PREFIX = 'ems_community_pledge_v1';
 
@@ -25,7 +26,11 @@ export async function verifyParamedicApprovalFromBackend(userId: string): Promis
     .maybeSingle();
 
   if (error || !data) return false;
-  return data.role === 'paramedic' && data.is_approved === true;
+  const role = normalizeUserRole(data.role);
+  return (
+    data.is_approved === true &&
+    (role === 'associate_member' || role === 'regular_member')
+  );
 }
 
 export async function hasAcceptedCommunityPledge(userId: string): Promise<boolean> {

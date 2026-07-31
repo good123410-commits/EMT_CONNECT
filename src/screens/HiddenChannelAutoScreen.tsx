@@ -1,4 +1,4 @@
-import { useUserRole } from '@/contexts/UserRoleContext';
+﻿import { useUserRole } from '@/contexts/UserRoleContext';
 import { HospitalDashboardScreen } from '@/screens/dashboard/HospitalDashboardScreen';
 import { ParamedicDashboardScreen } from '@/screens/dashboard/ParamedicDashboardScreen';
 import { PrivateEmsDashboardScreen } from '@/screens/dashboard/PrivateEmsDashboardScreen';
@@ -10,11 +10,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 function HiddenAccessDenied() {
   return (
-    <View className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-kemix-bg">
       <SafeAreaView className="flex-1 items-center justify-center px-8">
         <Ionicons name="lock-closed-outline" size={48} color="#94a3b8" />
-        <Text className="mt-4 text-center text-xl font-bold text-slate-900">접근 권한이 없습니다</Text>
-        <Text className="mt-2 text-center text-sm leading-5 text-slate-500">
+        <Text className="mt-4 text-center text-xl font-bold text-kemix-text">접근 권한이 없습니다</Text>
+        <Text className="mt-2 text-center text-sm leading-5 text-kemix-text-secondary">
           히든 채널은 승인된 전문가(응급구조사·병원·사설구급차)만 이용할 수 있습니다.
         </Text>
       </SafeAreaView>

@@ -8,17 +8,16 @@ import {
 const LEGACY_PROFILES_TABLE = 'profiles';
 
 function mapLegacyRole(role: string | null | undefined): UserRole {
-  if (role === 'emt_certified') return 'paramedic';
+  if (!role) return 'user';
+  if (role === 'emt_certified' || role === 'emt') return 'associate_member';
   if (role === 'public') return 'user';
+  if (role === 'super_admin' || role === 'sub_admin') return 'admin';
+  if (role === 'paramedic' || role === 'hospital' || role === 'private_ems') return 'associate_member';
   if (
-    role === 'hospital' ||
-    role === 'paramedic' ||
-    role === 'private_ems' ||
     role === 'admin' ||
     role === 'associate_member' ||
     role === 'regular_member' ||
-    role === 'super_admin' ||
-    role === 'sub_admin'
+    role === 'user'
   ) {
     return role;
   }
@@ -38,6 +37,13 @@ function mapLegacyProfile(row: Record<string, unknown>): UserProfile {
         : typeof row.invitation_code_used === 'string'
           ? row.invitation_code_used
           : null,
+    auth_status:
+      row.auth_status === 'none' ||
+      row.auth_status === 'pending' ||
+      row.auth_status === 'code_required' ||
+      row.auth_status === 'verified'
+        ? row.auth_status
+        : undefined,
     is_approved: Boolean(row.is_approved),
     membership_dues_paid: Boolean(row.membership_dues_paid),
     membership_dues_paid_at:
@@ -201,7 +207,12 @@ export async function updateProfileRole(
     if (error) throw error;
     return data as UserProfile;
   } catch {
-    const legacyRole = role === 'user' ? 'public' : role === 'paramedic' ? 'emt_certified' : role;
+    const legacyRole =
+      role === 'user'
+        ? 'public'
+        : role === 'associate_member' || role === 'regular_member'
+          ? 'emt_certified'
+          : role;
     const { data, error } = await supabase
       .from(LEGACY_PROFILES_TABLE)
       .update({

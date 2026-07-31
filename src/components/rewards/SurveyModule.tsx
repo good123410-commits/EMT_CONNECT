@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useWallet } from '@/contexts/WalletContext';
@@ -19,18 +19,18 @@ export function SurveyModule() {
         return (
           <Pressable
             key={survey.id}
-            className={`rounded-2xl border p-4 ${done ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-white active:bg-slate-50'}`}
+            className={`rounded-2xl border p-4 ${done ? 'border-green-200 bg-green-50' : 'border-kemix-border bg-kemix-surface active:bg-kemix-bg'}`}
             onPress={() => !done && setSelected(survey)}
             disabled={done}
           >
             <View className="flex-row items-start justify-between">
               <View className="flex-1">
-                <Text className="text-base font-bold text-slate-900">{survey.title}</Text>
-                <Text className="mt-1 text-sm text-slate-500">{survey.description}</Text>
+                <Text className="text-base font-bold text-kemix-text">{survey.title}</Text>
+                <Text className="mt-1 text-sm text-kemix-text-secondary">{survey.description}</Text>
                 <View className="mt-3 flex-row items-center gap-3">
                   <View className="flex-row items-center">
                     <Ionicons name="time-outline" size={14} color="#64748b" />
-                    <Text className="ml-1 text-xs text-slate-500">약 {survey.estimatedMin}분</Text>
+                    <Text className="ml-1 text-xs text-kemix-text-secondary">약 {survey.estimatedMin}분</Text>
                   </View>
                   <View className="flex-row items-center">
                     <Ionicons name="gift-outline" size={14} color="#64748b" />
@@ -72,20 +72,20 @@ function SurveyForm({ survey, onBack }: { survey: Survey; onBack: () => void }) 
     <ScrollView contentContainerClassName="pb-8">
       <Pressable className="mb-4 flex-row items-center" onPress={onBack}>
         <Ionicons name="arrow-back" size={22} color="#0f172a" />
-        <Text className="ml-2 font-semibold text-slate-900">설문 목록</Text>
+        <Text className="ml-2 font-semibold text-kemix-text">설문 목록</Text>
       </Pressable>
 
-      <View className="rounded-2xl border border-slate-200 bg-white p-4">
-        <Text className="text-lg font-bold text-slate-900">{survey.title}</Text>
-        <Text className="mt-1 text-sm text-slate-500">{survey.description}</Text>
+      <View className="rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+        <Text className="text-lg font-bold text-kemix-text">{survey.title}</Text>
+        <Text className="mt-1 text-sm text-kemix-text-secondary">{survey.description}</Text>
         <Text className="mt-2 text-xs font-semibold text-green-600">
           완료 시 +{survey.rewardPoints}P 적립
         </Text>
       </View>
 
       {survey.questions.map((q, idx) => (
-        <View key={q.id} className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-          <Text className="text-sm font-bold text-slate-900">
+        <View key={q.id} className="mt-4 rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+          <Text className="text-sm font-bold text-kemix-text">
             {idx + 1}. {q.question}
           </Text>
           {q.options.map((opt) => {
@@ -93,11 +93,11 @@ function SurveyForm({ survey, onBack }: { survey: Survey; onBack: () => void }) 
             return (
               <Pressable
                 key={opt}
-                className={`mt-2 rounded-xl border p-3 ${selected ? 'border-slate-900 bg-slate-50' : 'border-slate-200'}`}
+                className={`mt-2 rounded-xl border p-3 ${selected ? 'border-slate-900 bg-kemix-bg' : 'border-kemix-border'}`}
                 onPress={() => !submitted && setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
                 disabled={submitted}
               >
-                <Text className="text-sm text-slate-700">{opt}</Text>
+                <Text className="text-sm text-kemix-text">{opt}</Text>
               </Pressable>
             );
           })}
@@ -115,11 +115,11 @@ function SurveyForm({ survey, onBack }: { survey: Survey; onBack: () => void }) 
         </View>
       ) : (
         <Pressable
-          className={`mt-4 items-center rounded-xl py-4 ${allAnswered ? 'bg-slate-900' : 'bg-slate-200'}`}
+          className={`mt-4 items-center rounded-xl py-4 ${allAnswered ? 'bg-slate-900' : 'bg-kemix-elevated'}`}
           onPress={handleSubmit}
           disabled={!allAnswered}
         >
-          <Text className={`font-bold ${allAnswered ? 'text-white' : 'text-slate-400'}`}>
+          <Text className={`font-bold ${allAnswered ? 'text-white' : 'text-kemix-muted'}`}>
             제출하고 {survey.rewardPoints}P 받기
           </Text>
         </Pressable>

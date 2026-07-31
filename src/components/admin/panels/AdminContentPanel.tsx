@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -231,12 +231,12 @@ export function AdminContentPanel() {
           className="mt-3"
           contentContainerClassName="pb-6"
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-slate-500">등록된 가이드가 없습니다.</Text>
+            <Text className="py-8 text-center text-sm text-kemix-text-secondary">등록된 가이드가 없습니다.</Text>
           }
           renderItem={({ item }) => (
-            <View className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
-              <Text className="font-semibold text-slate-900">{item.title}</Text>
-              <Text className="mt-0.5 text-xs text-slate-500">
+            <View className="mb-2 rounded-xl border border-kemix-border bg-kemix-surface p-3">
+              <Text className="font-semibold text-kemix-text">{item.title}</Text>
+              <Text className="mt-0.5 text-xs text-kemix-text-secondary">
                 {item.category ?? '기타'} · {item.is_published ? '공개' : '비공개'}
               </Text>
               <Pressable className="mt-2 self-start rounded-lg bg-red-100 px-2.5 py-1" onPress={() => setDeleteGuideTarget(item)}>
@@ -252,23 +252,23 @@ export function AdminContentPanel() {
           className="mt-3"
           contentContainerClassName="pb-6"
           ListEmptyComponent={
-            <Text className="py-8 text-center text-sm text-slate-500">등록된 게시글이 없습니다.</Text>
+            <Text className="py-8 text-center text-sm text-kemix-text-secondary">등록된 게시글이 없습니다.</Text>
           }
           renderItem={({ item }) => (
-            <View className="mb-2 rounded-xl border border-slate-200 bg-white p-3">
+            <View className="mb-2 rounded-xl border border-kemix-border bg-kemix-surface p-3">
               <View className="flex-row items-center gap-2">
-                <Text className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                <Text className="rounded-full bg-kemix-elevated px-2 py-0.5 text-[10px] font-bold text-kemix-text-secondary">
                   {item.post_type === 'hire' ? '구인' : '구직'}
                 </Text>
                 {!item.is_published ? (
                   <Text className="text-[10px] text-amber-600">비공개</Text>
                 ) : null}
               </View>
-              <Text className="mt-1 font-semibold text-slate-900">{item.title}</Text>
-              <Text className="text-xs text-slate-500">{item.company ?? item.location ?? '—'}</Text>
+              <Text className="mt-1 font-semibold text-kemix-text">{item.title}</Text>
+              <Text className="text-xs text-kemix-text-secondary">{item.company ?? item.location ?? '—'}</Text>
               <View className="mt-2 flex-row gap-2">
-                <Pressable className="rounded-lg bg-slate-100 px-2.5 py-1" onPress={() => openEditJob(item)}>
-                  <Text className="text-[11px] font-bold text-slate-700">수정</Text>
+                <Pressable className="rounded-lg bg-kemix-elevated px-2.5 py-1" onPress={() => openEditJob(item)}>
+                  <Text className="text-[11px] font-bold text-kemix-text">수정</Text>
                 </Pressable>
                 <Pressable className="rounded-lg bg-red-100 px-2.5 py-1" onPress={() => setDeleteJobTarget(item)}>
                   <Text className="text-[11px] font-bold text-red-700">삭제</Text>
@@ -280,9 +280,9 @@ export function AdminContentPanel() {
       )}
 
       <Modal visible={guideFormVisible} animationType="slide" onRequestClose={() => setGuideFormVisible(false)}>
-        <View className="flex-1 bg-slate-50">
+        <View className="flex-1 bg-kemix-bg">
           <ScrollView contentContainerClassName="p-4 pb-10">
-            <Text className="mb-4 text-lg font-bold text-slate-900">응급처치 가이드 추가</Text>
+            <Text className="mb-4 text-lg font-bold text-kemix-text">응급처치 가이드 추가</Text>
             <AdminFormField label="제목" value={guideTitle} onChangeText={setGuideTitle} placeholder="가이드 제목" />
             <AdminFormField label="분류" value={guideCategory} onChangeText={setGuideCategory} placeholder="예: 심정지" />
             <AdminFormField
@@ -300,16 +300,16 @@ export function AdminContentPanel() {
               <Text className="font-bold text-white">{submitting ? '저장 중...' : '저장'}</Text>
             </Pressable>
             <Pressable className="mt-3 items-center py-2" onPress={() => setGuideFormVisible(false)}>
-              <Text className="font-semibold text-slate-500">취소</Text>
+              <Text className="font-semibold text-kemix-text-secondary">취소</Text>
             </Pressable>
           </ScrollView>
         </View>
       </Modal>
 
       <Modal visible={jobFormVisible} animationType="slide" onRequestClose={() => setJobFormVisible(false)}>
-        <View className="flex-1 bg-slate-50">
+        <View className="flex-1 bg-kemix-bg">
           <ScrollView contentContainerClassName="p-4 pb-10">
-            <Text className="mb-4 text-lg font-bold text-slate-900">
+            <Text className="mb-4 text-lg font-bold text-kemix-text">
               {editingJobId ? '구인/구직 수정' : '구인/구직 추가'}
             </Text>
             <SegmentControl
@@ -337,7 +337,7 @@ export function AdminContentPanel() {
               <Text className="font-bold text-white">{submitting ? '저장 중...' : '저장'}</Text>
             </Pressable>
             <Pressable className="mt-3 items-center py-2" onPress={() => setJobFormVisible(false)}>
-              <Text className="font-semibold text-slate-500">취소</Text>
+              <Text className="font-semibold text-kemix-text-secondary">취소</Text>
             </Pressable>
           </ScrollView>
         </View>
