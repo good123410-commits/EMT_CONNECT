@@ -4,7 +4,6 @@ import type {
   CaseStudyPost,
   ChatMessage,
   JobPost,
-  ResourceDocument,
 } from '@/data/paramedicMockData';
 import {
   subscribeEmsChatRoomsTable,
@@ -17,8 +16,6 @@ import {
   type EmsChatRoom,
 } from '@/services/emsChatRoomService';
 import {
-  adminDeleteResourceDocument,
-  adminUpsertResourceDocument,
   createCaseStudyPost,
   createChatPost,
   createJobSeekPost,
@@ -34,7 +31,6 @@ type ParamedicCommunityContextValue = {
   chatMessages: ChatMessage[];
   chatRooms: EmsChatRoom[];
   jobPosts: JobPost[];
-  resourceDocuments: ResourceDocument[];
   loading: boolean;
   chatRoomsLoading: boolean;
   error: string | null;
@@ -45,17 +41,6 @@ type ParamedicCommunityContextValue = {
   postChatMessage: (roomId: string, content: string) => Promise<void>;
   createChatRoom: (input: CreateChatRoomInput) => Promise<EmsChatRoom>;
   postJobSeek: (title: string, content: string, location: string) => Promise<void>;
-  upsertResourceDocument: (
-    input: {
-      title: string;
-      category: string;
-      description: string;
-      url: string;
-      isExternal?: boolean;
-      id?: string;
-    },
-  ) => Promise<void>;
-  deleteResourceDocument: (id: string) => Promise<void>;
   likeCaseStudy: (id: string) => Promise<void>;
   likeMessage: (id: string) => Promise<void>;
 };
@@ -68,7 +53,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatRooms, setChatRooms] = useState<EmsChatRoom[]>([]);
   const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
-  const [resourceDocuments, setResourceDocuments] = useState<ResourceDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatRoomsLoading, setChatRoomsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +81,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
       setCaseStudies(feed.caseStudies);
       setChatMessages(feed.chatMessages);
       setJobPosts(feed.jobPosts);
-      setResourceDocuments(feed.resources);
       setError(null);
     } catch (err) {
       const message =
@@ -156,26 +139,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
     setJobPosts((prev) => [post, ...prev.filter((item) => item.id !== post.id)]);
   }, []);
 
-  const upsertResourceDocument = useCallback(
-    async (input: {
-      title: string;
-      category: string;
-      description: string;
-      url: string;
-      isExternal?: boolean;
-      id?: string;
-    }) => {
-      const doc = await adminUpsertResourceDocument(input);
-      setResourceDocuments((prev) => [doc, ...prev.filter((item) => item.id !== doc.id)]);
-    },
-    [],
-  );
-
-  const deleteResourceDocument = useCallback(async (id: string) => {
-    await adminDeleteResourceDocument(id);
-    setResourceDocuments((prev) => prev.filter((item) => item.id !== id));
-  }, []);
-
   const likeCaseStudy = useCallback(async (id: string) => {
     const nextLikes = await incrementCommunityLikes(id);
     setCaseStudies((prev) =>
@@ -197,7 +160,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
       chatMessages,
       chatRooms,
       jobPosts,
-      resourceDocuments,
       loading,
       chatRoomsLoading,
       error,
@@ -208,8 +170,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
       postChatMessage,
       createChatRoom,
       postJobSeek,
-      upsertResourceDocument,
-      deleteResourceDocument,
       likeCaseStudy,
       likeMessage,
     }),
@@ -219,7 +179,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
       chatMessages,
       chatRooms,
       jobPosts,
-      resourceDocuments,
       loading,
       chatRoomsLoading,
       error,
@@ -230,8 +189,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
       postChatMessage,
       createChatRoom,
       postJobSeek,
-      upsertResourceDocument,
-      deleteResourceDocument,
       likeCaseStudy,
       likeMessage,
     ],

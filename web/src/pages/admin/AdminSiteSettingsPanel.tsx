@@ -2,9 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { RichTextEditor } from '../../components/RichTextEditor';
 import { useToast } from '../../contexts/ToastContext';
 import { adminListSiteSettings, adminUpsertSiteSetting } from '../../services/siteSettingsService';
-import type { SiteSetting, SiteSettingKey } from '../../types';
+import type { SiteSetting } from '../../types';
 
-const SETTING_META: Record<SiteSettingKey, { label: string; path: string }> = {
+/** 약관·서비스 정보 페이지 (앱 연동 URL은 AdminAppLinksPanel에서 관리) */
+const LEGAL_SETTING_KEYS = ['privacy_policy', 'terms_of_service', 'service_info'] as const;
+type LegalSiteSettingKey = (typeof LEGAL_SETTING_KEYS)[number];
+
+const SETTING_META: Record<LegalSiteSettingKey, { label: string; path: string }> = {
   privacy_policy: { label: '개인정보 처리방침', path: '/legal/privacy' },
   terms_of_service: { label: '이용약관', path: '/legal/terms' },
   service_info: { label: 'KEMIX 서비스 정보', path: '/legal/service' },
@@ -12,7 +16,7 @@ const SETTING_META: Record<SiteSettingKey, { label: string; path: string }> = {
 
 export function AdminSiteSettingsPanel() {
   const { showToast } = useToast();
-  const [activeKey, setActiveKey] = useState<SiteSettingKey>('privacy_policy');
+  const [activeKey, setActiveKey] = useState<LegalSiteSettingKey>('privacy_policy');
   const [rows, setRows] = useState<SiteSetting[]>([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -77,7 +81,7 @@ export function AdminSiteSettingsPanel() {
       </p>
 
       <div className="admin-settings-tabs">
-        {(Object.keys(SETTING_META) as SiteSettingKey[]).map((key) => (
+        {LEGAL_SETTING_KEYS.map((key) => (
           <button
             key={key}
             type="button"

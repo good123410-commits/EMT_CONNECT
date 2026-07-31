@@ -1,4 +1,5 @@
-﻿import { Ionicons } from '@expo/vector-icons';
+﻿import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -36,6 +37,7 @@ export function ChemicalScreen() {
 }
 
 function DrugModule() {
+  const navigation = useNavigation();
   const [query, setQuery] = useState('');
   const [medicines, setMedicines] = useState<MedicineInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +138,15 @@ function DrugModule() {
     return () => clearTimeout(timer);
   }, [trimmedQuery, isSearchMode, runSearch]);
 
+  useHardwareBackHandler(() => {
+    if (selected) {
+      setSelected(null);
+      return true;
+    }
+    navigation.goBack();
+    return true;
+  }, true);
+
   const handleQueryChange = (text: string) => {
     setQuery(text);
     if (text.trim().length < 2 && choseong !== '전체') {
@@ -191,6 +202,7 @@ function DrugModule() {
 
   return (
     <View className="flex-1">
+      <BackHeader title="약물정보찾기" onBack={() => navigation.goBack()} />
       <View className="border-b border-kemix-border-light bg-kemix-surface px-4 pb-2 pt-2">
         <SearchBar
           value={query}

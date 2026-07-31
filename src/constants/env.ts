@@ -12,3 +12,9 @@ export const SUPABASE_ANON_KEY =
 
 export const PORTAL_API_KEY =
   process.env.EXPO_PUBLIC_PORTAL_API_KEY ?? Constants.expoConfig?.extra?.portalApiKey ?? '';
+
+/** KEMIX 웹 자료실 URL (공유 링크용, 선택) */
+export const KEMIX_WEB_URL =
+  process.env.EXPO_PUBLIC_KEMIX_WEB_URL ??
+  Constants.expoConfig?.extra?.kemixWebUrl ??
+  '';

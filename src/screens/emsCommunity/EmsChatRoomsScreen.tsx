@@ -21,9 +21,12 @@ import {
   LoungeCard,
   LoungeErrorBanner,
   LoungeFilterPill,
+  LoungeFilterRow,
+  LoungeIconAction,
   LoungeMetaText,
   LoungePrimaryButton,
   LoungeScreen,
+  LoungeTopSection,
   loungeListContent,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
@@ -180,35 +183,27 @@ export function EmsChatRoomsScreen() {
     <LoungeScreen>
       <ParamedicHeader />
 
-      <View
-        style={{
-          paddingHorizontal: EMS_LOUNGE_SPACING.screen,
-          paddingTop: EMS_LOUNGE_SPACING.screenTop,
-          paddingBottom: 12,
-        }}
-      >
+      <LoungeTopSection>
         <View className="flex-row items-center justify-between pb-3">
           <Text
             style={{
               fontFamily: 'Pretendard-SemiBold',
-              fontSize: 12,
-              color: EMS_LOUNGE.textMuted,
+              fontSize: 13,
+              color: EMS_LOUNGE.textSecondary,
             }}
           >
             채팅방 선택
           </Text>
           {canManageRooms ? (
-            <Pressable
-              className="h-9 w-9 items-center justify-center rounded-full active:opacity-90"
-              style={{ backgroundColor: EMS_LOUNGE.navy, ...EMS_LOUNGE_SHADOW.cardSoft }}
+            <LoungeIconAction
+              icon="add"
+              accessibilityLabel="채팅방 만들기"
               onPress={() => setFormVisible(true)}
-            >
-              <Ionicons name="add" size={20} color="#fff" />
-            </Pressable>
+            />
           ) : null}
         </View>
         {chatRoomsLoading ? (
-          <ActivityIndicator color={EMS_LOUNGE.navy} className="py-3" />
+          <ActivityIndicator color={EMS_LOUNGE.accent} className="py-3" />
         ) : chatRooms.length === 0 ? (
           <Text
             style={{
@@ -221,20 +216,16 @@ export function EmsChatRoomsScreen() {
             열린 채팅방이 없습니다.{canManageRooms ? ' + 버튼으로 생성해 주세요.' : ''}
           </Text>
         ) : (
-          <FlatList
-            horizontal
-            data={chatRooms}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8 }}
-            renderItem={({ item }) => (
+          <LoungeFilterRow>
+            {chatRooms.map((item) => (
               <RoomTab
+                key={item.id}
                 room={item}
                 active={roomId === item.id}
                 onPress={() => setRoomId(item.id)}
               />
-            )}
-          />
+            ))}
+          </LoungeFilterRow>
         )}
         {selectedRoom ? (
           <Text
@@ -251,7 +242,7 @@ export function EmsChatRoomsScreen() {
             {selectedRoom.description ? ` — ${selectedRoom.description}` : ''}
           </Text>
         ) : null}
-      </View>
+      </LoungeTopSection>
 
       <KeyboardAvoidingView
         className="flex-1"
@@ -280,7 +271,7 @@ export function EmsChatRoomsScreen() {
               </View>
             ) : loading ? (
               <View className="items-center py-16">
-                <ActivityIndicator color={EMS_LOUNGE.navy} />
+                <ActivityIndicator color={EMS_LOUNGE.accent} />
               </View>
             ) : (
               <View className="items-center py-16">
@@ -340,7 +331,7 @@ export function EmsChatRoomsScreen() {
                 borderRadius: 14,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
-                backgroundColor: roomId ? EMS_LOUNGE.navy : EMS_LOUNGE.border,
+                backgroundColor: roomId ? EMS_LOUNGE.accent : EMS_LOUNGE.surfaceElevated,
                 ...EMS_LOUNGE_SHADOW.cardSoft,
               }}
               disabled={!roomId}
@@ -364,7 +355,7 @@ export function EmsChatRoomsScreen() {
                 marginBottom: 16,
                 fontFamily: 'Pretendard-Bold',
                 fontSize: 18,
-                color: EMS_LOUNGE.navy,
+                color: EMS_LOUNGE.text,
               }}
             >
               새 채팅방 만들기

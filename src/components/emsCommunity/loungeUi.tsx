@@ -1,13 +1,46 @@
 import type { ReactNode } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, TextInput, View, type ViewStyle } from 'react-native';
-import { EMS_LOUNGE, EMS_LOUNGE_SHADOW, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
+import { Pressable, ScrollView, Text, TextInput, View, type ViewStyle } from 'react-native';
+import {
+  EMS_LOUNGE,
+  EMS_LOUNGE_CHIP,
+  EMS_LOUNGE_SHADOW,
+  EMS_LOUNGE_SPACING,
+} from '@/constants/emsLoungeTheme';
 
 export function LoungeScreen({ children }: { children: ReactNode }) {
   return (
     <View className="flex-1" style={{ backgroundColor: EMS_LOUNGE.background }}>
       {children}
     </View>
+  );
+}
+
+/** 상단 액션·필터 영역 — 배경 없이 본문과 연속 */
+export function LoungeTopSection({ children }: { children: ReactNode }) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: EMS_LOUNGE_SPACING.screen,
+        paddingTop: EMS_LOUNGE_SPACING.screenTop,
+        paddingBottom: EMS_LOUNGE_SPACING.headerBottom,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** 가로 스크롤 필터 칩 행 */
+export function LoungeFilterRow({ children }: { children: ReactNode }) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+    >
+      {children}
+    </ScrollView>
   );
 }
 
@@ -25,10 +58,12 @@ export function LoungeCard({
       style={[
         {
           backgroundColor: EMS_LOUNGE.surface,
-          borderRadius: 20,
+          borderRadius: 16,
           padding: EMS_LOUNGE_SPACING.cardPadding,
           marginBottom: EMS_LOUNGE_SPACING.cardGap,
-          ...EMS_LOUNGE_SHADOW.card,
+          borderWidth: 1,
+          borderColor: EMS_LOUNGE.border,
+          ...EMS_LOUNGE_SHADOW.cardSoft,
         },
         style,
       ]}
@@ -51,17 +86,19 @@ export function LoungeAnonymousBadge({ label }: { label: string }) {
   return (
     <View
       style={{
-        backgroundColor: EMS_LOUNGE.navyMid,
+        backgroundColor: EMS_LOUNGE.accentMuted,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 999,
+        borderWidth: 1,
+        borderColor: EMS_LOUNGE.border,
       }}
     >
       <Text
         style={{
           fontFamily: 'Pretendard-SemiBold',
           fontSize: 11,
-          color: '#E2E8F0',
+          color: EMS_LOUNGE.accentSoft,
         }}
       >
         {label}
@@ -99,7 +136,7 @@ export function LoungeTitle({
         fontFamily: 'Pretendard-Bold',
         fontSize: 17,
         lineHeight: 24,
-        color: EMS_LOUNGE.navy,
+        color: EMS_LOUNGE.text,
       }}
     >
       {children}
@@ -138,34 +175,36 @@ export function LoungeTag({
   active?: boolean;
   onPress?: () => void;
 }) {
-  const content = (
-    <View
-      style={{
-        backgroundColor: active ? EMS_LOUNGE.navy : EMS_LOUNGE.borderLight,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 999,
-      }}
-    >
-      <Text
+  const text = label.startsWith('#') ? label : `#${label.replace(/^#/, '')}`;
+
+  if (!onPress) {
+    return (
+      <View
         style={{
-          fontFamily: 'Pretendard-Medium',
-          fontSize: 12,
-          color: active ? '#FFFFFF' : EMS_LOUNGE.textSecondary,
+          backgroundColor: EMS_LOUNGE.accentMuted,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: EMS_LOUNGE.border,
         }}
       >
-        #{label.replace(/^#/, '')}
-      </Text>
-    </View>
-  );
-  if (onPress) {
-    return (
-      <Pressable onPress={onPress} className="active:opacity-80">
-        {content}
-      </Pressable>
+        <Text
+          style={{
+            fontFamily: 'Pretendard-Medium',
+            fontSize: 11,
+            color: EMS_LOUNGE.accentSoft,
+          }}
+        >
+          {text}
+        </Text>
+      </View>
     );
   }
-  return content;
+
+  return (
+    <LoungeFilterPill label={text} active={Boolean(active)} onPress={onPress} compact />
+  );
 }
 
 export function LoungeActionRow({
@@ -181,7 +220,7 @@ export function LoungeActionRow({
         marginTop: 14,
         paddingTop: 14,
         borderTopWidth: 1,
-        borderTopColor: EMS_LOUNGE.borderLight,
+        borderTopColor: EMS_LOUNGE.border,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -242,13 +281,13 @@ export function LoungeBackBar({ label, onPress }: { label: string; onPress: () =
       onPress={onPress}
       style={{ paddingHorizontal: EMS_LOUNGE_SPACING.screen }}
     >
-      <Ionicons name="arrow-back" size={22} color={EMS_LOUNGE.navy} />
+      <Ionicons name="arrow-back" size={22} color={EMS_LOUNGE.text} />
       <Text
         style={{
           marginLeft: 8,
           fontFamily: 'Pretendard-SemiBold',
           fontSize: 15,
-          color: EMS_LOUNGE.navy,
+          color: EMS_LOUNGE.text,
         }}
       >
         {label}
@@ -266,6 +305,8 @@ export function LoungeErrorBanner({ message }: { message: string }) {
         borderRadius: 14,
         padding: 14,
         backgroundColor: EMS_LOUNGE.errorBg,
+        borderWidth: 1,
+        borderColor: EMS_LOUNGE.border,
       }}
     >
       <Text style={{ fontFamily: 'Pretendard', fontSize: 13, color: EMS_LOUNGE.error }}>
@@ -290,11 +331,10 @@ export function LoungePrimaryButton({
     <Pressable
       className="flex-row items-center justify-center active:opacity-90"
       style={{
-        backgroundColor: EMS_LOUNGE.navy,
-        borderRadius: 14,
+        backgroundColor: EMS_LOUNGE.accent,
+        borderRadius: 12,
         paddingVertical: compact ? 10 : 14,
         paddingHorizontal: compact ? 16 : 20,
-        ...EMS_LOUNGE_SHADOW.cardSoft,
       }}
       onPress={onPress}
     >
@@ -306,6 +346,7 @@ export function LoungePrimaryButton({
   );
 }
 
+/** 상단 글쓰기·액션 — 투박한 흰/네이비 박스 없이 칩 스타일 */
 export function LoungeWriteBar({
   label,
   onPress,
@@ -318,75 +359,96 @@ export function LoungeWriteBar({
   icon?: keyof typeof Ionicons.glyphMap;
 }) {
   return (
-    <View
-      style={{
-        paddingHorizontal: EMS_LOUNGE_SPACING.screen,
-        paddingTop: EMS_LOUNGE_SPACING.screenTop,
-        paddingBottom: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-      }}
-    >
-      <Pressable
-        className="flex-1 flex-row items-center justify-center active:opacity-90"
-        style={{
-          backgroundColor: EMS_LOUNGE.navy,
-          borderRadius: 16,
-          paddingVertical: 14,
-          ...EMS_LOUNGE_SHADOW.cardSoft,
-        }}
-        onPress={onPress}
-      >
-        <Ionicons name={icon} size={20} color="#FFFFFF" />
-        <Text
+    <LoungeTopSection>
+      <View className="flex-row items-center gap-3">
+        <Pressable
+          className="flex-1 flex-row items-center justify-center active:opacity-90"
           style={{
-            marginLeft: 8,
-            fontFamily: 'Pretendard-SemiBold',
-            fontSize: 15,
-            color: '#FFFFFF',
+            backgroundColor: EMS_LOUNGE.accent,
+            borderRadius: 999,
+            paddingVertical: 12,
+            paddingHorizontal: 20,
           }}
+          onPress={onPress}
         >
-          {label}
-        </Text>
-      </Pressable>
-      {trailing}
-    </View>
+          <Ionicons name={icon} size={18} color="#FFFFFF" />
+          <Text
+            style={{
+              marginLeft: 8,
+              fontFamily: 'Pretendard-SemiBold',
+              fontSize: 14,
+              color: '#FFFFFF',
+            }}
+          >
+            {label}
+          </Text>
+        </Pressable>
+        {trailing}
+      </View>
+    </LoungeTopSection>
   );
 }
 
+/** 다크 모드 필터·탭 칩 */
 export function LoungeFilterPill({
   label,
   active,
   onPress,
+  compact,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
+  compact?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      className="active:opacity-85"
       style={{
-        backgroundColor: active ? EMS_LOUNGE.navy : EMS_LOUNGE.surface,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 999,
+        backgroundColor: active ? EMS_LOUNGE_CHIP.activeBg : EMS_LOUNGE_CHIP.inactiveBg,
+        paddingHorizontal: compact ? 12 : EMS_LOUNGE_CHIP.paddingHorizontal,
+        paddingVertical: compact ? 7 : EMS_LOUNGE_CHIP.paddingVertical,
+        borderRadius: EMS_LOUNGE_CHIP.radius,
         borderWidth: active ? 0 : 1,
-        borderColor: EMS_LOUNGE.border,
-        ...EMS_LOUNGE_SHADOW.cardSoft,
+        borderColor: EMS_LOUNGE_CHIP.inactiveBorder,
       }}
     >
       <Text
         style={{
           fontFamily: 'Pretendard-SemiBold',
-          fontSize: 12,
-          color: active ? '#FFFFFF' : EMS_LOUNGE.textSecondary,
+          fontSize: compact ? 11 : 13,
+          color: active ? EMS_LOUNGE_CHIP.activeText : EMS_LOUNGE_CHIP.inactiveText,
         }}
       >
         {label}
       </Text>
+    </Pressable>
+  );
+}
+
+/** 아이콘만 있는 상단 액션 버튼 */
+export function LoungeIconAction({
+  icon,
+  onPress,
+  accessibilityLabel,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  accessibilityLabel: string;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      className="h-10 w-10 items-center justify-center rounded-full active:opacity-90"
+      style={{
+        backgroundColor: EMS_LOUNGE.surfaceElevated,
+        borderWidth: 1,
+        borderColor: EMS_LOUNGE.border,
+      }}
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={20} color={EMS_LOUNGE.accentSoft} />
     </Pressable>
   );
 }
@@ -408,10 +470,10 @@ export function LoungeInput({
     <TextInput
       style={{
         marginBottom: 12,
-        borderRadius: 16,
+        borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: EMS_LOUNGE.surface,
+        backgroundColor: EMS_LOUNGE.surfaceElevated,
         borderWidth: 1,
         borderColor: EMS_LOUNGE.border,
         fontFamily: 'Pretendard',

@@ -9,11 +9,24 @@ type MoreMenuModalProps = {
   visible: boolean;
   onClose: () => void;
   onSelectTool: (route: UtilityToolRoute) => void;
+  onOpenChemicalInfo: () => void;
 };
 
 const ICON_SIZE = 40;
 
-export function MoreMenuModal({ visible, onClose, onSelectTool }: MoreMenuModalProps) {
+const CHEMICAL_INFO_ITEM = {
+  title: '약물정보찾기',
+  icon: 'flask-outline' as const,
+  accent: '#A78BFA',
+  accentBg: '#2A2240',
+};
+
+export function MoreMenuModal({
+  visible,
+  onClose,
+  onSelectTool,
+  onOpenChemicalInfo,
+}: MoreMenuModalProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -65,6 +78,35 @@ export function MoreMenuModal({ visible, onClose, onSelectTool }: MoreMenuModalP
               borderColor: APP_COLORS.borderLight,
             }}
           >
+            <Pressable
+              className="flex-row items-center bg-kemix-surface active:opacity-90"
+              style={{
+                paddingVertical: 13,
+                paddingHorizontal: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: APP_COLORS.borderLight,
+              }}
+              onPress={onOpenChemicalInfo}
+            >
+              <View
+                className="items-center justify-center rounded-xl"
+                style={{
+                  width: ICON_SIZE,
+                  height: ICON_SIZE,
+                  backgroundColor: CHEMICAL_INFO_ITEM.accentBg,
+                }}
+              >
+                <AppIcon name={CHEMICAL_INFO_ITEM.icon} size={20} color={CHEMICAL_INFO_ITEM.accent} />
+              </View>
+              <Text
+                className="ml-3 flex-1 text-[15px] leading-5"
+                style={{ fontFamily: 'Pretendard-SemiBold', color: APP_COLORS.navy }}
+              >
+                {CHEMICAL_INFO_ITEM.title}
+              </Text>
+              <AppIcon name="chevron-right" size={18} color={APP_COLORS.textMuted} />
+            </Pressable>
+
             {UTILITY_TOOL_ITEMS.map((item, index) => (
               <Pressable
                 key={item.id}

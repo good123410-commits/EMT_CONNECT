@@ -12,4 +12,6 @@ export type RootStackParamList = {
   Expert: undefined;
   /** 실생활·응급 유틸리티 도구 스택 (모달) */
   Utilities: NavigatorScreenParams<UtilitiesStackParamList>;
+  /** 약물정보찾기 (더보기 메뉴) — 탭 바 밖 풀스크린 */
+  Chemical: undefined;
 };

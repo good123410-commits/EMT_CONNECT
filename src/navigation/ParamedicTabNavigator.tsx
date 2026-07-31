@@ -32,9 +32,9 @@ function ParamedicQaBoardScreen() {
  */
 export function ParamedicTabNavigator() {
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
-    activeTintColor: EMS_LOUNGE.green,
+    activeTintColor: EMS_LOUNGE.accent,
     inactiveTintColor: EMS_LOUNGE.textMuted,
-    backgroundColor: EMS_LOUNGE.surface,
+    backgroundColor: EMS_LOUNGE.background,
     borderTopColor: EMS_LOUNGE.border,
     labelFontSize: 11,
   });

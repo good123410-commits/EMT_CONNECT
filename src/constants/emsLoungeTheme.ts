@@ -1,13 +1,18 @@
 /** EMS 커뮤니티(히든 라운지) — 앱 다크 테마와 정렬 */
 
 export const EMS_LOUNGE = {
+  /** 제목·강조 텍스트 (레거시 alias: navy) */
   navy: '#FFFFFF',
-  navyMid: '#1A1A1A',
+  text: '#FFFFFF',
+  navyMid: '#242424',
+  accent: '#3B82F6',
+  accentSoft: '#60A5FA',
+  accentMuted: '#1A2332',
   green: '#34D399',
   greenSoft: '#1A2E28',
   background: '#121212',
   surface: '#1A1A1A',
-  text: '#FFFFFF',
+  surfaceElevated: '#242424',
   textSecondary: '#A0A0A0',
   textMuted: '#6B6B6B',
   border: '#2E2E2E',
@@ -38,6 +43,19 @@ export const EMS_LOUNGE_SHADOW = {
 export const EMS_LOUNGE_SPACING = {
   screen: 32,
   cardGap: 20,
-  screenTop: 12,
+  screenTop: 8,
   cardPadding: 24,
+  headerBottom: 12,
+} as const;
+
+/** 필터 칩 공통 스타일 토큰 */
+export const EMS_LOUNGE_CHIP = {
+  activeBg: EMS_LOUNGE.accent,
+  activeText: '#FFFFFF',
+  inactiveBg: EMS_LOUNGE.surfaceElevated,
+  inactiveText: EMS_LOUNGE.textSecondary,
+  inactiveBorder: EMS_LOUNGE.border,
+  radius: 999,
+  paddingHorizontal: 16,
+  paddingVertical: 9,
 } as const;

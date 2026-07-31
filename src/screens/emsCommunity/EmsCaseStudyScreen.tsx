@@ -19,6 +19,7 @@ import {
   LoungeBody,
   LoungeCard,
   LoungeErrorBanner,
+  LoungeFilterRow,
   LoungeInput,
   LoungeLikeButton,
   LoungeMetaText,
@@ -197,7 +198,7 @@ export function EmsCaseStudyScreen() {
               multiline
               minHeight={100}
             />
-            <View className="mb-3 flex-row flex-wrap gap-2">
+            <LoungeFilterRow>
               {STUDY_TAGS.map((tag) => (
                 <LoungeTag
                   key={tag}
@@ -206,7 +207,7 @@ export function EmsCaseStudyScreen() {
                   onPress={() => toggleTag(tag)}
                 />
               ))}
-            </View>
+            </LoungeFilterRow>
             <LoungePrimaryButton label="케이스 등록" onPress={() => void handlePost()} />
           </View>
         ) : null}
@@ -215,7 +216,7 @@ export function EmsCaseStudyScreen() {
 
         {loading && caseStudies.length === 0 ? (
           <View className="flex-1 items-center justify-center py-16">
-            <ActivityIndicator color={EMS_LOUNGE.navy} />
+            <ActivityIndicator color={EMS_LOUNGE.accent} />
           </View>
         ) : (
           <FlatList

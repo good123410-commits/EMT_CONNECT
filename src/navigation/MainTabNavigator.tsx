@@ -1,14 +1,13 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
-import { APP_ICON_SIZE } from '@/constants/appTheme';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
+import { MainTabBar } from '@/components/navigation/MainTabBar';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 import { useMainTabBarConfig } from '@/navigation/mainTabBarOptions';
 
 export type MainTabParamList = {
   Home: undefined;
   Guide: undefined;
-  Chemical: undefined;
   Map: { initialTab?: 'aed' | 'er' | 'pharmacy' | 'pediatric' } | undefined;
   EmsCall: undefined;
   Paramedic: undefined;
@@ -25,6 +24,9 @@ type TabIconConfig = {
   inactive: AppIconName;
 };
 
+const MAIN_TAB_ICON_ACTIVE = 22;
+const MAIN_TAB_ICON_INACTIVE = 20;
+
 function TabBarIcon({
   config,
   color,
@@ -37,7 +39,7 @@ function TabBarIcon({
   return (
     <AppIcon
       name={focused ? config.active : config.inactive}
-      size={focused ? APP_ICON_SIZE.tab : APP_ICON_SIZE.md}
+      size={focused ? MAIN_TAB_ICON_ACTIVE : MAIN_TAB_ICON_INACTIVE}
       color={color}
     />
   );
@@ -46,8 +48,7 @@ function TabBarIcon({
 const TAB_ICONS: Record<string, TabIconConfig> = {
   Home: { active: 'home', inactive: 'home-outline' },
   Guide: { active: 'medical-bag', inactive: 'medical-bag' },
-  Chemical: { active: 'flask', inactive: 'flask-outline' },
-  Map: { active: 'map', inactive: 'map-outline' },
+  Map: { active: 'hospital-box', inactive: 'hospital-box-outline' },
   EmsCall: { active: 'car', inactive: 'car-outline' },
   Paramedic: { active: 'account-group', inactive: 'account-group-outline' },
   Settings: { active: 'cog', inactive: 'cog-outline' },
@@ -57,7 +58,6 @@ const HomeScreen = createDeferredScreen(() => require('@/screens/HomeScreen').Ho
 const EmergencyGuideScreen = createDeferredScreen(
   () => require('@/screens/EmergencyGuideScreen').EmergencyGuideScreen,
 );
-const ChemicalScreen = createDeferredScreen(() => require('@/screens/ChemicalScreen').ChemicalScreen);
 const MapScreen = createDeferredScreen(() => require('@/screens/MapScreen').MapScreen);
 const PrivateEmsCallScreen = createDeferredScreen(
   () => require('@/screens/PrivateEmsCallScreen').PrivateEmsCallScreen,
@@ -75,6 +75,7 @@ export function MainTabNavigator() {
   return (
     <Tab.Navigator
       safeAreaInsets={safeAreaInsets}
+      tabBar={(props) => <MainTabBar {...props} />}
       screenOptions={{
         ...screenOptions,
         lazy: true,
@@ -101,20 +102,10 @@ export function MainTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Chemical"
-        component={ChemicalScreen}
-        options={{
-          tabBarLabel: '약물/화학',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon config={TAB_ICONS.Chemical} color={color} focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
         name="Map"
         component={MapScreen}
         options={{
-          tabBarLabel: '지도',
+          tabBarLabel: '의료정보',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon config={TAB_ICONS.Map} color={color} focused={focused} />
           ),

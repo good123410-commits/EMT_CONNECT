@@ -8,3 +8,9 @@ export function navigateToMainTab<T extends keyof MainTabParamList>(
   if (!navigationRef.isReady()) return;
   navigationRef.navigate('Main', { screen, params } as never);
 }
+
+/** 약물정보찾기 — 루트 스택 (하단 탭 밖) */
+export function navigateToChemicalScreen(): void {
+  if (!navigationRef.isReady()) return;
+  navigationRef.navigate('Chemical');
+}

@@ -21,11 +21,13 @@ import {
   LoungeCard,
   LoungeErrorBanner,
   LoungeFilterPill,
+  LoungeFilterRow,
   LoungeInput,
   LoungeMetaText,
   LoungePrimaryButton,
   LoungeScreen,
   LoungeTitle,
+  LoungeTopSection,
   LoungeWriteBar,
   loungeListContent,
 } from '@/components/emsCommunity/loungeUi';
@@ -37,8 +39,8 @@ import type { JobPost } from '@/data/paramedicMockData';
 
 function JobTypeBadge({ post }: { post: JobPost }) {
   const isSeek = post.type === 'seek';
-  const bg = isSeek ? '#E0E7FF' : post.isUrgent ? EMS_LOUNGE.errorBg : EMS_LOUNGE.greenSoft;
-  const color = isSeek ? '#3730A3' : post.isUrgent ? EMS_LOUNGE.error : EMS_LOUNGE.green;
+  const bg = isSeek ? EMS_LOUNGE.accentMuted : post.isUrgent ? EMS_LOUNGE.errorBg : EMS_LOUNGE.greenSoft;
+  const color = isSeek ? EMS_LOUNGE.accentSoft : post.isUrgent ? EMS_LOUNGE.error : EMS_LOUNGE.green;
   const label = isSeek ? '구직' : post.isUrgent ? '긴급채용' : '구인';
 
   return (
@@ -180,23 +182,18 @@ export function ParamedicJobsScreen() {
 
       <LoungeWriteBar label="글쓰기" onPress={() => setShowWriteForm(true)} />
 
-      <View
-        style={{
-          paddingHorizontal: EMS_LOUNGE_SPACING.screen,
-          paddingBottom: 12,
-          flexDirection: 'row',
-          gap: 8,
-        }}
-      >
-        {(['all', 'hire', 'seek'] as const).map((f) => (
-          <LoungeFilterPill
-            key={f}
-            label={f === 'all' ? '전체' : f === 'hire' ? '구인' : '구직'}
-            active={filter === f}
-            onPress={() => setFilter(f)}
-          />
-        ))}
-      </View>
+      <LoungeTopSection>
+        <LoungeFilterRow>
+          {(['all', 'hire', 'seek'] as const).map((f) => (
+            <LoungeFilterPill
+              key={f}
+              label={f === 'all' ? '전체' : f === 'hire' ? '구인' : '구직'}
+              active={filter === f}
+              onPress={() => setFilter(f)}
+            />
+          ))}
+        </LoungeFilterRow>
+      </LoungeTopSection>
 
       <FlatList
         data={filtered}
@@ -206,7 +203,7 @@ export function ParamedicJobsScreen() {
         ListEmptyComponent={
           loading ? (
             <View className="items-center py-16">
-              <ActivityIndicator color={EMS_LOUNGE.navy} />
+              <ActivityIndicator color={EMS_LOUNGE.accent} />
             </View>
           ) : (
             <View className="items-center py-16">
@@ -246,7 +243,7 @@ export function ParamedicJobsScreen() {
                 style={{
                   fontFamily: 'Pretendard-Bold',
                   fontSize: 18,
-                  color: EMS_LOUNGE.navy,
+                  color: EMS_LOUNGE.text,
                 }}
               >
                 구직 글쓰기

@@ -15,6 +15,9 @@ const UtilitiesStackScreen = createDeferredScreen(
 const ExpertRouteScreen = createDeferredScreen(
   () => require('@/navigation/ExpertRouteScreen').ExpertRouteScreen,
 );
+const ChemicalScreen = createDeferredScreen(
+  () => require('@/screens/ChemicalScreen').ChemicalScreen,
+);
 
 /** 루트 화면 지연 로드 — Loading만 즉시, 나머지는 전환 시 require */
 export function RootNavigator() {
@@ -37,6 +40,11 @@ export function RootNavigator() {
       <Stack.Screen
         name="Expert"
         component={ExpertRouteScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Chemical"
+        component={ChemicalScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

@@ -354,12 +354,12 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                   marginBottom: 10,
                   fontFamily: 'Pretendard-Bold',
                   fontSize: 14,
-                  color: EMS_LOUNGE.navy,
+                  color: EMS_LOUNGE.text,
                 }}
               >
                 답변 {comments.length}
               </Text>
-              {commentsLoading ? <ActivityIndicator color={EMS_LOUNGE.navy} /> : null}
+              {commentsLoading ? <ActivityIndicator color={EMS_LOUNGE.accent} /> : null}
               {comments.map((comment) => (
                 <CommentRow key={comment.id} comment={comment} lounge />
               ))}
@@ -382,7 +382,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                       marginBottom: 10,
                       fontFamily: 'Pretendard-Bold',
                       fontSize: 14,
-                      color: EMS_LOUNGE.navy,
+                      color: EMS_LOUNGE.text,
                     }}
                   >
                     답변 작성
@@ -498,7 +498,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
 
         {loading ? (
           <View className="items-center py-16">
-            <ActivityIndicator color={EMS_LOUNGE.navy} />
+            <ActivityIndicator color={EMS_LOUNGE.accent} />
           </View>
         ) : (
           <FlatList
@@ -530,7 +530,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
             ListFooterComponent={
               loadingMore ? (
                 <View className="py-4">
-                  <ActivityIndicator color={EMS_LOUNGE.navy} />
+                  <ActivityIndicator color={EMS_LOUNGE.accent} />
                 </View>
               ) : (
                 <View className="h-8" />
@@ -564,7 +564,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                 style={{
                   fontFamily: 'Pretendard-Bold',
                   fontSize: 18,
-                  color: EMS_LOUNGE.navy,
+                  color: EMS_LOUNGE.text,
                 }}
               >
                 질문 작성
