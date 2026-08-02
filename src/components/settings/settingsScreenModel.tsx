@@ -16,6 +16,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  StyleSheet,
   Switch,
   Text,
   View,
@@ -222,15 +223,16 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
 
   return (
     <ScrollView
-      style={embedded ? { flex: 1 } : undefined}
-      className={embedded ? undefined : 'flex-1'}
+      style={embedded ? styles.embeddedScroll : styles.fullScreenScroll}
       contentContainerStyle={{
         paddingHorizontal: embedded ? 20 : 32,
         paddingTop: embedded ? 8 : 16,
         paddingBottom: contentPaddingBottom,
         gap: 20,
       }}
-      showsVerticalScrollIndicator={false}
+      showsVerticalScrollIndicator={embedded}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
     >
       {user ? (
         <Text className="text-sm font-medium text-kemix-text">{displayName}</Text>
@@ -522,3 +524,13 @@ function LegalDocumentModal({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  embeddedScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  fullScreenScroll: {
+    flex: 1,
+  },
+});

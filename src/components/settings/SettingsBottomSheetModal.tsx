@@ -16,7 +16,8 @@ type Props = {
 export function SettingsBottomSheetModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const sheetMaxHeight = windowHeight * 0.88;
+  const sheetHeight = windowHeight * 0.88;
+  const bottomInset = Math.max(insets.bottom, 12);
 
   if (!visible) {
     return null;
@@ -32,8 +33,9 @@ export function SettingsBottomSheetModal({ visible, onClose }: Props) {
             style={[
               styles.sheet,
               {
-                maxHeight: sheetMaxHeight,
-                paddingBottom: Math.max(insets.bottom, 12),
+                height: sheetHeight,
+                maxHeight: sheetHeight,
+                paddingBottom: bottomInset,
               },
             ]}
           >
@@ -60,9 +62,7 @@ export function SettingsBottomSheetModal({ visible, onClose }: Props) {
               </Pressable>
             </View>
 
-            <View style={styles.content}>
-              <SettingsScrollBody embedded />
-            </View>
+            <SettingsScrollBody embedded />
           </View>
         </View>
       </Modal>
@@ -81,8 +81,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   sheet: {
+    width: '100%',
     borderTopLeftRadius: APP_RADIUS.cardLg,
     borderTopRightRadius: APP_RADIUS.cardLg,
+    overflow: 'hidden',
   },
   handleWrap: {
     alignItems: 'center',
@@ -100,9 +102,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
     color: APP_COLORS.navy,
-  },
-  content: {
-    flex: 1,
-    minHeight: 0,
   },
 });
