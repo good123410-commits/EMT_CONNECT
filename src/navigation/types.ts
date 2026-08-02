@@ -14,4 +14,6 @@ export type RootStackParamList = {
   Utilities: NavigatorScreenParams<UtilitiesStackParamList>;
   /** 약물정보찾기 (더보기 메뉴) — 탭 바 밖 풀스크린 */
   Chemical: undefined;
+  /** 관리자 대시보드 — 설정 모달에서 진입 */
+  AdminDashboard: undefined;
 };

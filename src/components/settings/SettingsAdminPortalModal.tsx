@@ -1,8 +1,5 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import type { CompositeNavigationProp } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { navigateToAdminDashboard } from '@/navigation/settingsNavigation';
 import { useState } from 'react';
 import {
   Alert,
@@ -17,15 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { useExpertSettingsAccess } from '@/hooks/useExpertSettingsAccess';
 import { useUserRole } from '@/contexts/UserRoleContext';
-import type { MainTabParamList } from '@/navigation/MainTabNavigator';
-import type { SettingsStackParamList } from '@/navigation/SettingsStackNavigator';
+import { navigateToMainTab } from '@/navigation/mainTabNavigation';
 import { isAdminRole } from '@/utils/roleAccess';
-
-type SettingsNav = CompositeNavigationProp<
-  NativeStackNavigationProp<SettingsStackParamList>,
-  BottomTabNavigationProp<MainTabParamList>
->;
-
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -33,8 +23,7 @@ type Props = {
 
 export function SettingsAdminPortalModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation<SettingsNav>();
-  const { profile } = useAuth();
+  const { profile, signOut, user } = useAuth();
   const { canOpenOpsAdminPortal } = useExpertSettingsAccess();
   const { opsAdminVerified, verifyOpsAdminCode, clearOpsAdminVerification } = useUserRole();
   const [code, setCode] = useState('');
@@ -54,17 +43,31 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
 
   const handleOpenDashboard = () => {
     onClose();
-    navigation.navigate('AdminDashboard');
+    navigateToAdminDashboard();
   };
 
   const handleOpenParamedicSpace = () => {
     onClose();
-    navigation.getParent()?.navigate('Paramedic');
+    navigateToMainTab('Paramedic');
   };
 
   const handleClearSession = () => {
     clearOpsAdminVerification();
     Alert.alert('세션 종료', '관리자 모드 인증이 해제되었습니다.');
+  };
+
+  const handleSignOut = () => {
+    Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '로그아웃',
+        style: 'destructive',
+        onPress: () => {
+          onClose();
+          void signOut();
+        },
+      },
+    ]);
   };
 
   return (
@@ -120,6 +123,16 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
                   onPress={handleClearSession}
                 >
                   <Text className="text-sm font-semibold text-kemix-text-secondary">관리자 인증 해제</Text>
+                </Pressable>
+              ) : null}
+
+              {user ? (
+                <Pressable
+                  className="flex-row items-center justify-center rounded-xl border border-kemix-border py-3 active:bg-kemix-bg"
+                  onPress={handleSignOut}
+                >
+                  <Ionicons name="log-out-outline" size={18} color="#64748b" />
+                  <Text className="ml-2 text-sm font-semibold text-kemix-text-secondary">로그아웃</Text>
                 </Pressable>
               ) : null}
             </View>

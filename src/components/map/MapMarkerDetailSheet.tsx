@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MEDICAL_DETAIL } from '@/constants/medicalDetailTheme';
 import { DistanceRow } from '@/components/map/DistanceText';
 import type { DistanceUnitMode } from '@/utils/formatDistance';
 
@@ -61,7 +62,7 @@ export function MapMarkerDetailSheet({
               contentContainerStyle={styles.contentInner}
               showsVerticalScrollIndicator={false}
             >
-              {children}
+              <View style={styles.lightContent}>{children}</View>
             </ScrollView>
           )}
         </View>
@@ -212,6 +213,9 @@ const styles = StyleSheet.create({
   },
   contentInner: {
     paddingBottom: 8,
+  },
+  lightContent: {
+    backgroundColor: MEDICAL_DETAIL.background,
   },
   card: {
     borderRadius: 16,

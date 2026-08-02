@@ -4,7 +4,7 @@ import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
 import { PlatformPressable } from '@react-navigation/elements';
 import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 
-/** 메인 하단 탭 — 6탭 균등 분할·컴팩트 라벨 */
+/** 메인 하단 탭 — 5탭 균등 분할·컴팩트 라벨 */
 export function useMainTabBarConfig() {
   const base = useExpertTabBarConfig({
     activeTintColor: APP_COLORS.tabActive,

@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { AdminFormField } from '@/components/admin/AdminFormField';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import {
   LoungeAnonymousBadge,
   LoungeBody,
@@ -27,7 +28,7 @@ import {
   LoungePrimaryButton,
   LoungeScreen,
   LoungeTopSection,
-  loungeListContent,
+  useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { EMS_LOUNGE, EMS_LOUNGE_SHADOW, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
@@ -52,7 +53,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         <LoungeMetaText>{message.postedAt}</LoungeMetaText>
       </View>
       <View className="mt-3">
-        <LoungeBody>{message.content}</LoungeBody>
+        <RichContentRenderer content={message.content} tone="lounge" />
       </View>
       <View className="mt-3 flex-row justify-end">
         <ReportContentButton
@@ -81,6 +82,7 @@ function RoomTab({
 }
 
 export function EmsChatRoomsScreen() {
+  const loungeListContentStyle = useLoungeListContentStyle();
   const {
     chatMessages,
     chatRooms,
@@ -252,7 +254,7 @@ export function EmsChatRoomsScreen() {
         <FlatList
           data={roomMessages}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={loungeListContent}
+          contentContainerStyle={loungeListContentStyle}
           ListHeaderComponent={error ? <LoungeErrorBanner message={error} /> : null}
           ListEmptyComponent={
             !roomId ? (

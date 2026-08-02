@@ -27,5 +27,19 @@ export function useRootRoute(): RootRoute | undefined {
 /** 로딩·인증 화면에서는 FAB 숨김 */
 export function useShowGlobalMoreFab(): boolean {
   const route = useRootRoute();
-  return route === 'Main' || route === 'Expert' || route === 'Utilities' || route === 'Chemical';
+  return (
+    route === 'Main' ||
+    route === 'Expert' ||
+    route === 'Utilities' ||
+    route === 'Chemical' ||
+    route === 'AdminDashboard'
+  );
+}
+
+/** 글로벌 상단 헤더 노출 여부 */
+export function useShowAppNavigationHeader(): boolean {
+  const route = useRootRoute();
+  return (
+    route === 'Main' || route === 'Utilities' || route === 'Chemical' || route === 'AdminDashboard'
+  );
 }

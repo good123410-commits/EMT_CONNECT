@@ -3,6 +3,7 @@ import { InteractionManager, Linking, Platform, Share } from 'react-native';
 import { KEMIX_WEB_URL } from '@/constants/env';
 import type { KemiGuide } from '@/types/kemiGuide';
 import { stripGuideHtml } from '@/services/kemiPostService';
+import { stripContentShortcodes } from '@/utils/contentShortcodes';
 
 export type GuideShareResult = 'shared' | 'dismissed' | 'copied' | 'opened';
 
@@ -15,7 +16,7 @@ export function buildGuideWebUrl(slug: string): string | null {
 export function buildGuideShareSummary(guide: KemiGuide): string {
   const fromMeta = guide.summary?.trim() || guide.seo_description?.trim();
   if (fromMeta) return fromMeta;
-  const plain = stripGuideHtml(guide.content).replace(/\s+/g, ' ').trim();
+  const plain = stripContentShortcodes(stripGuideHtml(guide.content)).replace(/\s+/g, ' ').trim();
   return plain.slice(0, 160) || '생활 응급처치 가이드를 KEMIX에서 확인하세요.';
 }
 

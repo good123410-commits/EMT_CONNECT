@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { EMS_LOUNGE } from '@/constants/emsLoungeTheme';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
+import { ParamedicTabLayoutContext } from '@/navigation/paramedicTabLayout';
 import { ParamedicCommunityProvider } from '@/contexts/ParamedicCommunityContext';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
 import { EmsCaseStudyScreen } from '@/screens/emsCommunity/EmsCaseStudyScreen';
@@ -30,18 +31,26 @@ function ParamedicQaBoardScreen() {
 /**
  * EMS 커뮤니티(미래회) — 승인된 준회원·정회원 전용 서브 탭.
  */
-export function ParamedicTabNavigator() {
+export function ParamedicTabNavigator({
+  nestedAboveMainTabBar = true,
+}: {
+  nestedAboveMainTabBar?: boolean;
+} = {}) {
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
     activeTintColor: EMS_LOUNGE.accent,
     inactiveTintColor: EMS_LOUNGE.textMuted,
     backgroundColor: EMS_LOUNGE.background,
     borderTopColor: EMS_LOUNGE.border,
     labelFontSize: 11,
+    compactLayout: false,
+    tabBarItemPaddingHorizontal: 2,
+    nestedAboveMainTabBar,
   });
 
   return (
-    <ParamedicCommunityProvider>
-      <Tab.Navigator screenOptions={screenOptions} safeAreaInsets={safeAreaInsets}>
+    <ParamedicTabLayoutContext.Provider value={{ nestedAboveMainTabBar }}>
+      <ParamedicCommunityProvider>
+        <Tab.Navigator screenOptions={screenOptions} safeAreaInsets={safeAreaInsets}>
         <Tab.Screen
           name="QaBoard"
           component={ParamedicQaBoardScreen}
@@ -83,6 +92,7 @@ export function ParamedicTabNavigator() {
           }}
         />
       </Tab.Navigator>
-    </ParamedicCommunityProvider>
+      </ParamedicCommunityProvider>
+    </ParamedicTabLayoutContext.Provider>
   );
 }

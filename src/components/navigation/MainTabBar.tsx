@@ -2,7 +2,7 @@ import { BottomTabBar, type BottomTabBarProps } from '@react-navigation/bottom-t
 import { StyleSheet, View } from 'react-native';
 
 /**
- * 메인 6탭 — 전체 너비 균등 분할 (flex 1 × 6)
+ * 메인 5탭 — 전체 너비 균등 분할 (flex 1 × 5)
  * 가로 safe-area 패딩 제거로 양끝 대칭 유지
  */
 export function MainTabBar(props: BottomTabBarProps) {

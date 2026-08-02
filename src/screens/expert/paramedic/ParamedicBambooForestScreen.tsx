@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import type { BambooMessage } from '@/data/paramedicMockData';
@@ -43,7 +44,9 @@ function MessageCard({ message, onLike }: { message: BambooMessage; onLike: (id:
         </View>
       </View>
 
-      <Text className="mt-3 text-sm leading-6 text-kemix-text">{message.content}</Text>
+      <View className="mt-3">
+        <RichContentRenderer content={message.content} />
+      </View>
 
       <View className="mt-3 flex-row flex-wrap gap-1.5">
         {message.tags.map((tag) => (

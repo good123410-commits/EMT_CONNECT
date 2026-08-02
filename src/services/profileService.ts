@@ -169,10 +169,11 @@ export async function ensureProfile(
 
 export async function updateProfileFields(
   userId: string,
-  fields: { name?: string; phone?: string },
+  fields: { name?: string; nickname?: string; phone?: string },
 ): Promise<void> {
   const payload: Record<string, unknown> = { id: userId };
   if (fields.name?.trim()) payload.name = fields.name.trim();
+  if (fields.nickname?.trim()) payload.nickname = fields.nickname.trim();
   if (fields.phone?.trim()) payload.phone = fields.phone.trim();
   if (Object.keys(payload).length <= 1) return;
 

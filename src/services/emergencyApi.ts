@@ -2582,7 +2582,7 @@ function mergeHospitalDetailWithBasis(
 export async function fetchHospitalDetail(
   hpid: string,
   options: NearbyHospitalOptions = {},
-): Promise<HospitalDetail> {
+): Promise<HospitalDetail | null> {
   const cacheKey = `er:${hpid}:detail`;
   const cached = markerDetailCache.get(cacheKey);
   if (cached) return cached as HospitalDetail;
@@ -2638,10 +2638,16 @@ export async function fetchHospitalDetail(
   }
 
   if (!location) {
-    throw new EmergencyApiError('응급실 상세 정보를 불러오지 못했습니다.');
+    return null;
   }
 
-  const basis = await fetchEmergencyHospitalBasis(hpid, region);
+  let basis: Awaited<ReturnType<typeof fetchEmergencyHospitalBasis>> = null;
+  try {
+    basis = await fetchEmergencyHospitalBasis(hpid, region);
+  } catch (error) {
+    console.error('[ER API] fetchHospitalDetail basis lookup failed', { hpid, error });
+  }
+
   const detail = mergeHospitalDetailWithBasis(
     buildHospitalDetail(location, bed, coordinate),
     basis,

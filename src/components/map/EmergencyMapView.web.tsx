@@ -8,7 +8,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { MapDisclaimerBanner } from '@/components/map/MapDisclaimerBanner';
 import type { EmergencyMapViewProps } from '@/components/map/EmergencyMapView.types';
 import { isValidCoordinate } from '@/utils/mapViewport';
 
@@ -141,10 +140,6 @@ export function EmergencyMapView<T>({
         <Ionicons name="open-outline" size={14} color="#2563eb" />
         <Text style={styles.externalLinkText}>Google 지도에서 열기</Text>
       </Pressable>
-
-      <View style={styles.disclaimerWrap}>
-        <MapDisclaimerBanner />
-      </View>
     </View>
   );
 }
@@ -221,7 +216,7 @@ const styles = StyleSheet.create({
   externalLink: {
     position: 'absolute',
     right: 10,
-    bottom: 52,
+    bottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -236,11 +231,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#2563eb',
-  },
-  disclaimerWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
 });

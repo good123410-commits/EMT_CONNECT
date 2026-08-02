@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import MapView, { type Region } from 'react-native-maps';
 import { MapClusterMarker } from '@/components/map/MapClusterMarker';
-import { MapDisclaimerBanner } from '@/components/map/MapDisclaimerBanner';
 import type { EmergencyMapViewProps } from '@/components/map/EmergencyMapView.types';
 import { MapPointMarker } from '@/components/map/MapPointMarker';
 import { useMapClusters, type MapClusterPoint } from '@/hooks/useMapClusters';
@@ -148,10 +147,6 @@ export function EmergencyMapView<T>({
           <ActivityIndicator size="small" color="#dc2626" />
         </View>
       ) : null}
-
-      <View style={styles.disclaimerWrap}>
-        <MapDisclaimerBanner />
-      </View>
     </View>
   );
 }
@@ -173,11 +168,5 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     padding: 8,
     elevation: 2,
-  },
-  disclaimerWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
 });

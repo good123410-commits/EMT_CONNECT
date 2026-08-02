@@ -1,5 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { Alert, Pressable, Text, View } from 'react-native';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import {
   LOCAL_COMMUNITY_CATEGORY_LABELS,
   type LocalCommunityPost,
@@ -61,7 +62,9 @@ export function LocalCommunityPostCard({ post, onReport }: LocalCommunityPostCar
           <Text className="ml-1 text-[10px] text-kemix-muted">신고</Text>
         </Pressable>
       </View>
-      <Text className="mt-2 text-sm leading-5 text-kemix-text">{post.content}</Text>
+      <View className="mt-2">
+        <RichContentRenderer content={post.content} />
+      </View>
       <View className="mt-2 flex-row items-center justify-between">
         <Text className="text-[10px] text-kemix-muted">{createdLabel}</Text>
         <View className="flex-row items-center">

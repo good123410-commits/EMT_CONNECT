@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GuideAdminCodeModal } from '@/components/guides/GuideAdminCodeModal';
 import { KemiGuideSection } from '@/components/guides/KemiGuideSection';
+import { useAppNavigationHeaderHeight } from '@/components/navigation/AppNavigationHeader';
 import { APP_COLORS } from '@/constants/appTheme';
 
 const ADMIN_CODE_TAP_WINDOW_MS = 900;
 
 export function EmergencyGuideScreen() {
-  const insets = useSafeAreaInsets();
+  const headerHeight = useAppNavigationHeaderHeight();
   const [adminCodeModalVisible, setAdminCodeModalVisible] = useState(false);
   const adminTapCountRef = useRef(0);
   const adminTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,7 +35,7 @@ export function EmergencyGuideScreen() {
         importantForAccessibility="no-hide-descendants"
         style={{
           position: 'absolute',
-          top: insets.top,
+          top: headerHeight - 48,
           right: 0,
           width: 48,
           height: 48,
@@ -43,9 +43,9 @@ export function EmergencyGuideScreen() {
         }}
         onPress={handleHeaderSecretTap}
       />
-      <SafeAreaView edges={['top']} className="flex-1">
+      <View className="flex-1">
         <KemiGuideSection />
-      </SafeAreaView>
+      </View>
 
       <GuideAdminCodeModal
         visible={adminCodeModalVisible}

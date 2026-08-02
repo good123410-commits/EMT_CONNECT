@@ -1,33 +1,18 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { Pressable, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+﻿import { Text, View } from 'react-native';
 
 type SettingsSubScreenHeaderProps = {
-  title: string;
+  title?: string;
   subtitle?: string;
 };
 
+/** 글로벌 헤더 아래 보조 설명 영역 */
 export function SettingsSubScreenHeader({ title, subtitle }: SettingsSubScreenHeaderProps) {
-  const navigation = useNavigation();
-
   return (
-    <SafeAreaView edges={['top']} className="border-b border-kemix-border bg-kemix-surface">
-      <View className="px-4 pb-4 pt-1">
-        <Pressable className="mb-3 flex-row items-center self-start" onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#0f172a" />
-          <Text className="ml-2 font-semibold text-kemix-text">설정</Text>
-        </Pressable>
-        <Text className="text-xl font-bold text-kemix-text">{title}</Text>
-        {subtitle ? <Text className="mt-1 text-sm text-kemix-text-secondary">{subtitle}</Text> : null}
-      </View>
-    </SafeAreaView>
+    <View className="border-b border-kemix-border bg-kemix-surface px-4 pb-4 pt-2">
+      {title ? <Text className="text-base font-bold text-kemix-text">{title}</Text> : null}
+      {subtitle ? (
+        <Text className={`text-sm text-kemix-text-secondary${title ? ' mt-1' : ''}`}>{subtitle}</Text>
+      ) : null}
+    </View>
   );
-}
-
-export function useIsSettingsSubScreen(): boolean {
-  const navigation = useNavigation();
-  const parent = navigation.getParent();
-  const parentRoutes = parent?.getState()?.routeNames ?? [];
-  return parentRoutes.includes('SettingsHome');
 }

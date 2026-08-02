@@ -136,6 +136,5 @@ export type AdminDashboardTab =
   | 'home'
   | 'moderation'
   | 'chat'
-  | 'questions'
   | 'ambulance'
   | 'hospitals';

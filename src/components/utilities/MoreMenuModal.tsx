@@ -1,4 +1,4 @@
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { APP_COLORS, APP_RADIUS } from '@/constants/appTheme';
@@ -31,18 +31,20 @@ export function MoreMenuModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40" onPress={onClose}>
-        <View className="flex-1" />
-      </Pressable>
-
-      <View
-        className="max-h-[88%] bg-kemix-surface"
-        style={{
-          borderTopLeftRadius: APP_RADIUS.cardLg,
-          borderTopRightRadius: APP_RADIUS.cardLg,
-          paddingBottom: Math.max(insets.bottom, 16),
-        }}
-      >
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="닫기" />
+        <View
+          className="bg-kemix-surface"
+          style={[
+            styles.sheet,
+            {
+              paddingBottom: Math.max(insets.bottom, 16),
+            },
+          ]}
+        >
+        <View style={styles.handleWrap}>
+          <View style={styles.handle} />
+        </View>
         <View
           className="flex-row items-center justify-between px-5 py-4"
           style={{ borderBottomWidth: 1, borderBottomColor: APP_COLORS.borderLight }}
@@ -147,7 +149,35 @@ export function MoreMenuModal({
             의료 행위·처방을 대체하지 않는 참고용 도구입니다.
           </Text>
         </ScrollView>
+        </View>
       </View>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    maxHeight: '88%',
+    borderTopLeftRadius: APP_RADIUS.cardLg,
+    borderTopRightRadius: APP_RADIUS.cardLg,
+  },
+  handleWrap: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: APP_COLORS.border,
+  },
+});

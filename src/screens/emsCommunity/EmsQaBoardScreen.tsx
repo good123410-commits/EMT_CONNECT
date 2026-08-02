@@ -30,7 +30,7 @@ import {
   LoungeScreen,
   LoungeTitle,
   LoungeWriteBar,
-  loungeListContent,
+  useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { EMS_LOUNGE, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
@@ -159,6 +159,7 @@ type EmsQaBoardScreenProps = {
 
 export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps) {
   const isLounge = variant === 'paramedic';
+  const loungeListContentStyle = useLoungeListContentStyle();
   const { user } = useAuth();
   const { role, isApproved } = useUserRole();
   const canAnswer = canWriteCommunityAnswer(role, isApproved);
@@ -536,7 +537,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                 <View className="h-8" />
               )
             }
-            contentContainerStyle={loungeListContent}
+            contentContainerStyle={loungeListContentStyle}
           />
         )}
 

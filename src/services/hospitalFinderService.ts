@@ -38,8 +38,10 @@ const ENDPOINTS = {
 
 const API_SUCCESS_CODE = '00';
 const DEFAULT_PAGE_SIZE = 100;
-const API_FETCH_TIMEOUT_MS = 12_000;
+const API_FETCH_TIMEOUT_MS = 10_000;
 const PEDIATRIC_DEPT_CODE = 'D013';
+const PEDIATRIC_API_MAX_TIMEOUTS = 2;
+const PEDIATRIC_MOONLIGHT_MAX_PAGES = 1;
 
 export type HospitalFinderItem = {
   hpid: string;
@@ -75,8 +77,44 @@ export type PediatricHospitalSearchResult = {
   success: boolean;
   items: HospitalFinderItem[];
   region: LocationRegion;
+  requestedRegion: LocationRegion;
   errorMessage?: string;
+  /** 시·군·구 검색 결과가 없어 같은 시·도 전체를 조회한 경우 */
+  fallbackUsed?: boolean;
+  /** 시·도 내 조회 가능한 병원이 없거나 모두 진료 종료 */
+  allTreatmentsEnded?: boolean;
+  /** API 응답 시간 초과가 연속 발생해 조회를 중단한 경우 */
+  timedOut?: boolean;
+  timeoutCount?: number;
 };
+
+class PediatricFetchBudget {
+  private timeouts = 0;
+  private aborted = false;
+
+  recordTimeout(error: unknown): void {
+    if (!isHospitalFinderTimeoutError(error)) return;
+    this.timeouts += 1;
+    if (this.timeouts >= PEDIATRIC_API_MAX_TIMEOUTS) {
+      this.aborted = true;
+    }
+  }
+
+  isAborted(): boolean {
+    return this.aborted;
+  }
+
+  get timeoutCount(): number {
+    return this.timeouts;
+  }
+}
+
+function isHospitalFinderTimeoutError(error: unknown): boolean {
+  return (
+    error instanceof EmergencyApiError &&
+    error.message.includes('응답 시간이 초과')
+  );
+}
 
 function assertApiKey(): string {
   const key = PORTAL_API_KEY.trim();
@@ -398,7 +436,60 @@ async function fetchAllPages(
   buildPageUrl: (pageNo: number, numOfRows: number) => string,
   parsePage: (rawText: string, contentType: string | null) => HospitalFinderItem[],
   maxPages = 5,
+  budget?: PediatricFetchBudget,
 ): Promise<HospitalFinderItem[]> {
+  try {
+    const first = await fetchPortalRaw(buildPageUrl(1, DEFAULT_PAGE_SIZE));
+    const firstItems = parsePage(first.rawText, first.contentType);
+    const payload = parsePortalPayload(first.rawText, first.contentType);
+
+    let totalCount = firstItems.length;
+    if (typeof payload === 'string') {
+      totalCount = parseNumeric(readXmlTag(payload, 'totalCount'), firstItems.length);
+    } else {
+      const body = ((payload as Record<string, unknown>).response as Record<string, unknown> | undefined)
+        ?.body as Record<string, unknown> | undefined;
+      totalCount = parseNumeric(readJsonString(body ?? {}, 'totalCount'), firstItems.length);
+    }
+
+    const allItems = [...firstItems];
+    const totalPages = Math.min(Math.ceil(totalCount / DEFAULT_PAGE_SIZE), maxPages);
+
+    for (let pageNo = 2; pageNo <= totalPages; pageNo += 1) {
+      if (budget?.isAborted()) break;
+      try {
+        const page = await fetchPortalRaw(buildPageUrl(pageNo, DEFAULT_PAGE_SIZE));
+        allItems.push(...parsePage(page.rawText, page.contentType));
+      } catch (error) {
+        budget?.recordTimeout(error);
+        if (budget?.isAborted() || isHospitalFinderTimeoutError(error)) {
+          throw error;
+        }
+        if (__DEV__) {
+          console.warn('[HospitalFinder] page fetch failed', { pageNo, error });
+        }
+        break;
+      }
+    }
+
+    return allItems;
+  } catch (error) {
+    budget?.recordTimeout(error);
+    if (budget?.isAborted() || isHospitalFinderTimeoutError(error)) {
+      throw error;
+    }
+    if (__DEV__) {
+      console.warn('[HospitalFinder] fetchAllPages failed', error);
+    }
+    return [];
+  }
+}
+
+async function fetchFirstHospitalFinderPage(
+  buildPageUrl: (pageNo: number, numOfRows: number) => string,
+  parsePage: (rawText: string, contentType: string | null) => HospitalFinderItem[],
+  budget?: PediatricFetchBudget,
+): Promise<{ items: HospitalFinderItem[]; totalCount: number }> {
   const first = await fetchPortalRaw(buildPageUrl(1, DEFAULT_PAGE_SIZE));
   const firstItems = parsePage(first.rawText, first.contentType);
   const payload = parsePortalPayload(first.rawText, first.contentType);
@@ -412,15 +503,7 @@ async function fetchAllPages(
     totalCount = parseNumeric(readJsonString(body ?? {}, 'totalCount'), firstItems.length);
   }
 
-  const allItems = [...firstItems];
-  const totalPages = Math.min(Math.ceil(totalCount / DEFAULT_PAGE_SIZE), maxPages);
-
-  for (let pageNo = 2; pageNo <= totalPages; pageNo += 1) {
-    const page = await fetchPortalRaw(buildPageUrl(pageNo, DEFAULT_PAGE_SIZE));
-    allItems.push(...parsePage(page.rawText, page.contentType));
-  }
-
-  return allItems;
+  return { items: firstItems, totalCount };
 }
 
 async function resolveSearchContext(options?: PediatricHospitalSearchOptions): Promise<{
@@ -521,11 +604,94 @@ function dedupeHospitals(items: HospitalFinderItem[]): HospitalFinderItem[] {
   return [...map.values()];
 }
 
+function hasPediatricSearchResults(items: HospitalFinderItem[]): boolean {
+  return items.some((item) => item.isMoonlightHospital || item.isPediatricCenter);
+}
+
+export function hasOperatingPediatricHospitals(items: HospitalFinderItem[]): boolean {
+  return items.some(
+    (item) => (item.isMoonlightHospital || item.isPediatricCenter) && item.isOpenNow,
+  );
+}
+
+export function evaluatePediatricTreatmentsEnded(items: HospitalFinderItem[]): boolean {
+  if (!hasPediatricSearchResults(items)) return true;
+  return !hasOperatingPediatricHospitals(items);
+}
+
+function buildSidoWideRegion(region: LocationRegion): LocationRegion {
+  return normalizeEmergencyApiRegion({
+    stage1: region.stage1,
+    stage2: '',
+    label: region.stage1,
+  });
+}
+
+function shouldExpandPediatricSearchToSido(
+  requestedRegion: LocationRegion,
+  items: HospitalFinderItem[],
+): boolean {
+  if (!requestedRegion.stage2?.trim()) return false;
+  if (!hasPediatricSearchResults(items)) return true;
+  return !hasOperatingPediatricHospitals(items);
+}
+
+async function fetchPediatricItemsForRegion(
+  region: LocationRegion,
+  coordinate: GeoCoordinate,
+  maxResults: number,
+  budget: PediatricFetchBudget,
+): Promise<HospitalFinderItem[]> {
+  if (budget.isAborted()) return [];
+
+  const normalized = normalizeEmergencyApiRegion(region);
+  let moonlightRows: HospitalFinderItem[] = [];
+
+  try {
+    moonlightRows = await fetchMoonlightHospitalsByRegion(normalized, budget);
+  } catch (error) {
+    budget.recordTimeout(error);
+    if (budget.isAborted()) {
+      throw error;
+    }
+    console.error('[HospitalFinder] moonlight fetch failed', error);
+  }
+
+  if (budget.isAborted()) {
+    throw new EmergencyApiError('달빛어린이병원 API 응답 시간이 초과되어 조회를 중단했습니다.');
+  }
+
+  let pediatricRows: HospitalFinderItem[] = [];
+  try {
+    pediatricRows = await fetchHospitalListByRegion(
+      normalized,
+      { QD: PEDIATRIC_DEPT_CODE },
+      { forcePediatric: true },
+      budget,
+      1,
+    );
+  } catch (error) {
+    budget.recordTimeout(error);
+    if (budget.isAborted()) {
+      throw error;
+    }
+    console.error('[HospitalFinder] pediatric list fetch failed', error);
+  }
+
+  const merged = dedupeHospitals([...moonlightRows, ...pediatricRows]);
+  const withCoords = withDistance(merged, coordinate);
+  return sortPediatricHospitals(withCoords).slice(0, maxResults);
+}
+
 async function fetchHospitalListByRegion(
   region: LocationRegion,
   extraParams: Record<string, string | number | undefined> = {},
   parseOptions?: { forceMoonlight?: boolean; forcePediatric?: boolean },
+  budget?: PediatricFetchBudget,
+  maxPages = 5,
 ): Promise<HospitalFinderItem[]> {
+  if (budget?.isAborted()) return [];
+
   return fetchAllPages(
     (pageNo, numOfRows) =>
       buildPortalUrl(ENDPOINTS.list, {
@@ -536,13 +702,22 @@ async function fetchHospitalListByRegion(
         ...extraParams,
       }),
     (raw, type) => parseHospitalFinderResponse(raw, type, parseOptions),
+    maxPages,
+    budget,
   );
 }
 
-async function fetchMoonlightHospitalsByRegion(region: LocationRegion): Promise<HospitalFinderItem[]> {
+async function fetchMoonlightHospitalsByRegion(
+  region: LocationRegion,
+  budget?: PediatricFetchBudget,
+): Promise<HospitalFinderItem[]> {
+  if (budget?.isAborted()) return [];
+
   for (const endpoint of ENDPOINTS.moonlightList) {
+    if (budget?.isAborted()) break;
+
     try {
-      const items = await fetchAllPages(
+      const { items, totalCount } = await fetchFirstHospitalFinderPage(
         (pageNo, numOfRows) =>
           buildPortalUrl(endpoint, {
             Q0: region.stage1,
@@ -551,54 +726,157 @@ async function fetchMoonlightHospitalsByRegion(region: LocationRegion): Promise<
             numOfRows,
           }),
         (raw, type) => parseHospitalFinderResponse(raw, type, { forceMoonlight: true }),
-        3,
+        budget,
       );
+
       if (items.length > 0) return items;
+      if (totalCount === 0) return [];
     } catch (error) {
+      budget?.recordTimeout(error);
+      if (budget?.isAborted() || isHospitalFinderTimeoutError(error)) {
+        throw error;
+      }
       if (__DEV__) {
         console.warn('[HospitalFinder] moonlight endpoint failed', endpoint, error);
       }
     }
   }
 
-  const fallback = await fetchHospitalListByRegion(region, { QN: '달빛' }, { forceMoonlight: true });
+  if (budget?.isAborted()) {
+    throw new EmergencyApiError('달빛어린이병원 API 응답 시간이 초과되어 조회를 중단했습니다.');
+  }
+
+  const fallback = await fetchHospitalListByRegion(
+    region,
+    { QN: '달빛' },
+    { forceMoonlight: true },
+    budget,
+    PEDIATRIC_MOONLIGHT_MAX_PAGES,
+  );
   return fallback.filter((item) => item.isMoonlightHospital);
 }
 
 export async function fetchPediatricHospitals(
   options: PediatricHospitalSearchOptions = {},
 ): Promise<PediatricHospitalSearchResult> {
-  const { coordinate, region } = await resolveSearchContext(options);
-  const maxResults = options.maxResults ?? 80;
+  let coordinate: GeoCoordinate;
+  let region: LocationRegion;
 
   try {
-    const [moonlightRows, pediatricRows] = await Promise.all([
-      fetchMoonlightHospitalsByRegion(region).catch((error) => {
-        console.error('[HospitalFinder] moonlight fetch failed', error);
-        return [] as HospitalFinderItem[];
-      }),
-      fetchHospitalListByRegion(region, { QD: PEDIATRIC_DEPT_CODE }, { forcePediatric: true }).catch(
-        (error) => {
-          console.error('[HospitalFinder] pediatric list fetch failed', error);
-          return [] as HospitalFinderItem[];
-        },
-      ),
-    ]);
+    const context = await resolveSearchContext(options);
+    coordinate = context.coordinate;
+    region = context.region;
+  } catch (error) {
+    const errorMessage =
+      error instanceof EmergencyApiError
+        ? error.message
+        : '위치 정보를 확인하지 못했습니다. 시·도를 선택해 다시 시도해 주세요.';
+    const fallbackRegion = normalizeEmergencyApiRegion(
+      options.region ?? { stage1: '서울특별시', stage2: '', label: '서울특별시' },
+    );
 
-    const merged = dedupeHospitals([...moonlightRows, ...pediatricRows]);
-    const withCoords = withDistance(merged, coordinate);
-    const sorted = sortPediatricHospitals(withCoords).slice(0, maxResults);
+    return {
+      success: false,
+      items: [],
+      region: fallbackRegion,
+      requestedRegion: fallbackRegion,
+      errorMessage,
+      allTreatmentsEnded: false,
+    };
+  }
+
+  const maxResults = options.maxResults ?? 80;
+  const requestedRegion = normalizeEmergencyApiRegion(region);
+  const budget = new PediatricFetchBudget();
+
+  try {
+    let searchRegion = requestedRegion;
+    let items: HospitalFinderItem[] = [];
+
+    try {
+      items = await fetchPediatricItemsForRegion(searchRegion, coordinate, maxResults, budget);
+    } catch (error) {
+      if (budget.isAborted()) {
+        const errorMessage =
+          error instanceof EmergencyApiError
+            ? error.message
+            : '달빛어린이병원 API 응답 시간이 초과되어 조회를 중단했습니다.';
+
+        return {
+          success: false,
+          items: [],
+          region: requestedRegion,
+          requestedRegion,
+          errorMessage,
+          timedOut: true,
+          timeoutCount: budget.timeoutCount,
+          allTreatmentsEnded: false,
+        };
+      }
+      throw error;
+    }
+
+    let fallbackUsed = false;
+
+    if (
+      !budget.isAborted() &&
+      shouldExpandPediatricSearchToSido(requestedRegion, items)
+    ) {
+      const sidoRegion = buildSidoWideRegion(requestedRegion);
+      try {
+        const sidoItems = await fetchPediatricItemsForRegion(
+          sidoRegion,
+          coordinate,
+          maxResults,
+          budget,
+        );
+        if (hasPediatricSearchResults(sidoItems)) {
+          searchRegion = sidoRegion;
+          items = sidoItems;
+          fallbackUsed = true;
+        }
+      } catch (error) {
+        if (budget.isAborted()) {
+          const errorMessage =
+            error instanceof EmergencyApiError
+              ? error.message
+              : '달빛어린이병원 API 응답 시간이 초과되어 조회를 중단했습니다.';
+
+          return {
+            success: false,
+            items: [],
+            region: requestedRegion,
+            requestedRegion,
+            errorMessage,
+            timedOut: true,
+            timeoutCount: budget.timeoutCount,
+            allTreatmentsEnded: false,
+          };
+        }
+        throw error;
+      }
+    }
+
+    const allTreatmentsEnded = evaluatePediatricTreatmentsEnded(items);
 
     if (__DEV__) {
       console.log('[HospitalFinder] fetchPediatricHospitals', {
-        region: region.label,
-        moonlight: moonlightRows.length,
-        pediatric: pediatricRows.length,
-        merged: sorted.length,
+        requested: requestedRegion.label,
+        search: searchRegion.label,
+        fallbackUsed,
+        merged: items.length,
+        allTreatmentsEnded,
       });
     }
 
-    return { success: true, items: sorted, region };
+    return {
+      success: true,
+      items,
+      region: searchRegion,
+      requestedRegion,
+      fallbackUsed,
+      allTreatmentsEnded,
+    };
   } catch (error) {
     const errorMessage =
       error instanceof EmergencyApiError
@@ -607,13 +885,18 @@ export async function fetchPediatricHospitals(
           ? error.message
           : '소아 의료기관 정보를 불러오지 못했습니다.';
 
-    console.error('[HospitalFinder] fetchPediatricHospitals failed', { region: region.label, errorMessage });
+    console.error('[HospitalFinder] fetchPediatricHospitals failed', {
+      region: requestedRegion.label,
+      errorMessage,
+    });
 
     return {
       success: false,
       items: [],
-      region,
+      region: requestedRegion,
+      requestedRegion,
       errorMessage,
+      allTreatmentsEnded: false,
     };
   }
 }

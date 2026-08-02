@@ -13,6 +13,7 @@ import type { CommunityComment, CommunityPost, CommunityReaction } from '../type
 import { CommunityCommentSection } from './CommunityCommentSection';
 import { CommunityReactionButtons } from './CommunityReactionButtons';
 import { CommunityReportModal } from './CommunityReportModal';
+import { CommunityRichContent } from './CommunityRichContent';
 
 type CommunityPostDetailModalProps = {
   post: CommunityPost | null;
@@ -20,21 +21,6 @@ type CommunityPostDetailModalProps = {
   onPostUpdate?: (postId: string, patch: Partial<CommunityPost>) => void;
   onLoginRequired?: () => void;
 };
-
-function renderPostContent(content: string) {
-  const trimmed = content.trim();
-  if (!trimmed) return <p className="muted">본문이 없습니다.</p>;
-  if (/<[a-z][\s\S]*>/i.test(trimmed)) {
-    return <div className="community-post-detail-body" dangerouslySetInnerHTML={{ __html: trimmed }} />;
-  }
-  return (
-    <div className="community-post-detail-body">
-      {trimmed.split(/\n\n+/).map((block, index) => (
-        <p key={index}>{block}</p>
-      ))}
-    </div>
-  );
-}
 
 export function CommunityPostDetailModal({
   post,
@@ -176,7 +162,7 @@ export function CommunityPostDetailModal({
           </header>
 
           <div className="community-post-detail-scroll">
-            {renderPostContent(post.content)}
+            <CommunityRichContent content={post.content} />
 
             <div className="community-post-detail-reactions">
               <CommunityReactionButtons

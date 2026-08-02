@@ -7,9 +7,12 @@ import {
   type ReactNode,
 } from 'react';
 import { View } from 'react-native';
+import { AppChrome } from '@/components/navigation/AppChrome';
+import { DraggableMoreFab } from '@/components/navigation/DraggableMoreFab';
+import { AppHeaderProvider } from '@/contexts/AppHeaderContext';
+import { SettingsMenuProvider } from '@/contexts/SettingsMenuContext';
 import { MedicationInstantStartModal } from '@/components/utilities/MedicationInstantStartModal';
 import { MedicationDeepLinkHandler } from '@/components/utilities/MedicationDeepLinkHandler';
-import { MoreMenuFab } from '@/components/navigation/MoreMenuFab';
 import { MoreMenuModal } from '@/components/utilities/MoreMenuModal';
 import type { UtilityToolRoute } from '@/constants/utilityTools';
 import { navigateToChemicalScreen } from '@/navigation/mainTabNavigation';
@@ -68,23 +71,28 @@ export function MoreMenuProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <MoreMenuContext.Provider value={value}>
-      <View style={{ flex: 1 }}>
-        {children}
-        <MedicationDeepLinkHandler onOpenInstant={openMedicationInstant} />
-        <MoreMenuModal
-          visible={visible}
-          onClose={closeMoreMenu}
-          onSelectTool={openUtilityTool}
-          onOpenChemicalInfo={openChemicalInfo}
-        />
-        <MedicationInstantStartModal
-          visible={medicationInstantVisible}
-          onClose={() => setMedicationInstantVisible(false)}
-          onOpenFullScreen={() => openUtilityTool('MedicationLogTimer')}
-        />
-        <MoreMenuFab />
-      </View>
-    </MoreMenuContext.Provider>
+    <AppHeaderProvider>
+      <SettingsMenuProvider>
+      <MoreMenuContext.Provider value={value}>
+        <View style={{ flex: 1 }}>
+          <AppChrome />
+          <View style={{ flex: 1 }}>{children}</View>
+          <MedicationDeepLinkHandler onOpenInstant={openMedicationInstant} />
+          <MoreMenuModal
+            visible={visible}
+            onClose={closeMoreMenu}
+            onSelectTool={openUtilityTool}
+            onOpenChemicalInfo={openChemicalInfo}
+          />
+          <MedicationInstantStartModal
+            visible={medicationInstantVisible}
+            onClose={() => setMedicationInstantVisible(false)}
+            onOpenFullScreen={() => openUtilityTool('MedicationLogTimer')}
+          />
+          <DraggableMoreFab />
+        </View>
+      </MoreMenuContext.Provider>
+      </SettingsMenuProvider>
+    </AppHeaderProvider>
   );
 }

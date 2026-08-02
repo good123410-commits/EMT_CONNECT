@@ -1,12 +1,15 @@
 import type { ReactNode } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, TextInput, View, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   EMS_LOUNGE,
   EMS_LOUNGE_CHIP,
   EMS_LOUNGE_SHADOW,
   EMS_LOUNGE_SPACING,
 } from '@/constants/emsLoungeTheme';
+import { getExpertTabBarMetrics } from '@/navigation/expertTabBarOptions';
+import { useParamedicTabLayout } from '@/navigation/paramedicTabLayout';
 
 export function LoungeScreen({ children }: { children: ReactNode }) {
   return (
@@ -496,3 +499,19 @@ export const loungeListContent = {
   paddingTop: 4,
   paddingBottom: 96,
 } as const;
+
+/** EMS 서브 탭 바 높이에 맞춘 리스트 하단 여백 */
+export function useLoungeListContentStyle(extraBottom = 12) {
+  const insets = useSafeAreaInsets();
+  const { nestedAboveMainTabBar } = useParamedicTabLayout();
+  const metrics = getExpertTabBarMetrics(insets.bottom, {
+    compact: false,
+    nestedAboveMainTabBar,
+  });
+
+  return {
+    paddingHorizontal: EMS_LOUNGE_SPACING.screen,
+    paddingTop: 4,
+    paddingBottom: metrics.occupiedBottomSpace + extraBottom,
+  };
+}

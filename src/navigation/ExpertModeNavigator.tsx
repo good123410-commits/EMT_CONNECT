@@ -55,7 +55,7 @@ export function ExpertModeNavigator() {
   return (
     <>
       <ExpertModeBackHandler />
-      <ParamedicTabNavigator />
+      <ParamedicTabNavigator nestedAboveMainTabBar={false} />
     </>
   );
 }

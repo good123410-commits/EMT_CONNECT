@@ -202,4 +202,37 @@ export async function findEmailHintByNickname(nickname: string): Promise<string 
   return typeof data === 'string' ? data : null;
 }
 
+export async function updateProfileFields(
+  userId: string,
+  fields: { name?: string; nickname?: string; phone?: string },
+): Promise<void> {
+  const payload: Record<string, unknown> = { id: userId };
+  if (fields.name?.trim()) payload.name = fields.name.trim();
+  if (fields.nickname?.trim()) payload.nickname = fields.nickname.trim();
+  if (fields.phone?.trim()) payload.phone = fields.phone.trim();
+  if (Object.keys(payload).length <= 1) return;
+
+  await upsertUserProfileRow(payload);
+}
+
+export function subscribeProfileChanges(userId: string, onChange: () => void): () => void {
+  const channel = supabase
+    .channel(`web-user-profile-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: USER_PROFILES_TABLE,
+        filter: `id=eq.${userId}`,
+      },
+      () => onChange(),
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
 export { isApprovedAdmin } from '../constants/adminAccess';

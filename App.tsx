@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
@@ -81,9 +82,11 @@ export default function App() {
 
   return (
     <AppErrorBoundary>
-      <SafeAreaProvider>
-        {booted ? <AppProviders /> : <AppShell />}
-      </SafeAreaProvider>
+      <GestureHandlerRootView style={styles.root}>
+        <SafeAreaProvider>
+          {booted ? <AppProviders /> : <AppShell />}
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     </AppErrorBoundary>
   );
 }

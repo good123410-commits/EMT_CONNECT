@@ -63,7 +63,7 @@ export function ParamedicGateScreen() {
     if (!pledgeAccepted) {
       return <CommunityPledgeScreen onAccept={acceptPledge} />;
     }
-    return <ParamedicTabNavigator key="ems-paramedic-tabs" />;
+    return <ParamedicTabNavigator key="ems-paramedic-tabs" nestedAboveMainTabBar />;
   }
 
   if (isExpertRole(role) && !isApproved) {

@@ -1,7 +1,8 @@
 import { extractGuideImageUrls, stripGuideHtml } from '@/services/kemiPostService';
+import { stripContentShortcodes } from '@/utils/contentShortcodes';
 
 export function stripCommunityHtml(html: string): string {
-  return stripGuideHtml(html).replace(/\s+/g, ' ').trim();
+  return stripContentShortcodes(stripGuideHtml(html)).replace(/\s+/g, ' ').trim();
 }
 
 export function extractCommunityImageUrls(html: string): string[] {

@@ -13,7 +13,7 @@ import {
   LoungeTag,
   LoungeTitle,
   LoungeTopSection,
-  loungeListContent,
+  useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { getResourceCategoryLabel } from '@/constants/resourceCategories';
@@ -59,6 +59,7 @@ function ResourceCard({
 }
 
 export function EmsResourcesScreen() {
+  const loungeListContentStyle = useLoungeListContentStyle();
   const { resources, loading, error } = useKemixResources();
   const [category, setCategory] = useState<string>('all');
   const [selected, setSelected] = useState<KemixResource | null>(null);
@@ -102,7 +103,7 @@ export function EmsResourcesScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={loungeListContent}
+          contentContainerStyle={loungeListContentStyle}
           ListEmptyComponent={
             <View className="items-center py-12">
               <Ionicons name="folder-open-outline" size={40} color={EMS_LOUNGE.textMuted} />

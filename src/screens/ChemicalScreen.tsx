@@ -1,5 +1,4 @@
-﻿import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,13 +8,14 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { BackHeader } from '@/components/BackHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { ChoseongFilterPanel } from '@/components/medicine/ChoseongFilterPanel';
 import { MedicineImage } from '@/components/medicine/MedicineImage';
 import { SearchBar } from '@/components/SearchBar';
+import { useAppHeader } from '@/hooks/useAppHeader';
+import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import { navigationRef } from '@/navigation/navigationRef';
 import { EmergencyApiError, type MedicineInfo } from '@/services/emergencyApi';
 import {
   applyChoseongFilter,
@@ -30,14 +30,14 @@ import type { MedicineChoseongFilter } from '@/utils/medicineChoseong';
 
 export function ChemicalScreen() {
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-kemix-bg">
+    <View className="flex-1 bg-kemix-bg">
       <DrugModule />
-    </SafeAreaView>
+    </View>
   );
 }
 
 function DrugModule() {
-  const navigation = useNavigation();
+  const fabBottomInset = useGlobalFabBottomInset();
   const [query, setQuery] = useState('');
   const [medicines, setMedicines] = useState<MedicineInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +48,16 @@ function DrugModule() {
   const [browsePage, setBrowsePage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const loadSeq = useRef(0);
+
+  useAppHeader(
+    selected
+      ? {
+          title: selected.itemName,
+          showBack: true,
+          onBack: () => setSelected(null),
+        }
+      : null,
+  );
 
   const trimmedQuery = query.trim();
   const isSearchMode = trimmedQuery.length >= 2;
@@ -143,7 +153,9 @@ function DrugModule() {
       setSelected(null);
       return true;
     }
-    navigation.goBack();
+    if (navigationRef.isReady() && navigationRef.canGoBack()) {
+      navigationRef.goBack();
+    }
     return true;
   }, true);
 
@@ -202,7 +214,6 @@ function DrugModule() {
 
   return (
     <View className="flex-1">
-      <BackHeader title="약물정보찾기" onBack={() => navigation.goBack()} />
       <View className="border-b border-kemix-border-light bg-kemix-surface px-4 pb-2 pt-2">
         <SearchBar
           value={query}
@@ -317,10 +328,13 @@ function stripHtml(value: string): string {
 
 function MedicineDetail({ medicine, onBack }: { medicine: MedicineInfo; onBack: () => void }) {
   useHardwareBackHandler(onBack, true);
+  const fabBottomInset = useGlobalFabBottomInset();
 
   return (
-    <ScrollView className="flex-1" contentContainerClassName="p-4 pb-8">
-      <BackHeader title={medicine.itemName} onBack={onBack} />
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: fabBottomInset }}
+    >
 
       <View className="mb-4 flex-row rounded-2xl border border-kemix-border bg-kemix-surface p-4">
         <MedicineImage uri={medicine.itemImage} size={96} />

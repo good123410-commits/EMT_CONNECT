@@ -46,15 +46,22 @@ export function searchFacilityMarkers(
   params: FacilitySearchParams,
   optionOverrides?: UnifiedFacilitySearchOptions,
 ): FacilityMarkerResult['items'] {
-  const defaults = DEFAULT_OPTIONS[kind];
-  const localOptions = buildLocalSearchOptions(params, { ...defaults, ...optionOverrides });
-  const { textQuery, coordinate } = params;
+  try {
+    const defaults = DEFAULT_OPTIONS[kind];
+    const localOptions = buildLocalSearchOptions(params, { ...defaults, ...optionOverrides });
+    const { textQuery, coordinate } = params;
 
-  if (kind === 'aed') {
-    return searchLocalAeds(textQuery, coordinate, localOptions);
+    if (kind === 'aed') {
+      return searchLocalAeds(textQuery, coordinate, localOptions);
+    }
+    if (kind === 'hospital') {
+      return searchLocalHospitals(textQuery, coordinate, localOptions);
+    }
+    return searchLocalPharmacyMarkers(textQuery, coordinate, localOptions);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[facility-markers] search failed', { kind, error });
+    }
+    return [];
   }
-  if (kind === 'hospital') {
-    return searchLocalHospitals(textQuery, coordinate, localOptions);
-  }
-  return searchLocalPharmacyMarkers(textQuery, coordinate, localOptions);
 }

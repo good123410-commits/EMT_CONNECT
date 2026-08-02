@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import {
   formatAmbulancePhone,
   getAmbulanceSigunguOptionsForSido,
@@ -180,6 +180,7 @@ function V2CallComingSoonSection() {
 }
 
 export function PrivateEmsCallScreen() {
+  const fabBottomInset = useGlobalFabBottomInset();
   const [locationSnapshot, setLocationSnapshot] = useState<LocationSnapshot>(() =>
     getLocationWithRegionImmediate(),
   );
@@ -267,11 +268,11 @@ export function PrivateEmsCallScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-kemix-bg">
+    <View className="flex-1 bg-kemix-bg">
       <FlatList
         data={results}
         keyExtractor={(item) => item.i}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 112 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: fabBottomInset }}
         ListHeaderComponent={
           <View className="mb-4 gap-4">
             <View className="rounded-2xl border border-red-200 bg-red-50 p-4">
@@ -341,7 +342,7 @@ export function PrivateEmsCallScreen() {
           onClose={() => setPicker(null)}
         />
       ) : null}
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   formatGuideCommentTime,
@@ -33,7 +34,9 @@ function CommentRow({ comment }: { comment: KemiGuideComment }) {
           {formatGuideCommentTime(comment.created_at)}
         </Text>
       </View>
-      <Text className="mt-1.5 text-sm leading-6 text-kemix-text">{comment.content}</Text>
+      <View className="mt-1.5">
+        <RichContentRenderer content={comment.content} />
+      </View>
     </View>
   );
 }

@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import {
   LoungeActionRow,
   LoungeAnonymousBadge,
@@ -29,7 +30,7 @@ import {
   LoungeTitle,
   LoungeTopSection,
   LoungeWriteBar,
-  loungeListContent,
+  useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { EMS_LOUNGE, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
@@ -126,7 +127,7 @@ function JobCard({ post }: { post: JobPost }) {
           padding: 12,
         }}
       >
-        <LoungeBody>{post.requirements}</LoungeBody>
+        <RichContentRenderer content={post.requirements} tone="lounge" />
       </View>
 
       <LoungeActionRow
@@ -139,6 +140,7 @@ function JobCard({ post }: { post: JobPost }) {
 }
 
 export function ParamedicJobsScreen() {
+  const loungeListContentStyle = useLoungeListContentStyle();
   const { jobPosts, postJobSeek, loading, error } = useParamedicCommunity();
   const [showWriteForm, setShowWriteForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -198,7 +200,7 @@ export function ParamedicJobsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={loungeListContent}
+        contentContainerStyle={loungeListContentStyle}
         ListHeaderComponent={error ? <LoungeErrorBanner message={error} /> : null}
         ListEmptyComponent={
           loading ? (

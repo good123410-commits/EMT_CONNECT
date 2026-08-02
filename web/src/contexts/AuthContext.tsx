@@ -19,6 +19,7 @@ import {
   fetchProfile,
   isApprovedAdmin,
   isProfileComplete,
+  subscribeProfileChanges,
 } from '../services/profileService';
 import { supabase } from '../lib/supabase';
 import {
@@ -120,6 +121,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       listener.subscription.unsubscribe();
     };
   }, [loadProfile]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return undefined;
+
+    const unsubscribe = subscribeProfileChanges(session.user.id, () => {
+      void refreshProfile();
+    });
+
+    return unsubscribe;
+  }, [session?.user?.id, refreshProfile]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

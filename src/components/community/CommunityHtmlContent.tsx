@@ -1,44 +1,10 @@
-﻿import { Platform, Image, Text, View } from 'react-native';
-import { extractGuideImageUrls, stripGuideHtml } from '@/services/kemiPostService';
+﻿import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 
 type CommunityHtmlContentProps = {
   content: string;
 };
 
+/** 게시글·댓글 본문 — HTML/텍스트 + 숏코드 */
 export function CommunityHtmlContent({ content }: CommunityHtmlContentProps) {
-  const trimmed = content.trim();
-
-  if (!trimmed) {
-    return <Text className="text-sm text-kemix-text-secondary">본문이 없습니다.</Text>;
-  }
-
-  if (Platform.OS === 'web') {
-    return (
-      <div
-        className="guide-detail-html"
-        dangerouslySetInnerHTML={{ __html: trimmed }}
-        style={{ lineHeight: 1.75, color: '#334155', fontSize: 15 }}
-      />
-    );
-  }
-
-  const images = extractGuideImageUrls(trimmed);
-  const isHtml = /<[a-z][\s\S]*>/i.test(trimmed);
-  const text = isHtml ? stripGuideHtml(trimmed) : trimmed;
-
-  return (
-    <View>
-      {images.map((uri) => (
-        <Image
-          key={uri}
-          source={{ uri }}
-          style={{ width: '100%', height: 220, borderRadius: 12, marginBottom: 12 }}
-          resizeMode="cover"
-        />
-      ))}
-      <Text className="text-sm leading-7 text-kemix-text" selectable>
-        {text}
-      </Text>
-    </View>
-  );
+  return <RichContentRenderer content={content} />;
 }

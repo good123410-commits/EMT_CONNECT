@@ -1,4 +1,5 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -170,7 +171,9 @@ export function HiddenChannelPanel({ accentColor = '#0f172a' }: HiddenChannelPan
                 </Text>
               </View>
               <Text className="text-base font-bold text-kemix-text">{item.title}</Text>
-              <Text className="mt-1 text-sm leading-5 text-kemix-text-secondary">{item.content}</Text>
+              <View className="mt-1">
+                <RichContentRenderer content={item.content} />
+              </View>
               <Text className="mt-2 text-xs text-kemix-muted">
                 {item.author?.name ?? profile?.name ?? '익명'}
                 {item.author?.company_name ? ` · ${item.author.company_name}` : ''}

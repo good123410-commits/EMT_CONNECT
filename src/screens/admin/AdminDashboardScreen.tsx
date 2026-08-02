@@ -1,17 +1,10 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Alert, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { AdminAmbulancePanel } from '@/components/admin/panels/AdminAmbulancePanel';
 import { AdminHospitalsPanel } from '@/components/admin/panels/AdminHospitalsPanel';
 import { AdminApprovalPanel } from '@/components/admin/panels/AdminApprovalPanel';
 import { AdminAuthPanel } from '@/components/admin/panels/AdminAuthPanel';
-import { AdminQuestionsPanel } from '@/components/admin/panels/AdminQuestionsPanel';
 import { AdminChatRoomsPanel } from '@/components/admin/panels/AdminChatRoomsPanel';
 import { AdminCommunityModerationPanel } from '@/components/admin/panels/AdminCommunityModerationPanel';
 import { AdminContentPanel } from '@/components/admin/panels/AdminContentPanel';
@@ -19,8 +12,10 @@ import { AdminHomeDashboardPanel } from '@/components/admin/panels/AdminHomeDash
 import { AdminUsersPanel } from '@/components/admin/panels/AdminUsersPanel';
 import { AdminDashboardGuard } from '@/components/guards/AdminDashboardGuard';
 import { SettingsSubScreenHeader } from '@/components/settings/SettingsSubScreenHeader';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAppHeader } from '@/hooks/useAppHeader';
 import { useLiveDbAdmin } from '@/hooks/useLiveDbAdmin';
-import { fetchQuestionOverview, type QuestionOverview } from '@/services/questionService';
+import { navigationRef } from '@/navigation/navigationRef';
 import type { AdminDashboardTab } from '@/types/admin';
 
 const ALL_TABS: Array<{
@@ -36,19 +31,9 @@ const ALL_TABS: Array<{
   { id: 'home', label: '홈 배너', icon: 'home-outline', requiresDbAdmin: true },
   { id: 'moderation', label: '커뮤니티', icon: 'shield-outline', requiresDbAdmin: true },
   { id: 'chat', label: '채팅방', icon: 'chatbubbles-outline', requiresDbAdmin: true },
-  { id: 'questions', label: 'Q&A', icon: 'help-circle-outline', requiresDbAdmin: true },
   { id: 'ambulance', label: '구급차', icon: 'bus-outline', requiresDbAdmin: true },
   { id: 'hospitals', label: '병원', icon: 'medical-outline', requiresDbAdmin: true },
 ];
-
-function StatTile({ label, value, tone }: { label: string; value: number; tone: string }) {
-  return (
-    <View className={`flex-1 rounded-xl border px-2.5 py-2 ${tone}`}>
-      <Text className="text-base font-bold text-kemix-text">{value}</Text>
-      <Text className="text-[10px] font-semibold text-kemix-text-secondary">{label}</Text>
-    </View>
-  );
-}
 
 function RestrictedPanel({ tabLabel }: { tabLabel: string }) {
   return (
@@ -64,11 +49,27 @@ function AdminDashboardContent() {
   const { width } = useWindowDimensions();
   const useSidebar = width >= 768;
   const { isDbAdmin, reload, liveProfile } = useLiveDbAdmin();
+  const { signOut } = useAuth();
+  useAppHeader({
+    title: '통합 관리자 대시보드',
+    showBack: true,
+    onBack: () => {
+      if (navigationRef.canGoBack()) {
+        navigationRef.goBack();
+      }
+    },
+  });
   const [activeTab, setActiveTab] = useState<AdminDashboardTab>('approval');
-  const [overview, setOverview] = useState<QuestionOverview>({ pending: 0, answered: 0, total: 0 });
-  const [overviewLoading, setOverviewLoading] = useState(true);
+
+  const handleSignOut = () => {
+    Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      { text: '로그아웃', style: 'destructive', onPress: () => void signOut() },
+    ]);
+  };
 
   const visibleTabs = useMemo(() => ALL_TABS, []);
+  const mobileTabWidth = useMemo(() => (width - 24 - 12) / 3, [width]);
 
   useEffect(() => {
     if (isDbAdmin) {
@@ -77,13 +78,6 @@ function AdminDashboardContent() {
       setActiveTab('approval');
     }
   }, [isDbAdmin]);
-
-  useEffect(() => {
-    setOverviewLoading(true);
-    void fetchQuestionOverview()
-      .then(setOverview)
-      .finally(() => setOverviewLoading(false));
-  }, []);
 
   const renderPanel = () => {
     const current = ALL_TABS.find((tab) => tab.id === activeTab);
@@ -106,8 +100,6 @@ function AdminDashboardContent() {
         return <AdminCommunityModerationPanel />;
       case 'chat':
         return <AdminChatRoomsPanel />;
-      case 'questions':
-        return <AdminQuestionsPanel />;
       case 'ambulance':
         return <AdminAmbulancePanel />;
       case 'hospitals':
@@ -124,18 +116,19 @@ function AdminDashboardContent() {
     return (
       <Pressable
         key={tab.id}
-        className={`flex-row items-center rounded-full border px-2.5 py-1.5 ${
+        style={useSidebar ? undefined : { width: mobileTabWidth }}
+        className={`flex-row items-center rounded-xl border px-2 py-2 ${
           active
             ? 'border-violet-700 bg-violet-700'
             : locked
               ? 'border-kemix-border bg-kemix-bg'
               : 'border-kemix-border bg-kemix-surface'
-        } ${useSidebar ? 'mb-1 mr-0' : 'mr-1.5 mb-1'}`}
+        } ${useSidebar ? 'mb-1.5 mr-0' : 'mb-1.5 justify-center'}`}
         onPress={() => setActiveTab(tab.id)}
       >
         <Ionicons
           name={locked ? 'lock-closed-outline' : tab.icon}
-          size={13}
+          size={14}
           color={active ? '#fff' : locked ? '#cbd5e1' : '#64748b'}
         />
         <Text
@@ -153,7 +146,6 @@ function AdminDashboardContent() {
   return (
     <View className="flex-1 bg-kemix-bg">
       <SettingsSubScreenHeader
-        title="통합 관리자 대시보드"
         subtitle={
           isDbAdmin
             ? `승인된 관리자 · ${liveProfile?.email ?? 'DB admin'}`
@@ -161,34 +153,32 @@ function AdminDashboardContent() {
         }
       />
 
-      <View className="flex-row gap-1.5 px-3 pt-2">
-        {overviewLoading ? (
-          <View className="flex-1 items-center py-2">
-            <ActivityIndicator color="#7c3aed" size="small" />
-          </View>
-        ) : (
-          <>
-            <StatTile label="Q 대기" value={overview.pending} tone="border-amber-200 bg-amber-50" />
-            <StatTile label="Q 완료" value={overview.answered} tone="border-green-200 bg-green-50" />
-            <StatTile label="Q 전체" value={overview.total} tone="border-kemix-border bg-kemix-surface" />
-          </>
-        )}
-      </View>
-
-      <View className={`flex-1 ${useSidebar ? 'flex-row px-3 pt-2' : 'pt-1.5'}`}>
+      <View className={`flex-1 ${useSidebar ? 'flex-row px-3 pt-3' : 'pt-2'}`}>
         {useSidebar ? (
-          <View className="mr-2 w-[108px] flex-row flex-wrap content-start">
+          <View className="mr-3 w-[120px]">
             {visibleTabs.map(tabButton)}
           </View>
         ) : (
-          <View className="px-3 pb-1">
-            <View className="flex-row flex-wrap">{visibleTabs.map(tabButton)}</View>
+          <View className="px-3 pb-2">
+            <View className="flex-row flex-wrap" style={{ gap: 6 }}>
+              {visibleTabs.map(tabButton)}
+            </View>
           </View>
         )}
 
         <View className={`flex-1 ${useSidebar ? '' : 'px-3'}`}>
           {renderPanel()}
         </View>
+      </View>
+
+      <View className="border-t border-kemix-border bg-kemix-surface px-4 py-3">
+        <Pressable
+          className="flex-row items-center justify-center rounded-xl border border-kemix-border py-3 active:bg-kemix-bg"
+          onPress={handleSignOut}
+        >
+          <Ionicons name="log-out-outline" size={18} color="#64748b" />
+          <Text className="ml-2 text-sm font-semibold text-kemix-text-secondary">로그아웃</Text>
+        </Pressable>
       </View>
     </View>
   );

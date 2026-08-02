@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AccountLinkingSection } from './AccountLinkingSection';
+import { ProfileEditModal } from './ProfileEditModal';
 import { getRoleLabel } from '../constants/roles';
 import { useAuth } from '../contexts/AuthContext';
 import { getCommunityDisplayName } from '../services/profileService';
@@ -14,6 +15,7 @@ export function SettingsDropdown({ onLoginClick }: SettingsDropdownProps) {
   const { user, profile, loading, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const displayName = getCommunityDisplayName(profile, user?.email);
@@ -50,6 +52,16 @@ export function SettingsDropdown({ onLoginClick }: SettingsDropdownProps) {
                   <p className="settings-profile-email">{user.email}</p>
                   <span className="settings-role-badge">{getRoleLabel(profile?.role)}</span>
                 </div>
+                <button
+                  type="button"
+                  className="settings-dropdown-item"
+                  onClick={() => {
+                    setOpen(false);
+                    setProfileEditOpen(true);
+                  }}
+                >
+                  👤 개인정보 수정
+                </button>
                 <button
                   type="button"
                   className="settings-dropdown-item"
@@ -115,6 +127,8 @@ export function SettingsDropdown({ onLoginClick }: SettingsDropdownProps) {
           </div>
         </div>
       ) : null}
+
+      <ProfileEditModal open={profileEditOpen} onClose={() => setProfileEditOpen(false)} />
     </div>
   );
 }

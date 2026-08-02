@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { supabase } from '@/lib/supabaseClient';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import type { BambooMessage, CaseStudyPost } from '@/data/paramedicMockData';
 import { EMS_COMMUNITY_POSTS_TABLE, fetchCommunityFeed, mapRowToBamboo, mapRowToCaseStudy, type EmsCommunityPostRow } from '@/services/emsCommunityService';
+import { stripContentShortcodes } from '@/utils/contentShortcodes';
 
 type BrowsePost =
   | { kind: 'case_study'; post: CaseStudyPost }
@@ -27,13 +29,16 @@ function BrowsePostCard({
   onPress: (item: BrowsePost) => void;
 }) {
   const title =
-    item.kind === 'case_study' ? item.post.title : item.post.content.slice(0, 48);
+    item.kind === 'case_study'
+      ? item.post.title
+      : stripContentShortcodes(item.post.content).slice(0, 48);
   const summary =
     item.kind === 'case_study'
       ? item.post.summary
-      : item.post.content.length > 80
-        ? `${item.post.content.slice(0, 80)}…`
-        : item.post.content;
+      : (() => {
+          const plain = stripContentShortcodes(item.post.content);
+          return plain.length > 80 ? `${plain.slice(0, 80)}…` : plain;
+        })();
 
   return (
     <Pressable
@@ -85,10 +90,12 @@ function BrowsePostDetail({
           {item.kind === 'case_study' ? (
             <>
               <Text className="text-lg font-bold text-kemix-text">{item.post.title}</Text>
-              <Text className="mt-2 text-sm leading-7 text-kemix-text">{item.post.body}</Text>
+              <View className="mt-2">
+                <RichContentRenderer content={item.post.body} />
+              </View>
             </>
           ) : (
-            <Text className="text-sm leading-7 text-kemix-text">{item.post.content}</Text>
+            <RichContentRenderer content={item.post.content} />
           )}
           <Text className="mt-4 text-xs text-kemix-muted">
             {item.post.anonymousLabel} · {item.post.postedAt}

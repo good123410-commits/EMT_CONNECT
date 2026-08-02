@@ -4,12 +4,12 @@ import { useIsFocused, useRoute } from '@react-navigation/native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { BedAvailabilityBar, ErDashboardSummary } from '@/components/ErDashboard';
+import { BedAvailabilityBar } from '@/components/ErDashboard';
 import { EmptyState } from '@/components/EmptyState';
 import { ErDutyContactButtons, ErHospitalSpecsPanel } from '@/components/facility/ErHospitalSpecsPanel';
 import { FacilitySearchBarComponent } from '@/components/facility/FacilitySearchBarComponent';
@@ -19,6 +19,13 @@ import { HospitalSpecialtyTags } from '@/components/facility/HospitalSpecialtyTa
 import { HospitalWeeklyHours } from '@/components/facility/HospitalWeeklyHours';
 import { MoonlightHospitalBadge } from '@/components/facility/MoonlightHospitalBadge';
 import { MapModuleErrorBoundary } from '@/components/map/MapModuleErrorBoundary';
+import {
+  MedicalDetailBody,
+  MedicalDetailCard,
+  MedicalDetailInfoTile,
+  MedicalDetailSectionTitle,
+  MedicalDetailText,
+} from '@/components/map/MedicalDetailPrimitives';
 import { EmergencyMapView } from '@/components/map/EmergencyMapView';
 import { DistanceText } from '@/components/map/DistanceText';
 import { PharmacyOpenBadge } from '@/components/map/PharmacyOpenBadge';
@@ -29,7 +36,9 @@ import {
   usePrefetchFacilityMarkers,
 } from '@/hooks/useFacilityMarkersQuery';
 import { ER_STATUS_COLORS, ER_STATUS_LABELS } from '@/mockData/aedAndEmergency';
+import { MEDICAL_DETAIL } from '@/constants/medicalDetailTheme';
 import {
+  EmergencyApiError,
   formatCount,
   formatEmergencyUpdatedAt,
   isMoonlightChildrenHospital,
@@ -38,8 +47,10 @@ import {
 } from '@/services/emergencyApi';
 
 import {
+  evaluatePediatricTreatmentsEnded,
   fetchPediatricHospitals,
   fetchRegionalHospitalMetadataIndex,
+  sortPediatricHospitals,
   type HospitalFinderItem,
   type HospitalMetadataEntry,
 } from '@/services/hospitalFinderService';
@@ -51,11 +62,9 @@ import {
   applyErLiveOverlayToLocal,
   enrichErMarkersWithMetadata,
   fetchErHospitalFullDetail,
-  fetchErLiveOverlay,
   getHybridHospitalDetailFromStore,
   resolveErLiveApiRegion,
   sortErTabHospitals,
-  type ErLiveOverlayResult,
   type LocalHospitalMarkerWithLive,
 } from '@/services/hybridErService';
 import {
@@ -64,7 +73,6 @@ import {
   type LocationRegion,
   type LocationSnapshot,
 } from '@/services/locationService';
-import { LIVE_STATUS_FALLBACK_MESSAGE } from '@/types/localFacility';
 import type { LocalPharmacyMarker } from '@/types/localFacility';
 import {
   getMapCenterFromSnapshot,
@@ -140,7 +148,7 @@ export function MapScreen() {
 
   return (
     <View className="flex-1 bg-kemix-bg">
-      <SafeAreaView edges={['top']} className="bg-kemix-surface px-4 pb-2 pt-1">
+      <View className="bg-kemix-surface px-4 pb-2 pt-2">
         <SegmentControl
           options={[
             { value: 'aed', label: 'AED' },
@@ -151,7 +159,7 @@ export function MapScreen() {
           value={tab}
           onChange={setTab}
         />
-      </SafeAreaView>
+      </View>
       <View style={{ flex: 1, display: tab === 'aed' ? 'flex' : 'none' }}>
         {tab === 'aed' ? (
           <AedModule
@@ -336,51 +344,50 @@ function AedDetailContent({
   const phone = aed.phone?.trim();
 
   return (
-    <View>
-      <View className="mb-4 h-32 items-center justify-center rounded-xl bg-kemix-elevated">
-        <Ionicons name="map" size={40} color="#94a3b8" />
-        <Text className="mt-2 text-xs text-kemix-text-secondary">AED 설치 위치</Text>
-        <Text className="text-xs text-kemix-muted">
-          {hasCoords
-            ? `${aed.latitude.toFixed(4)}, ${aed.longitude.toFixed(4)}`
-            : '좌표 정보 없음'}
-        </Text>
-      </View>
+    <MedicalDetailBody>
+      <MedicalDetailCard>
+        <View className="h-28 items-center justify-center">
+          <Ionicons name="map" size={40} color={MEDICAL_DETAIL.textMuted} />
+          <MedicalDetailText variant="secondary">AED 설치 위치</MedicalDetailText>
+          <MedicalDetailText variant="muted">
+            {hasCoords
+              ? `${aed.latitude.toFixed(4)}, ${aed.longitude.toFixed(4)}`
+              : '좌표 정보 없음'}
+          </MedicalDetailText>
+        </View>
+      </MedicalDetailCard>
 
-      <Text className="text-sm font-semibold text-kemix-text">{aed.name || 'AED'}</Text>
-      <Text className="mt-1 text-sm text-kemix-text-secondary">{aed.address?.trim() || '주소 정보 없음'}</Text>
+      <MedicalDetailText variant="title">{aed.name || 'AED'}</MedicalDetailText>
+      <MedicalDetailText variant="secondary">{aed.address?.trim() || '주소 정보 없음'}</MedicalDetailText>
       {aed.location?.trim() ? (
-        <Text className="mt-1 text-sm text-kemix-text-secondary">설치 위치: {aed.location}</Text>
+        <MedicalDetailText variant="secondary">설치 위치: {aed.location}</MedicalDetailText>
       ) : null}
 
       <View className="mt-4 flex-row gap-3">
-        <InfoTile
+        <MedicalDetailInfoTile
           icon="navigate"
           label="거리"
           value={formatDistanceMeters(aed.distanceM ?? 0, distanceUnitMode)}
           onPress={onDistanceUnitToggle}
         />
-        <InfoTile icon="walk" label="도보" value={`${aed.walkMin ?? 0}분`} />
-        <InfoTile
-          icon="hardware-chip"
-          label="모델"
-          value={aed.model?.trim() || '-'}
-        />
+        <MedicalDetailInfoTile icon="walk" label="도보" value={`${aed.walkMin ?? 0}분`} />
+        <MedicalDetailInfoTile icon="hardware-chip" label="모델" value={aed.model?.trim() || '-'} />
       </View>
 
       {phone ? (
         <Pressable
-          className="mt-4 rounded-xl border border-kemix-border bg-kemix-bg px-3 py-2"
+          className="mt-4 rounded-xl border px-3 py-2"
+          style={{ borderColor: MEDICAL_DETAIL.border, backgroundColor: MEDICAL_DETAIL.card }}
           onPress={() => confirmPhoneCall(aed.name || 'AED', phone)}
         >
-          <Text className="text-xs text-kemix-text-secondary">관리자 연락처</Text>
-          <Text className="text-sm font-bold text-blue-700">{phone}</Text>
+          <MedicalDetailText variant="secondary">관리자 연락처</MedicalDetailText>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: MEDICAL_DETAIL.accent }}>{phone}</Text>
         </Pressable>
       ) : (
-        <Text className="mt-4 text-xs text-kemix-text-secondary">관리자 연락처: -</Text>
+        <MedicalDetailText variant="secondary">관리자 연락처: -</MedicalDetailText>
       )}
-      <Text className="mt-1 text-xs text-kemix-muted">로컬 내장 데이터 · 즉시 표시</Text>
-    </View>
+      <MedicalDetailText variant="muted">로컬 내장 데이터 · 즉시 표시</MedicalDetailText>
+    </MedicalDetailBody>
   );
 }
 
@@ -398,9 +405,14 @@ function PediatricModule({
   const [hospitals, setHospitals] = useState<HospitalFinderItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
+  const [allTreatmentsEnded, setAllTreatmentsEnded] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<HospitalFinderItem | null>(null);
   const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
   const fetchRef = useRef(0);
+  const lastAlertKeyRef = useRef('');
+  const lastTimeoutAlertKeyRef = useRef('');
+  const autoFetchBlockedRef = useRef(false);
 
   const {
     mode,
@@ -419,43 +431,142 @@ function PediatricModule({
     [searchParams, locationSnapshot],
   );
 
+  const regionKey = `${apiRegion.stage1}|${apiRegion.stage2 ?? ''}`;
+
   const mapPoints = useMemo(() => toPediatricHospitalMapPoints(hospitals), [hospitals]);
   const moonlightCount = useMemo(
     () => hospitals.filter((item) => item.isMoonlightHospital).length,
     [hospitals],
   );
 
+  const applyPediatricSearchResult = (
+    result: Awaited<ReturnType<typeof fetchPediatricHospitals>>,
+  ) => {
+    if (result.timedOut) {
+      autoFetchBlockedRef.current = true;
+      setHospitals([]);
+      setAllTreatmentsEnded(false);
+      setFallbackNotice(null);
+      setErrorMessage(
+        result.errorMessage ??
+          '달빛어린이병원 API 응답 시간이 초과되어 조회를 중단했습니다.',
+      );
+
+      const timeoutAlertKey = `${regionKey}|timeout`;
+      if (lastTimeoutAlertKeyRef.current !== timeoutAlertKey) {
+        lastTimeoutAlertKeyRef.current = timeoutAlertKey;
+        Alert.alert(
+          '병원 정보 조회 지연',
+          '달빛어린이병원 API 응답이 2회 이상 지연되어 조회를 중단했습니다.\n지역을 변경하거나 잠시 후 「다시 시도」를 눌러 주세요.',
+          [{ text: '확인' }],
+        );
+      }
+      return;
+    }
+
+    const mergeRegion = result.fallbackUsed
+      ? { stage1: result.requestedRegion.stage1 }
+      : {
+          stage1: result.requestedRegion.stage1,
+          stage2: result.requestedRegion.stage2,
+        };
+    const merged = sortPediatricHospitals(
+      mergeCustomHospitalsIntoPediatricList(
+        result.items,
+        locationSnapshot.coordinate,
+        mergeRegion,
+      ),
+    );
+    const treatmentsEnded = evaluatePediatricTreatmentsEnded(merged);
+
+    setHospitals(merged);
+    setAllTreatmentsEnded(treatmentsEnded);
+    setErrorMessage(
+      result.success || merged.length > 0
+        ? null
+        : result.errorMessage ?? '소아 의료기관 정보를 불러오지 못했습니다.',
+    );
+
+    if (result.fallbackUsed && result.requestedRegion.stage2?.trim()) {
+      setFallbackNotice(
+        `선택하신 ${result.requestedRegion.stage2}에 진료 중인 달빛·소아 병원이 없어 ${result.requestedRegion.stage1} 내 가까운 병원을 표시합니다.`,
+      );
+    } else {
+      setFallbackNotice(null);
+    }
+  };
+
+  const loadPediatricHospitals = async (seq: number) => {
+    setLoading(true);
+    try {
+      const result = await fetchPediatricHospitals({
+        coordinate: locationSnapshot.coordinate,
+        region: apiRegion,
+      });
+      if (seq !== fetchRef.current) return;
+      applyPediatricSearchResult(result);
+    } catch (error) {
+      if (seq !== fetchRef.current) return;
+      setHospitals([]);
+      setAllTreatmentsEnded(false);
+      setFallbackNotice(null);
+      setErrorMessage(
+        error instanceof EmergencyApiError
+          ? error.message
+          : '소아 의료기관 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    } finally {
+      if (seq === fetchRef.current) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    autoFetchBlockedRef.current = false;
+    lastTimeoutAlertKeyRef.current = '';
+    lastAlertKeyRef.current = '';
+  }, [regionKey]);
+
   useEffect(() => {
     if (!active) return undefined;
+    if (autoFetchBlockedRef.current) return undefined;
 
     const seq = ++fetchRef.current;
     const timer = setTimeout(() => {
-      void (async () => {
-        setLoading(true);
-        const result = await fetchPediatricHospitals({
-          coordinate: locationSnapshot.coordinate,
-          region: apiRegion,
-        });
-        if (seq !== fetchRef.current) return;
-        const merged = mergeCustomHospitalsIntoPediatricList(
-          result.items,
-          locationSnapshot.coordinate,
-          { stage1: apiRegion.stage1, stage2: apiRegion.stage2 },
-        );
-        setHospitals(merged);
-        setErrorMessage(result.success ? null : result.errorMessage ?? '조회에 실패했습니다.');
-        setLoading(false);
-      })();
+      void loadPediatricHospitals(seq);
     }, 300);
 
     return () => clearTimeout(timer);
+  }, [active, apiRegion.stage1, apiRegion.stage2, apiRegion.label]);
+
+  useEffect(() => {
+    if (!active || loading || !allTreatmentsEnded) return;
+
+    const alertKey = `${apiRegion.stage1}|${apiRegion.stage2}|ended`;
+    if (lastAlertKeyRef.current === alertKey) return;
+    lastAlertKeyRef.current = alertKey;
+
+    Alert.alert(
+      '진료 종료 안내',
+      '모든 병원의 진료가 종료되었습니다. 타 시도를 검색하세요.',
+      [
+        {
+          text: '확인',
+          onPress: () => {
+            if (sigungu) {
+              handleSigunguChange('');
+            }
+          },
+        },
+      ],
+    );
   }, [
     active,
+    allTreatmentsEnded,
     apiRegion.stage1,
     apiRegion.stage2,
-    apiRegion.label,
-    locationSnapshot.coordinate.latitude,
-    locationSnapshot.coordinate.longitude,
+    handleSigunguChange,
+    loading,
+    sigungu,
   ]);
 
   useEffect(() => {
@@ -472,23 +583,10 @@ function PediatricModule({
   };
 
   const resync = () => {
+    autoFetchBlockedRef.current = false;
+    lastTimeoutAlertKeyRef.current = '';
     const seq = ++fetchRef.current;
-    void (async () => {
-      setLoading(true);
-      const result = await fetchPediatricHospitals({
-        coordinate: locationSnapshot.coordinate,
-        region: apiRegion,
-      });
-      if (seq !== fetchRef.current) return;
-      const merged = mergeCustomHospitalsIntoPediatricList(
-        result.items,
-        locationSnapshot.coordinate,
-        { stage1: apiRegion.stage1, stage2: apiRegion.stage2 },
-      );
-      setHospitals(merged);
-      setErrorMessage(result.success ? null : result.errorMessage ?? '조회에 실패했습니다.');
-      setLoading(false);
-    })();
+    void loadPediatricHospitals(seq);
   };
 
   return (
@@ -534,6 +632,24 @@ function PediatricModule({
                 국립중앙의료원 병·의원 찾기 API · 진료시간은 방문 전 전화 확인 권장
               </Text>
             </View>
+            {fallbackNotice ? (
+              <View className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2">
+                <Text className="text-xs font-semibold text-sky-900">{fallbackNotice}</Text>
+                <Text className="mt-0.5 text-[11px] text-sky-800">
+                  GPS 기준 가까운 순으로 정렬되었습니다.
+                </Text>
+              </View>
+            ) : null}
+            {allTreatmentsEnded && !loading ? (
+              <View className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                <Text className="text-xs font-semibold text-amber-900">
+                  현재 시·도 내 진료 중인 달빛·소아 병원이 없습니다.
+                </Text>
+                <Text className="mt-0.5 text-[11px] text-amber-800">
+                  상단에서 다른 시·도 또는 시·군·구를 선택해 주세요.
+                </Text>
+              </View>
+            ) : null}
             {loading ? <ActivityIndicator size="small" color="#7c3aed" /> : null}
             {errorMessage ? (
               <View className="rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -549,11 +665,17 @@ function PediatricModule({
           !loading ? (
             <EmptyState
               message={
-                searchParams.regionFilter
-                  ? `${statusLabel} 소아 의료기관을 찾을 수 없습니다`
-                  : '소아 의료기관 정보가 없습니다'
+                allTreatmentsEnded
+                  ? '현재 시·도 내 진료 중인 병원이 없습니다'
+                  : searchParams.regionFilter
+                    ? `${statusLabel} 소아 의료기관을 찾을 수 없습니다`
+                    : '소아 의료기관 정보가 없습니다'
               }
-              hint="시·도 또는 시·군·구를 선택해 보세요"
+              hint={
+                allTreatmentsEnded
+                  ? '다른 시·도를 선택하거나 시·군·구를 변경해 보세요'
+                  : '시·도 또는 시·군·구를 선택해 보세요'
+              }
             />
           ) : null
         }
@@ -601,7 +723,7 @@ function PediatricHospitalDetailContent({
   const phone = hospital.phone?.trim();
 
   return (
-    <View>
+    <MedicalDetailBody>
       {hospital.isMoonlightHospital ? (
         <View className="mb-2">
           <MoonlightHospitalBadge />
@@ -613,59 +735,60 @@ function PediatricHospitalDetailContent({
       ) : null}
 
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="text-sm font-semibold text-kemix-text">{hospital.name}</Text>
+        <MedicalDetailText variant="title">{hospital.name}</MedicalDetailText>
         <View
-          className={`rounded-full px-2.5 py-1 ${
-            hospital.isOpenNow ? 'bg-green-100' : 'bg-kemix-elevated'
-          }`}
+          className="rounded-full px-2.5 py-1"
+          style={{ backgroundColor: hospital.isOpenNow ? '#dcfce7' : MEDICAL_DETAIL.cardMuted }}
         >
           <Text
-            className={`text-[10px] font-bold ${
-              hospital.isOpenNow ? 'text-green-700' : 'text-kemix-text-secondary'
-            }`}
+            style={{
+              fontSize: 10,
+              fontWeight: '700',
+              color: hospital.isOpenNow ? '#15803d' : MEDICAL_DETAIL.textSecondary,
+            }}
           >
             {hospital.openStatusLabel}
           </Text>
         </View>
       </View>
 
-      <Text className="text-sm text-kemix-text-secondary">{hospital.address}</Text>
+      <MedicalDetailText variant="secondary">{hospital.address}</MedicalDetailText>
       {hospital.customMemo ? (
         <Text className="mt-2 text-xs leading-5 text-amber-800">{hospital.customMemo}</Text>
       ) : null}
-      <Text className="mt-1 text-xs text-kemix-text-secondary">{hospital.facilityType}</Text>
+      <MedicalDetailText variant="secondary">{hospital.facilityType}</MedicalDetailText>
 
       <View className="mt-3">
-        <Text className="mb-2 text-xs font-bold text-kemix-text">진료 과목</Text>
-        <HospitalSpecialtyTags specialties={hospital.specialties} maxTags={12} />
+        <MedicalDetailSectionTitle>진료 과목</MedicalDetailSectionTitle>
+        <HospitalSpecialtyTags specialties={hospital.specialties} maxTags={12} appearance="light" />
       </View>
 
       <View className="mt-4">
-        <Text className="mb-2 text-xs font-bold text-kemix-text">요일별 진료시간</Text>
-        <HospitalWeeklyHours schedule={hospital.weeklySchedule} />
+        <MedicalDetailSectionTitle>요일별 진료시간</MedicalDetailSectionTitle>
+        <HospitalWeeklyHours schedule={hospital.weeklySchedule} appearance="light" />
       </View>
 
       <View className="mt-4 flex-row gap-3">
-        <InfoTile
+        <MedicalDetailInfoTile
           icon="navigate"
           label="거리"
           value={formatDistanceMeters(hospital.distanceM ?? 0, distanceUnitMode)}
           onPress={onDistanceUnitToggle}
         />
-        <InfoTile icon="walk" label="도보" value={`${hospital.walkMin ?? 0}분`} />
-        <InfoTile
+        <MedicalDetailInfoTile icon="walk" label="도보" value={`${hospital.walkMin ?? 0}분`} />
+        <MedicalDetailInfoTile
           icon="call"
           label="전화"
           value={phone && phone !== '-' ? phone : '-'}
           onPress={phone && phone !== '-' ? () => confirmPhoneCall(hospital.name, phone) : undefined}
-          valueColor={phone && phone !== '-' ? '#1d4ed8' : '#0f172a'}
+          valueColor={phone && phone !== '-' ? MEDICAL_DETAIL.accent : MEDICAL_DETAIL.text}
         />
       </View>
 
       {hospital.description ? (
-        <Text className="mt-3 text-xs leading-5 text-kemix-text-secondary">{hospital.description}</Text>
+        <MedicalDetailText variant="secondary">{hospital.description}</MedicalDetailText>
       ) : null}
-    </View>
+    </MedicalDetailBody>
   );
 }
 
@@ -823,45 +946,45 @@ function PharmacyLocalDetailContent({
   const phone = place.p?.trim();
 
   return (
-    <View>
-      <Text className="text-sm font-semibold text-kemix-text">{place.n || '약국'}</Text>
-      <Text className="mt-1 text-sm text-kemix-text-secondary">{place.a?.trim() || '주소 정보 없음'}</Text>
+    <MedicalDetailBody>
+      <MedicalDetailText variant="title">{place.n || '약국'}</MedicalDetailText>
+      <MedicalDetailText variant="secondary">{place.a?.trim() || '주소 정보 없음'}</MedicalDetailText>
 
       {openStatus.hasHours ? (
         <View className="mt-3">
           <PharmacyOpenBadge status={openStatus} />
-          <Text className="mt-2 text-sm text-kemix-text-secondary">
+          <MedicalDetailText variant="secondary">
             {openStatus.dayLabel} 영업시간: {openStatus.hoursLabel}
-          </Text>
+          </MedicalDetailText>
         </View>
       ) : (
-        <Text className="mt-2 text-xs text-kemix-muted">심야약국 운영시간 데이터 없음</Text>
+        <MedicalDetailText variant="muted">심야약국 운영시간 데이터 없음</MedicalDetailText>
       )}
 
       <View className="mt-4 flex-row gap-3">
-        <InfoTile
+        <MedicalDetailInfoTile
           icon="navigate"
           label="거리"
           value={formatDistanceMeters(place.distanceM ?? 0, distanceUnitMode)}
           onPress={onDistanceUnitToggle}
         />
-        <InfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
-        <InfoTile
+        <MedicalDetailInfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
+        <MedicalDetailInfoTile
           icon="call"
           label="전화"
           value={phone || '-'}
           onPress={phone ? () => confirmPhoneCall(place.n || '약국', phone) : undefined}
-          valueColor={phone ? '#1d4ed8' : '#0f172a'}
+          valueColor={phone ? MEDICAL_DETAIL.accent : MEDICAL_DETAIL.text}
         />
       </View>
 
       {hasCoords ? (
-        <Text className="mt-3 text-xs text-kemix-muted">
+        <MedicalDetailText variant="muted">
           좌표: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
-        </Text>
+        </MedicalDetailText>
       ) : null}
-      <Text className="mt-1 text-xs text-kemix-muted">로컬 내장 데이터 · 즉시 표시</Text>
-    </View>
+      <MedicalDetailText variant="muted">로컬 내장 데이터 · 즉시 표시</MedicalDetailText>
+    </MedicalDetailBody>
   );
 }
 
@@ -876,13 +999,9 @@ function ErModule({
   locationSnapshot: LocationSnapshot;
   facilitySearch: FacilitySearchState;
 } & MapModuleSharedProps) {
-  const [regionLabel, setRegionLabel] = useState(locationSnapshot.region.label);
-  const [liveOverlay, setLiveOverlay] = useState<ErLiveOverlayResult | null>(null);
-  const [liveSyncing, setLiveSyncing] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<LocalHospitalMarkerWithLive | null>(null);
   const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
   const [metadataIndex, setMetadataIndex] = useState<Map<string, HospitalMetadataEntry> | null>(null);
-  const liveSyncRef = useRef(0);
   const metadataSyncRef = useRef(0);
 
   const {
@@ -909,10 +1028,10 @@ function ErModule({
   );
 
   const allMarkers = useMemo(() => {
-    const merged = applyErLiveOverlayToLocal(baseMarkers, liveOverlay);
+    const merged = applyErLiveOverlayToLocal(baseMarkers, null);
     const enriched = enrichErMarkersWithMetadata(merged, metadataIndex);
     return sortErTabHospitals(enriched);
-  }, [baseMarkers, liveOverlay, metadataIndex]);
+  }, [baseMarkers, metadataIndex]);
 
   const mapPoints = useMemo(() => toLocalHospitalMapPoints(allMarkers), [allMarkers]);
 
@@ -921,10 +1040,6 @@ function ErModule({
     const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
     if (nextCenter) setMapCenter(nextCenter);
   }, [locationSnapshot, selectedPlace]);
-
-  useEffect(() => {
-    setRegionLabel(liveApiRegion.label);
-  }, [liveApiRegion.label]);
 
   useEffect(() => {
     if (!active) return undefined;
@@ -948,68 +1063,6 @@ function ErModule({
     liveApiRegion.label,
   ]);
 
-  useEffect(() => {
-    if (!active) return undefined;
-
-    const seq = ++liveSyncRef.current;
-    const timer = setTimeout(() => {
-      void (async () => {
-        setLiveSyncing(true);
-        const overlay = await fetchErLiveOverlay(liveApiRegion);
-        if (seq !== liveSyncRef.current) return;
-        setLiveOverlay(overlay);
-        setLiveSyncing(false);
-      })();
-    }, 350);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [
-    active,
-    liveApiRegion.stage1,
-    liveApiRegion.stage2,
-    liveApiRegion.label,
-  ]);
-
-  useEffect(() => {
-    if (!active) return undefined;
-    return subscribeToLocationUpdates((snapshot) => {
-      if (!snapshot.permissionGranted) return;
-      if (searchParams.mode !== 'gps' || searchParams.textQuery) return;
-      const seq = ++liveSyncRef.current;
-      void (async () => {
-        const overlay = await fetchErLiveOverlay(resolveErLiveApiRegion(searchParams, snapshot));
-        if (seq !== liveSyncRef.current) return;
-        setLiveOverlay(overlay);
-      })();
-    });
-  }, [active, searchParams]);
-
-  const dashboardStats = useMemo(() => {
-    if (liveOverlay?.success) {
-      return {
-        ...liveOverlay.stats,
-        ready: true,
-      };
-    }
-    return {
-      totalHospitals: 0,
-      totalAvailableBeds: 0,
-      availableCount: 0,
-      congestedCount: 0,
-      fullCount: 0,
-      pediatricCount: 0,
-      ready: false,
-    };
-  }, [liveOverlay]);
-
-  const pediatricCount = dashboardStats.ready
-    ? dashboardStats.pediatricCount
-    : allMarkers.filter((item) => item.isPediatricPriority).length;
-
-  const erPriorityCount = allMarkers.filter((item) => item.isErPriority).length;
-
   const handleMarkerPress = (place: LocalHospitalMarkerWithLive) => {
     setSelectedPlace(place);
     setMapCenter({ latitude: place.lat, longitude: place.lng });
@@ -1017,17 +1070,6 @@ function ErModule({
 
   const handleCloseSheet = () => {
     setSelectedPlace(null);
-  };
-
-  const resyncLive = () => {
-    const seq = ++liveSyncRef.current;
-    void (async () => {
-      setLiveSyncing(true);
-      const overlay = await fetchErLiveOverlay(liveApiRegion);
-      if (seq !== liveSyncRef.current) return;
-      setLiveOverlay(overlay);
-      setLiveSyncing(false);
-    })();
   };
 
   return (
@@ -1038,7 +1080,7 @@ function ErModule({
             points={mapPoints}
             kind="er"
             selectedId={selectedPlace?.i}
-            loading={liveSyncing}
+            loading={markersFetching}
             center={mapCenter}
             onMarkerPress={(point: { payload: LocalHospitalMarkerWithLive }) =>
               handleMarkerPress(point.payload)
@@ -1054,7 +1096,7 @@ function ErModule({
         keyExtractor={(item) => item.i}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         ListHeaderComponent={
-          <View className="mb-2 gap-3">
+          <View className="mb-2">
             <FacilitySearchBarComponent
               facilityLabel="병원"
               mode={mode}
@@ -1068,34 +1110,7 @@ function ErModule({
               onSigunguChange={handleSigunguChange}
             />
             {markersFetching ? (
-              <ActivityIndicator size="small" color="#64748b" />
-            ) : null}
-            <ErDashboardSummary
-              regionLabel={
-                searchParams.mode === 'gps' && !searchParams.textQuery
-                  ? `${regionLabel} · 🚨응급실 ${erPriorityCount}곳 · 👶소아 ${pediatricCount}곳 · GPS 거리순`
-                  : `${liveApiRegion.label} · 🚨응급실 ${erPriorityCount}곳 · 👶소아 ${pediatricCount}곳`
-              }
-              totalHospitals={dashboardStats.totalHospitals}
-              totalAvailableBeds={dashboardStats.totalAvailableBeds}
-              availableCount={dashboardStats.availableCount}
-              congestedCount={dashboardStats.congestedCount}
-              fullCount={dashboardStats.fullCount}
-              loading={liveSyncing && !dashboardStats.ready}
-              unavailable={!liveSyncing && liveOverlay !== null && !liveOverlay.success}
-            />
-            {liveOverlay && !liveOverlay.success ? (
-              <View className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <Text className="text-sm text-amber-800">{LIVE_STATUS_FALLBACK_MESSAGE}</Text>
-                <Pressable
-                  className="mt-2 self-start rounded-lg bg-amber-600 px-3 py-1.5"
-                  onPress={resyncLive}
-                >
-                  <Text className="text-xs font-semibold text-white">실시간 정보 다시 시도</Text>
-                </Pressable>
-              </View>
-            ) : liveSyncing ? (
-              <Text className="text-xs text-kemix-muted">실시간 병상 정보 동기화 중...</Text>
+              <ActivityIndicator size="small" color="#64748b" className="mt-2" />
             ) : null}
           </View>
         }
@@ -1129,7 +1144,6 @@ function ErModule({
         {selectedPlace ? (
           <ErLocalDetailContent
             place={selectedPlace}
-            liveOverlay={liveOverlay}
             liveApiRegion={liveApiRegion}
             coordinate={locationSnapshot.coordinate}
             distanceUnitMode={distanceUnitMode}
@@ -1257,9 +1271,6 @@ function ErMarkerCard({
           compact
         />
       ) : null}
-      {place.liveFailed ? (
-        <Text className="mt-2 text-xs text-amber-700">{LIVE_STATUS_FALLBACK_MESSAGE}</Text>
-      ) : null}
       <View className="mt-3 flex-row items-center gap-3">
         {place.distanceM > 0 ? (
           <View className="flex-row items-center">
@@ -1287,14 +1298,12 @@ function ErMarkerCard({
 
 function ErLocalDetailContent({
   place,
-  liveOverlay,
   liveApiRegion,
   coordinate,
   distanceUnitMode,
   onDistanceUnitToggle,
 }: {
   place: LocalHospitalMarkerWithLive;
-  liveOverlay?: ErLiveOverlayResult | null;
   liveApiRegion: LocationRegion;
   coordinate: { latitude: number; longitude: number };
   distanceUnitMode: DistanceUnitMode;
@@ -1313,35 +1322,45 @@ function ErLocalDetailContent({
 
     void (async () => {
       setDetailLoading(true);
-      const result = await fetchErHospitalFullDetail(place.i, {
-        coordinate,
-        region: liveApiRegion,
-      });
+      try {
+        const result = await fetchErHospitalFullDetail(place.i, {
+          coordinate,
+          region: liveApiRegion,
+        });
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (result) {
-        setDetail(result);
-      } else {
-        const fallback = getHybridHospitalDetailFromStore(place.i, coordinate, liveOverlay ?? null);
-        if (fallback) {
-          setDetail({
-            ...fallback,
-            specialties: place.specialties?.length ? place.specialties : fallback.specialties,
-            weeklySchedule: place.weeklySchedule?.length
-              ? place.weeklySchedule
-              : fallback.weeklySchedule,
-            isOpenNow: place.openStatusLabel !== '확인 필요' ? place.isOpenNow : fallback.isOpenNow,
-            openStatusLabel:
-              place.openStatusLabel !== '확인 필요'
-                ? place.openStatusLabel
-                : fallback.openStatusLabel,
-          });
+        if (result) {
+          setDetail(result);
         } else {
-          setDetailError('상세 정보를 불러오지 못했습니다. 아래 기본 정보를 참고해 주세요.');
+          const fallback = getHybridHospitalDetailFromStore(place.i, coordinate, null);
+          if (fallback) {
+            setDetail({
+              ...fallback,
+              specialties: place.specialties?.length ? place.specialties : fallback.specialties,
+              weeklySchedule: place.weeklySchedule?.length
+                ? place.weeklySchedule
+                : fallback.weeklySchedule,
+              isOpenNow: place.openStatusLabel !== '확인 필요' ? place.isOpenNow : fallback.isOpenNow,
+              openStatusLabel:
+                place.openStatusLabel !== '확인 필요'
+                  ? place.openStatusLabel
+                  : fallback.openStatusLabel,
+            });
+          } else {
+            setDetailError('상세 정보를 불러오지 못했습니다. 아래 기본 정보를 참고해 주세요.');
+          }
         }
+      } catch (error) {
+        if (cancelled) return;
+        setDetailError(
+          error instanceof EmergencyApiError
+            ? error.message
+            : '상세 정보를 불러오지 못했습니다. 아래 기본 정보를 참고해 주세요.',
+        );
+      } finally {
+        if (!cancelled) setDetailLoading(false);
       }
-      setDetailLoading(false);
     })();
 
     return () => {
@@ -1358,7 +1377,6 @@ function ErLocalDetailContent({
   )
     ? (detail?.availablePediatricErBeds ?? place.availablePediatricErBeds)
     : 0;
-  const liveFailed = liveOverlay !== undefined && liveOverlay !== null && !liveOverlay.success;
   const hasCoords =
     Number.isFinite(place.lat) &&
     Number.isFinite(place.lng) &&
@@ -1395,23 +1413,17 @@ function ErLocalDetailContent({
     : [];
 
   return (
-    <View>
+    <MedicalDetailBody>
       {detailLoading ? (
         <View className="mb-3 items-center py-4">
-          <ActivityIndicator size="small" color="#64748b" />
-          <Text className="mt-2 text-xs text-kemix-muted">실시간 병상·기관 정보 불러오는 중...</Text>
+          <ActivityIndicator size="small" color={MEDICAL_DETAIL.textMuted} />
+          <MedicalDetailText variant="muted">실시간 병상·기관 정보 불러오는 중...</MedicalDetailText>
         </View>
       ) : null}
 
       {detailError ? (
         <View className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
           <Text className="text-sm text-amber-800">{detailError}</Text>
-        </View>
-      ) : null}
-
-      {liveFailed ? (
-        <View className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-          <Text className="text-sm text-amber-800">{LIVE_STATUS_FALLBACK_MESSAGE}</Text>
         </View>
       ) : null}
 
@@ -1438,34 +1450,34 @@ function ErLocalDetailContent({
       <ErDutyContactButtons
         specs={hospitalSpecs}
         hospitalName={detail?.hospitalName || place.n || '병원'}
+        appearance="light"
       />
 
       <View className="flex-row items-start gap-3">
         <View className="flex-1">
-          <Text className="text-sm font-semibold text-kemix-text">
+          <MedicalDetailText variant="title">
             {detail?.hospitalName || place.n || '병원'}
-          </Text>
-          <Text className="mt-1 text-sm text-kemix-text-secondary">
+          </MedicalDetailText>
+          <MedicalDetailText variant="secondary">
             {detail?.address?.trim() || place.a?.trim() || '주소 정보 없음'}
-          </Text>
+          </MedicalDetailText>
           {(detail?.emergencyClassName || place.td)?.trim() ? (
-            <Text className="mt-1 text-sm text-kemix-text-secondary">
+            <MedicalDetailText variant="secondary">
               {detail?.emergencyClassName || place.td}
-            </Text>
+            </MedicalDetailText>
           ) : null}
-          {place.sg?.trim() ? (
-            <Text className="mt-1 text-xs text-kemix-muted">{place.sg}</Text>
-          ) : null}
+          {place.sg?.trim() ? <MedicalDetailText variant="muted">{place.sg}</MedicalDetailText> : null}
           {openStatusLabel !== '확인 필요' ? (
             <View
-              className={`mt-2 self-start rounded-full px-2.5 py-1 ${
-                isOpenNow ? 'bg-green-100' : 'bg-kemix-elevated'
-              }`}
+              className="mt-2 self-start rounded-full px-2.5 py-1"
+              style={{ backgroundColor: isOpenNow ? '#dcfce7' : MEDICAL_DETAIL.cardMuted }}
             >
               <Text
-                className={`text-[10px] font-bold ${
-                  isOpenNow ? 'text-green-700' : 'text-kemix-text-secondary'
-                }`}
+                style={{
+                  fontSize: 10,
+                  fontWeight: '700',
+                  color: isOpenNow ? '#15803d' : MEDICAL_DETAIL.textSecondary,
+                }}
               >
                 {openStatusLabel}
               </Text>
@@ -1493,24 +1505,25 @@ function ErLocalDetailContent({
         specs={hospitalSpecs}
         hospitalName={detail?.hospitalName || place.n || '병원'}
         showDutyContacts={false}
+        appearance="light"
       />
 
       {specialties.length > 0 ? (
         <View className="mt-3">
-          <Text className="mb-2 text-xs font-bold text-kemix-text">진료 과목</Text>
-          <HospitalSpecialtyTags specialties={specialties} maxTags={12} />
+          <MedicalDetailSectionTitle>진료 과목</MedicalDetailSectionTitle>
+          <HospitalSpecialtyTags specialties={specialties} maxTags={12} appearance="light" />
         </View>
       ) : null}
 
       {weeklySchedule.length > 0 ? (
         <View className="mt-4">
-          <Text className="mb-2 text-xs font-bold text-kemix-text">요일별 진료시간</Text>
-          <HospitalWeeklyHours schedule={weeklySchedule} />
+          <MedicalDetailSectionTitle>요일별 진료시간</MedicalDetailSectionTitle>
+          <HospitalWeeklyHours schedule={weeklySchedule} appearance="light" />
         </View>
       ) : null}
 
       <View className="mt-4 flex-row items-center justify-between">
-        <Text className="text-sm font-semibold text-kemix-text">응급실 병상</Text>
+        <MedicalDetailText variant="title">응급실 병상</MedicalDetailText>
         <View
           className="rounded-full px-3 py-1"
           style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
@@ -1526,15 +1539,17 @@ function ErLocalDetailContent({
       </View>
 
       {bedRows.length > 0 ? (
-        <View className="mt-3 rounded-xl bg-kemix-bg p-3">
-          <Text className="mb-2 text-xs font-bold text-kemix-text">가용 병상 현황</Text>
+        <MedicalDetailCard>
+          <MedicalDetailSectionTitle>가용 병상 현황</MedicalDetailSectionTitle>
           {bedRows.map((row) => (
             <View key={row.label} className="flex-row items-center justify-between py-1">
-              <Text className="text-xs text-kemix-text-secondary">{row.label}</Text>
-              <Text className="text-xs font-semibold text-kemix-text">{row.value}병상</Text>
+              <MedicalDetailText variant="secondary">{row.label}</MedicalDetailText>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: MEDICAL_DETAIL.text }}>
+                {row.value}병상
+              </Text>
             </View>
           ))}
-        </View>
+        </MedicalDetailCard>
       ) : availablePediatricBeds > 0 ? (
         <View className="mt-2 rounded-lg bg-pink-50 px-3 py-2">
           <Text className="text-xs font-semibold text-pink-700">
@@ -1544,19 +1559,17 @@ function ErLocalDetailContent({
       ) : null}
 
       {detail?.onCallDoctor?.trim() ? (
-        <Text className="mt-3 text-xs text-kemix-text-secondary">
-          당직의: {detail.onCallDoctor}
-        </Text>
+        <MedicalDetailText variant="secondary">당직의: {detail.onCallDoctor}</MedicalDetailText>
       ) : null}
 
       {detail?.updatedAt ? (
-        <Text className="mt-1 text-xs text-kemix-muted">
+        <MedicalDetailText variant="muted">
           갱신: {formatEmergencyUpdatedAt(detail.updatedAt)}
-        </Text>
+        </MedicalDetailText>
       ) : null}
 
       {detail?.description?.trim() ? (
-        <Text className="mt-3 text-xs leading-5 text-kemix-text-secondary">{detail.description}</Text>
+        <MedicalDetailText variant="secondary">{detail.description}</MedicalDetailText>
       ) : null}
 
       {place.customMemo ? (
@@ -1567,58 +1580,20 @@ function ErLocalDetailContent({
       ) : null}
 
       <View className="mt-4 flex-row gap-3">
-        <InfoTile
+        <MedicalDetailInfoTile
           icon="navigate"
           label="거리"
           value={formatDistanceMeters(place.distanceM ?? 0, distanceUnitMode)}
           onPress={onDistanceUnitToggle}
         />
-        <InfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
+        <MedicalDetailInfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
       </View>
 
       {hasCoords ? (
-        <Text className="mt-3 text-xs text-kemix-muted">
+        <MedicalDetailText variant="muted">
           좌표: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
-        </Text>
+        </MedicalDetailText>
       ) : null}
-    </View>
-  );
-}
-
-function InfoTile({
-  icon,
-  label,
-  value,
-  valueColor = '#0f172a',
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  valueColor?: string;
-  onPress?: () => void;
-}) {
-  const content = (
-    <>
-      <Ionicons name={icon} size={18} color="#64748b" />
-      <Text className="mt-1 text-xs text-kemix-text-secondary">{label}</Text>
-      <Text className="text-sm font-bold" style={{ color: valueColor }}>
-        {value}
-      </Text>
-    </>
-  );
-
-  if (!onPress) {
-    return <View className="flex-1 rounded-xl bg-kemix-bg p-3">{content}</View>;
-  }
-
-  return (
-    <Pressable
-      className="flex-1 rounded-xl bg-kemix-bg p-3"
-      onPress={onPress}
-      accessibilityRole="button"
-    >
-      {content}
-    </Pressable>
+    </MedicalDetailBody>
   );
 }

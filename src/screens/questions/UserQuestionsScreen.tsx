@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
+import { stripContentShortcodes } from '@/utils/contentShortcodes';
 import { ServicePolicyContent } from '@/components/legal/ServicePolicyContent';
 import { QuestionListSkeleton } from '@/components/ui/QuestionListSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
@@ -71,7 +73,7 @@ const QuestionCard = memo(function QuestionCard({ item, onPress }: QuestionCardP
         <StatusBadge status={item.status} />
       </View>
       <Text className="mt-2 text-sm leading-6 text-kemix-text-secondary" numberOfLines={2}>
-        {item.content}
+        {stripContentShortcodes(item.content)}
       </Text>
       <Text className="mt-2 text-xs text-kemix-muted">
         {new Date(item.created_at).toLocaleString('ko-KR')}
@@ -222,7 +224,7 @@ export function UserQuestionsScreen() {
               <Text className="flex-1 text-lg font-bold text-kemix-text">{detail.title}</Text>
               <StatusBadge status={detail.status} />
             </View>
-            <Text className="mt-3 text-sm leading-7 text-kemix-text">{detail.content}</Text>
+            <RichContentRenderer content={detail.content} />
             <Text className="mt-3 text-xs text-kemix-muted">
               {new Date(detail.created_at).toLocaleString('ko-KR')}
             </Text>
@@ -231,7 +233,7 @@ export function UserQuestionsScreen() {
           {detail.answer ? (
             <View className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4">
               <Text className="text-sm font-bold text-green-800">구급대원 답변</Text>
-              <Text className="mt-2 text-sm leading-7 text-green-900">{detail.answer.content}</Text>
+              <RichContentRenderer content={detail.answer.content} tone="answer" />
               <Text className="mt-2 text-xs text-green-700">
                 {new Date(detail.answer.created_at).toLocaleString('ko-KR')}
               </Text>

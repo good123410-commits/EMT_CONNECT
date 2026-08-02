@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { subscribeKemiPostsTable } from '@/lib/realtimeSubscription';
 import type { KemiGuide, KemiGuideSummary } from '@/types/kemiGuide';
 import type { KemiPost } from '@/types/kemiPost';
+import { stripContentShortcodes } from '@/utils/contentShortcodes';
 import { safeAsync } from '@/utils/resilientAsync';
 
 export type { KemiGuide, KemiGuideSummary } from '@/types/kemiGuide';
@@ -31,7 +32,7 @@ function escapeIlike(value: string): string {
 }
 
 function buildSummary(content: string): string {
-  const text = stripGuideHtml(content).replace(/\s+/g, ' ').trim();
+  const text = stripContentShortcodes(stripGuideHtml(content)).replace(/\s+/g, ' ').trim();
   return text.slice(0, 160);
 }
 

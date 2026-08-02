@@ -14,11 +14,13 @@ export type SiteSetting = {
   updated_at: string;
 };
 
+const OFFICIAL_WEBSITE_URL = 'https://www.k-emix.com';
+
 const FALLBACKS: Partial<Record<SiteSettingKey, SiteSetting>> = {
   official_website: {
     key: 'official_website',
     title: '공식 웹사이트',
-    content: '',
+    content: OFFICIAL_WEBSITE_URL,
     updated_at: new Date().toISOString(),
   },
   donation_notice: {
@@ -28,6 +30,8 @@ const FALLBACKS: Partial<Record<SiteSettingKey, SiteSetting>> = {
     updated_at: new Date().toISOString(),
   },
 };
+
+export { OFFICIAL_WEBSITE_URL };
 
 export async function fetchSiteSetting(key: SiteSettingKey): Promise<SiteSetting> {
   const { data, error } = await supabase.rpc('get_site_setting', { p_key: key });
@@ -39,7 +43,7 @@ export async function fetchSiteSetting(key: SiteSettingKey): Promise<SiteSetting
 
 export async function fetchOfficialWebsiteUrl(): Promise<string> {
   const setting = await fetchSiteSetting('official_website');
-  return setting.content.trim();
+  return setting.content.trim() || OFFICIAL_WEBSITE_URL;
 }
 
 export async function fetchDonationNotice(): Promise<string> {

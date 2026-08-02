@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
 import {
   LoungeActionRow,
@@ -28,7 +29,7 @@ import {
   LoungeTag,
   LoungeTitle,
   LoungeWriteBar,
-  loungeListContent,
+  useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { EMS_LOUNGE, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
@@ -81,6 +82,8 @@ function CaseStudyCard({
 }
 
 export function EmsCaseStudyScreen() {
+  const loungeListContentStyle = useLoungeListContentStyle();
+  const loungeComposeContentStyle = useLoungeListContentStyle(24);
   const { caseStudies, postCaseStudy, likeCaseStudy, loading, error } = useParamedicCommunity();
   const [composing, setComposing] = useState(false);
   const [selected, setSelected] = useState<CaseStudyPost | null>(null);
@@ -136,7 +139,7 @@ export function EmsCaseStudyScreen() {
     return (
       <LoungeScreen>
         <ParamedicHeader />
-        <ScrollView contentContainerStyle={{ paddingBottom: 112 }}>
+        <ScrollView contentContainerStyle={loungeComposeContentStyle}>
           <LoungeBackBar label="목록" onPress={() => setSelected(null)} />
           <View style={{ paddingHorizontal: EMS_LOUNGE_SPACING.screen }}>
             <LoungeCard>
@@ -146,7 +149,7 @@ export function EmsCaseStudyScreen() {
                 <LoungeMetaText>{selected.postedAt}</LoungeMetaText>
               </View>
               <View className="mt-4">
-                <LoungeBody>{selected.body}</LoungeBody>
+                <RichContentRenderer content={selected.body} />
               </View>
               {selected.tags.length > 0 ? (
                 <View className="mt-4 flex-row flex-wrap gap-2">
@@ -222,7 +225,7 @@ export function EmsCaseStudyScreen() {
           <FlatList
             data={caseStudies}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={loungeListContent}
+            contentContainerStyle={loungeListContentStyle}
             renderItem={({ item }) => (
               <CaseStudyCard post={item} onLike={likeCaseStudy} onOpen={setSelected} />
             )}

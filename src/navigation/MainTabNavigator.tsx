@@ -11,7 +11,6 @@ export type MainTabParamList = {
   Map: { initialTab?: 'aed' | 'er' | 'pharmacy' | 'pediatric' } | undefined;
   EmsCall: undefined;
   Paramedic: undefined;
-  Settings: undefined;
 };
 
 /** @deprecated MainTabParamList 사용 */
@@ -51,7 +50,6 @@ const TAB_ICONS: Record<string, TabIconConfig> = {
   Map: { active: 'hospital-box', inactive: 'hospital-box-outline' },
   EmsCall: { active: 'car', inactive: 'car-outline' },
   Paramedic: { active: 'account-group', inactive: 'account-group-outline' },
-  Settings: { active: 'cog', inactive: 'cog-outline' },
 };
 
 const HomeScreen = createDeferredScreen(() => require('@/screens/HomeScreen').HomeScreen);
@@ -61,9 +59,6 @@ const EmergencyGuideScreen = createDeferredScreen(
 const MapScreen = createDeferredScreen(() => require('@/screens/MapScreen').MapScreen);
 const PrivateEmsCallScreen = createDeferredScreen(
   () => require('@/screens/PrivateEmsCallScreen').PrivateEmsCallScreen,
-);
-const SettingsStackNavigator = createDeferredScreen(
-  () => require('@/navigation/SettingsStackNavigator').SettingsStackNavigator,
 );
 const ParamedicGateScreen = createDeferredScreen(
   () => require('@/screens/ParamedicGateScreen').ParamedicGateScreen,
@@ -128,16 +123,6 @@ export function MainTabNavigator() {
           tabBarLabel: EMS_COMMUNITY_TAB_LABEL,
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon config={TAB_ICONS.Paramedic} color={color} focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsStackNavigator}
-        options={{
-          tabBarLabel: '설정',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon config={TAB_ICONS.Settings} color={color} focused={focused} />
           ),
         }}
       />
