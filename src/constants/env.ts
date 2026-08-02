@@ -17,4 +17,4 @@ export const PORTAL_API_KEY =
 export const KEMIX_WEB_URL =
   process.env.EXPO_PUBLIC_KEMIX_WEB_URL ??
   Constants.expoConfig?.extra?.kemixWebUrl ??
-  '';
+  'https://kemix.kr';

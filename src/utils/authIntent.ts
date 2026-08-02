@@ -5,6 +5,7 @@ const AUTH_INTENT_KEY = 'kemix-auth-intent';
 export type AuthIntent =
   | { type: 'community-write' }
   | { type: 'guide-unlock'; slug: string }
+  | { type: 'guide-comment' }
   | { type: 'question-write' };
 
 export async function storeAuthIntent(intent: AuthIntent): Promise<void> {
@@ -21,6 +22,7 @@ export async function consumeAuthIntent(): Promise<AuthIntent | null> {
     if (
       parsed?.type === 'community-write' ||
       parsed?.type === 'guide-unlock' ||
+      parsed?.type === 'guide-comment' ||
       parsed?.type === 'question-write'
     ) {
       return parsed;

@@ -16,11 +16,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { SearchBar } from '@/components/SearchBar';
 import { GuideCategoryManageModal } from '@/components/guides/GuideCategoryManageModal';
+import { GuideCommentsSection } from '@/components/guides/GuideCommentsSection';
 import { GuideContentGate } from '@/components/guides/GuideContentGate';
+import { GuideLikeButton } from '@/components/guides/GuideLikeButton';
+import { GuideShareSheet } from '@/components/guides/GuideShareSheet';
 import { GuideWriteModal, type GuideWriteDraft } from '@/components/guides/GuideWriteModal';
+import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
 import { resolveGuideIcon } from '@/constants/guideIcons';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import { useKemiGuideEngagement } from '@/hooks/useKemiGuideEngagement';
 import { useKemiGuides } from '@/hooks/useKemiGuides';
 import {
   deleteKemiGuide,
@@ -28,6 +33,7 @@ import {
   formatKemiPostDate,
   type KemiGuideSummary,
 } from '@/services/kemiPostService';
+import { parseKemiGuideSocialError } from '@/services/kemiGuideSocialService';
 import {
   fetchGuideCategories,
   subscribeGuideCategories,
@@ -371,7 +377,32 @@ function GuideDetailView({
   onDelete: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const [shareOpen, setShareOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const {
+    engagement,
+    comments,
+    commentsLoading,
+    likeLoading,
+    commentSubmitting,
+    toggleLike,
+    submitComment,
+  } = useKemiGuideEngagement(guide?.id ?? null);
+
   useHardwareBackHandler(onBack, true);
+
+  const handleToggleLike = async () => {
+    try {
+      await toggleLike();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('not_authenticated')) {
+        setLoginOpen(true);
+        return;
+      }
+      Alert.alert('오류', parseKemiGuideSocialError(message || '좋아요 처리에 실패했습니다.'));
+    }
+  };
 
   return (
     <View className="flex-1 bg-kemix-surface">
@@ -380,7 +411,14 @@ function GuideDetailView({
           <Ionicons name="arrow-back" size={22} color="#0f172a" />
         </Pressable>
         <Text className="text-sm font-semibold text-kemix-text">생활 응급처치 가이드</Text>
-        <View className="w-9" />
+        <Pressable
+          className="rounded-full bg-kemix-elevated p-2"
+          onPress={() => setShareOpen(true)}
+          hitSlop={8}
+          disabled={!guide}
+        >
+          <Ionicons name="share-outline" size={20} color="#0f172a" />
+        </Pressable>
       </View>
 
       {loading || !guide ? (
@@ -391,6 +429,7 @@ function GuideDetailView({
         <ScrollView
           className="flex-1 px-4 py-4"
           contentContainerStyle={{ paddingBottom: insets.bottom + (isGuideAdmin ? 96 : 24) }}
+          keyboardShouldPersistTaps="handled"
         >
           {guide.category ? (
             <Text className="mb-2 self-start rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
@@ -401,6 +440,23 @@ function GuideDetailView({
           <Text className="mt-1 text-xs text-kemix-text-secondary">
             {formatKemiPostDate(guide.created_at)} · 조회 {guide.views}
           </Text>
+
+          <View className="mt-4 flex-row items-center justify-between">
+            <GuideLikeButton
+              liked={engagement.liked}
+              count={engagement.like_count}
+              loading={likeLoading}
+              onPress={() => void handleToggleLike()}
+            />
+            <Pressable
+              className="flex-row items-center rounded-full border border-kemix-border-light bg-kemix-bg px-3 py-2 active:opacity-80"
+              onPress={() => setShareOpen(true)}
+            >
+              <Ionicons name="share-social-outline" size={18} color="#334155" />
+              <Text className="ml-1.5 text-sm font-semibold text-kemix-text">공유</Text>
+            </Pressable>
+          </View>
+
           {guide.thumbnail_url ? (
             <View className="mt-4 overflow-hidden rounded-xl border border-kemix-border-light bg-kemix-bg">
               <Image
@@ -417,8 +473,25 @@ function GuideDetailView({
               summary={guide.summary ?? guide.seo_description}
             />
           </View>
+
+          <GuideCommentsSection
+            comments={comments}
+            loading={commentsLoading}
+            submitting={commentSubmitting}
+            onSubmit={submitComment}
+          />
         </ScrollView>
       )}
+
+      <GuideShareSheet guide={guide} visible={shareOpen} onClose={() => setShareOpen(false)} />
+
+      <GuestLoginPromptModal
+        visible={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        title="좋아요"
+        description="로그인 후 좋아요를 남길 수 있습니다."
+        intent={{ type: 'guide-comment' }}
+      />
 
       {isGuideAdmin && guide ? (
         <View

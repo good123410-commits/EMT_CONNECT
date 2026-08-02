@@ -102,6 +102,36 @@ export const subscribeKemiPostCategoriesTable = createTableSubscription(
   'kemix_post_categories_live',
 );
 
+export function subscribeKemiPostComments(postId: string, onChange: ChangeListener): () => void {
+  const subscribe = createPostgresChangeSubscription(`kemi_post_comments_${postId}`, [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'kemi_post_comments',
+      filter: `post_id=eq.${postId}`,
+    },
+  ]);
+  return subscribe(onChange);
+}
+
+export function subscribeKemiPostEngagement(postId: string, onChange: ChangeListener): () => void {
+  const subscribe = createPostgresChangeSubscription(`kemi_post_engagement_${postId}`, [
+    {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'kemi_posts',
+      filter: `id=eq.${postId}`,
+    },
+    {
+      event: '*',
+      schema: 'public',
+      table: 'kemi_post_likes',
+      filter: `post_id=eq.${postId}`,
+    },
+  ]);
+  return subscribe(onChange);
+}
+
 export function subscribeHomeEventBanners(onChange: ChangeListener): () => void {
   const subscribe = createPostgresChangeSubscription('kemix_home_event_banners_live', [
     {

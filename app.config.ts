@@ -2,9 +2,10 @@ import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
   name: "KON",
-  slug: "kon",
+  // EAS projectId(a9b6166d-…)는 Expo에 "ems-connect" slug로 등록됨 — slug 불일치 시 eas build 실패
+  slug: "ems-connect",
   owner: "techlavalava",
-  scheme: "kon",
+  scheme: "ems-connect",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/ic_launcher.png",
