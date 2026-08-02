@@ -74,7 +74,10 @@ export const APP_BORDER = {
 
 /** 기본 여백 — 기존 대비 약 1.6~2배 */
 export const APP_SPACING = {
+  /** 넓은 화면 패딩 (전체·유틸 등) */
   screen: 32,
+  /** 목록·카드 좌우 인셋 — 응급 가이드 탭 `px-4` 와 동일 */
+  contentHorizontal: 16,
   section: 36,
   card: 24,
   screenTop: 12,

@@ -1,3 +1,18 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+export function useEmergencyOverlay() {
+  return {
+    state: { supported: false, enabled: false, hasPermission: false },
+    loading: false,
+    refresh: async () => ({ supported: false, enabled: false, hasPermission: false }),
+    enableOverlay: async () => false,
+    disableOverlay: async () => {},
+    toggleOverlay: async () => {},
+    ensurePermission: async () => false,
+  };
+}
+
+/*
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, AppState } from 'react-native';import { loadEmergencyContactCard } from '@/services/emergencyContactStorage';
 import {
@@ -91,3 +106,5 @@ export function useEmergencyOverlay() {
     ensurePermission,
   };
 }
+
+*/

@@ -4,6 +4,7 @@ import {
   searchMedicine,
   type MedicineInfo,
 } from '@/services/emergencyApi';
+import { hasPortalApiKey } from '@/constants/env';
 import {
   filterMedicinesByChoseong,
   type MedicineChoseongFilter,
@@ -14,6 +15,12 @@ export const INITIAL_MEDICINE_COUNT = 30;
 export const CHOSEONG_BROWSE_COUNT = 300;
 export const SEARCH_PAGE_SIZE = 30;
 export const BROWSE_PAGE_SIZE = 25;
+
+/** API 키 없이 샘플 데이터를 쓰는 경우 화면 안내 문구 */
+export function getMedicineDataNotice(): string | null {
+  if (hasPortalApiKey()) return null;
+  return '공공데이터 API 키가 설정되지 않아 샘플 의약품 정보를 표시합니다. 전체 검색은 .env의 EXPO_PUBLIC_PORTAL_API_KEY 설정 후 앱을 다시 실행하세요.';
+}
 
 export async function loadDefaultMedicines(): Promise<MedicineInfo[]> {
   return fetchInitialMedicines(INITIAL_MEDICINE_COUNT);

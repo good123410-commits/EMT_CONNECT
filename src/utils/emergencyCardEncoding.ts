@@ -1,3 +1,17 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
+export const EMERGENCY_QUICK_VIEW_PATH = 'emergency-quick-view';
+export function getEmergencyQuickViewUrl(): string { return ''; }
+export function isEmergencyQuickViewUrl(_url: string): boolean { return false; }
+export function ensureShareToken(data: EmergencyContactCardData): EmergencyContactCardData { return data; }
+export function buildEmergencyShareUrl(_shareToken: string): string { return ''; }
+export function getEmergencyShareUrl(_data: EmergencyContactCardData): string { return ''; }
+export function buildEmergencyCardPayload(_data: EmergencyContactCardData): string { return ''; }
+export function hasEmergencyCardContent(_data: EmergencyContactCardData): boolean { return false; }
+export function buildEmergencyOverlaySyncPayload(_data: EmergencyContactCardData): string { return '{}'; }
+
+/*
 import * as Linking from 'expo-linking';
 import { KEMIX_WEB_URL } from '@/constants/env';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
@@ -43,7 +57,7 @@ export function getEmergencyShareUrl(data: EmergencyContactCardData): string {
   return buildEmergencyShareUrl(withToken.shareToken!);
 }
 
-/** 앱 내 상세 미리보기·인쇄용 텍스트 (공개 화면에서는 사용하지 않음) */
+/** 앱 내 상세 미리보기·인쇄용 텍스트 (공개 화면에서는 사용하지 않음) *\/
 export function buildEmergencyCardPayload(data: EmergencyContactCardData): string {
   const lines: string[] = ['KEMIX 응급 의료 정보'];
   if (data.fullName.trim()) lines.push(`이름: ${data.fullName.trim()}`);
@@ -86,3 +100,5 @@ export function buildEmergencyOverlaySyncPayload(data: EmergencyContactCardData)
     hasContent: hasEmergencyCardContent(data),
   });
 }
+
+*/

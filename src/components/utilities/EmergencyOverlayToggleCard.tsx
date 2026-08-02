@@ -1,3 +1,8 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+export function EmergencyOverlayToggleCard() { return null; }
+
+/*
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Platform, Pressable, Switch, Text, View } from 'react-native';
 import { APP_COLORS, APP_RADIUS, APP_SHADOW } from '@/constants/appTheme';
@@ -83,3 +88,5 @@ export function EmergencyOverlayToggleCard({ compact = false }: EmergencyOverlay
     </View>
   );
 }
+
+*/

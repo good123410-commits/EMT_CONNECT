@@ -1,3 +1,8 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+export function EmergencyQrCard() { return null; }
+
+/*
 import { Ionicons } from '@expo/vector-icons';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -108,3 +113,5 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
 });
+
+*/

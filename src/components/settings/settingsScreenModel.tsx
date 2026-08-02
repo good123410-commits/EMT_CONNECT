@@ -33,6 +33,7 @@ import { SettingsDonationModal } from '@/components/settings/SettingsDonationMod
 import { SettingsAdminPortalModal } from '@/components/settings/SettingsAdminPortalModal';
 import { SettingsParamedicPortalModal } from '@/components/settings/SettingsParamedicPortalModal';
 import { SettingsRow, SettingsSection } from '@/components/settings/settingsUi';
+import { useSettingsMenuOptional } from '@/contexts/SettingsMenuContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { openAuthScreen } from '@/navigation/rootNavigation';
 import { OFFICIAL_WEBSITE_URL } from '@/services/siteSettingsService';
@@ -217,6 +218,17 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
     setDonationModalVisible,
     setProfileEditVisible,
   } = useSettingsScreen();
+  const settingsMenu = useSettingsMenuOptional();
+
+  const navigateToAuth = useCallback(
+    (screen: 'Login' | 'SignUp') => {
+      settingsMenu?.closeSettings();
+      requestAnimationFrame(() => {
+        openAuthScreen(screen);
+      });
+    },
+    [settingsMenu],
+  );
 
   const contentPaddingBottom = embedded ? 24 : 32;
   const displayName = profile?.name?.trim() || user?.email?.trim() || '로그인됨';
@@ -262,13 +274,13 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
               icon="log-in-outline"
               label="로그인"
               subtitle="회원 전용 기능 이용"
-              onPress={() => openAuthScreen('Login')}
+              onPress={() => navigateToAuth('Login')}
             />
             <SettingsRow
               icon="person-add-outline"
               label="회원가입"
               subtitle="새 계정 만들기"
-              onPress={() => openAuthScreen('SignUp')}
+              onPress={() => navigateToAuth('SignUp')}
               showDivider={false}
             />
           </>

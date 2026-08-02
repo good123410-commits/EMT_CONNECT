@@ -1,12 +1,14 @@
 ﻿import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { KoreanRegionSelector, KoreanRegionTitle } from '@/components/utilities/KoreanRegionSelector';
 import { LocalCommunityCategoryChips } from '@/components/utilities/LocalCommunityCategoryChips';
 import { LocalCommunityPostCard } from '@/components/utilities/LocalCommunityPostCard';
 import { LocalCommunityWriteForm } from '@/components/utilities/LocalCommunityWriteForm';
 import { UtilityToolShell } from '@/components/utilities/UtilityToolShell';
+import { APP_COLORS, APP_SPACING } from '@/constants/appTheme';
+import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { KOREAN_SIGUNGU_UNITS } from '@/constants/koreanRegions';
 import {
   createLocalCommunityPost,
@@ -35,7 +37,7 @@ function isLocalCommunityDeepLink(url: string): string | null {
   return parseRegionRouteParam(match[1]);
 }
 
-export function LocalCommunityTalkScreen() {
+export function LocalCommunityTalkScreen({ embedded = false }: { embedded?: boolean }) {
   const [bootLoading, setBootLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -154,16 +156,10 @@ export function LocalCommunityTalkScreen() {
     return result;
   };
 
-  if (bootLoading) {
-    return (
-      <UtilityToolShell>
-        <Text className="text-center text-sm text-kemix-text-secondary">불러오는 중…</Text>
-      </UtilityToolShell>
-    );
-  }
+  const fabBottomInset = useGlobalFabBottomInset();
 
-  return (
-    <UtilityToolShell>
+  const body = (
+    <>
       <View className="mb-4 rounded-2xl border border-teal-100 bg-teal-50 p-4">
         <View className="flex-row items-center">
           <Ionicons name="chatbubbles-outline" size={20} color="#0d9488" />
@@ -222,6 +218,41 @@ export function LocalCommunityTalkScreen() {
           ))}
         </View>
       )}
-    </UtilityToolShell>
+    </>
   );
+
+  if (bootLoading) {
+    const loadingText = (
+      <Text className="text-center text-sm text-kemix-text-secondary">불러오는 중…</Text>
+    );
+    if (embedded) {
+      return (
+        <View className="flex-1 items-center justify-center bg-kemix-bg px-4">
+          {loadingText}
+        </View>
+      );
+    }
+    return <UtilityToolShell>{loadingText}</UtilityToolShell>;
+  }
+
+  if (embedded) {
+    return (
+      <View className="flex-1" style={{ backgroundColor: APP_COLORS.background }}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{
+            paddingHorizontal: APP_SPACING.contentHorizontal,
+            paddingTop: 12,
+            paddingBottom: fabBottomInset,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {body}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  return <UtilityToolShell>{body}</UtilityToolShell>;
 }

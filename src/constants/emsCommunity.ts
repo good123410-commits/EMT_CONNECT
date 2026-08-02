@@ -2,6 +2,14 @@
 
 export const EMS_COMMUNITY_TAB_LABEL = 'EMS 커뮤니티';
 
+/** EMS 커뮤니티 탭 상단 세그먼트 */
+export type EmsCommunitySegment = 'localTalk' | 'emsCommunity';
+
+export const EMS_COMMUNITY_SEGMENT_OPTIONS: { value: EmsCommunitySegment; label: string }[] = [
+  { value: 'localTalk', label: '우리동네토크' },
+  { value: 'emsCommunity', label: 'EMS 커뮤니티' },
+];
+
 export const PARAMEDIC_GUARD_TITLE = '승인 전용 서비스';
 
 export const PARAMEDIC_GUARD_MESSAGE =

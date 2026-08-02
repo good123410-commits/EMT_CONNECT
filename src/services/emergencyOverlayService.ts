@@ -1,3 +1,24 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+export type EmergencyOverlayState = {
+  supported: boolean;
+  enabled: boolean;
+  hasPermission: boolean;
+};
+export async function loadEmergencyOverlayState(): Promise<EmergencyOverlayState> {
+  return { supported: false, enabled: false, hasPermission: false };
+}
+export async function wasOverlayPermissionPrompted(): Promise<boolean> { return true; }
+export async function markOverlayPermissionPrompted(): Promise<void> {}
+export async function requestOverlayPermissionFlow(): Promise<boolean> { return false; }
+export async function syncEmergencyOverlayFromCard(): Promise<void> {}
+export async function enableEmergencyOverlay(): Promise<{ ok: boolean; reason?: string }> {
+  return { ok: false, reason: 'unsupported' };
+}
+export async function disableEmergencyOverlay(): Promise<void> {}
+export async function bootstrapEmergencyOverlay(): Promise<void> {}
+
+/*
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PermissionsAndroid, Platform } from 'react-native';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
@@ -98,3 +119,5 @@ export async function bootstrapEmergencyOverlay(data: EmergencyContactCardData):
     await setEmergencyOverlayEnabled(true);
   }
 }
+
+*/

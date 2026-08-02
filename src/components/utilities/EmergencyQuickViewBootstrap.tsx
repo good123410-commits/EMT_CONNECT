@@ -1,3 +1,9 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+export function EmergencyQuickViewBootstrap() { return null; }
+export function canShowEmergencyQuickView() { return false; }
+
+/*
 import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useState } from 'react';
 import { EmergencyQuickViewOverlay } from '@/components/utilities/EmergencyQuickViewOverlay';
@@ -21,7 +27,7 @@ const EMPTY_CARD: EmergencyContactCardData = {
 
 /**
  * 잠금화면 숏컷 딥링크(`emergency-quick-view`)를 앱 어디서든 즉시 Quick View로 연결합니다.
- */
+ *\/
 export function EmergencyQuickViewBootstrap() {
   const [visible, setVisible] = useState(false);
   const [card, setCard] = useState<EmergencyContactCardData>(EMPTY_CARD);
@@ -64,3 +70,5 @@ export function EmergencyQuickViewBootstrap() {
 export function canShowEmergencyQuickView(card: EmergencyContactCardData): boolean {
   return hasEmergencyCardContent(card);
 }
+
+*/

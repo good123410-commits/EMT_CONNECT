@@ -6,7 +6,6 @@ import {
   type ImageLoadEvent,
   Pressable,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
@@ -16,7 +15,6 @@ import {
   APP_FONT,
   APP_RADIUS,
   APP_SHADOW,
-  APP_SPACING,
 } from '@/constants/appTheme';
 import type { HomeBanner } from '@/types/homeDashboard';
 
@@ -85,7 +83,7 @@ function BannerImage({ uri, width }: { uri: string; width: number }) {
   return (
     <View
       style={{
-        width,
+        width: '100%',
         height: containerHeight,
         backgroundColor: IMAGE_CANVAS_BG,
         alignItems: 'center',
@@ -122,103 +120,110 @@ async function openBannerLink(url: string) {
   }
 }
 
-export function HomeEventBannerList({ banners }: HomeEventBannerListProps) {
-  const { width: screenWidth } = useWindowDimensions();
-  const bannerWidth = Math.max(0, screenWidth - APP_SPACING.screen * 2);
+function HomeEventBannerCard({ banner }: { banner: HomeBanner }) {
+  const [cardWidth, setCardWidth] = useState(0);
+  const hasText = Boolean(banner.title.trim() || banner.description.trim());
+  const hasLink = Boolean(banner.linkUrl.trim());
 
-  if (banners.length === 0 || bannerWidth <= 0) {
-    return null;
-  }
-
-  const openBanner = (banner: HomeBanner) => {
+  const openBanner = () => {
     const url = banner.linkUrl.trim();
     if (!url) return;
     void openBannerLink(url);
   };
 
   return (
-    <View style={{ gap: BANNER_GAP }}>
-      {banners.map((banner) => {
-        const hasText = Boolean(banner.title.trim() || banner.description.trim());
-        const hasLink = Boolean(banner.linkUrl.trim());
+    <Pressable
+      className="active:opacity-95"
+      style={{
+        width: '100%',
+        borderRadius: APP_RADIUS.card,
+        backgroundColor: APP_COLORS.surface,
+        ...APP_SHADOW.cardSoft,
+        ...APP_BORDER.card,
+      }}
+      onLayout={(event) => {
+        const nextWidth = Math.round(event.nativeEvent.layout.width);
+        if (nextWidth > 0 && nextWidth !== cardWidth) {
+          setCardWidth(nextWidth);
+        }
+      }}
+      onPress={openBanner}
+      disabled={!hasLink}
+    >
+      {banner.imageUrl ? (
+        <BannerImage uri={banner.imageUrl} width={cardWidth} />
+      ) : (
+        <View
+          className="items-center justify-center"
+          style={{
+            width: '100%',
+            height: PLACEHOLDER_HEIGHT,
+            backgroundColor: IMAGE_CANVAS_BG,
+          }}
+        >
+          <AppIcon name="image-outline" size={36} color={APP_COLORS.blue} />
+        </View>
+      )}
 
-        return (
-          <Pressable
-            key={banner.id}
-            className="active:opacity-95"
-            style={{
-              width: bannerWidth,
-              borderRadius: APP_RADIUS.card,
-              backgroundColor: APP_COLORS.surface,
-              ...APP_SHADOW.cardSoft,
-              ...APP_BORDER.card,
-            }}
-            onPress={() => openBanner(banner)}
-            disabled={!hasLink}
-          >
-            {banner.imageUrl ? (
-              <BannerImage uri={banner.imageUrl} width={bannerWidth} />
-            ) : (
-              <View
-                className="items-center justify-center"
+      {hasText ? (
+        <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 16 }}>
+          {banner.title ? (
+            <Text
+              numberOfLines={2}
+              style={{
+                fontFamily: APP_FONT.bold,
+                fontSize: 15,
+                lineHeight: 21,
+                color: APP_COLORS.textPrimary,
+              }}
+            >
+              {banner.title}
+            </Text>
+          ) : null}
+          {banner.description ? (
+            <Text
+              numberOfLines={2}
+              style={{
+                marginTop: banner.title ? 4 : 0,
+                fontFamily: APP_FONT.regular,
+                fontSize: 13,
+                lineHeight: 19,
+                color: APP_COLORS.textSecondary,
+              }}
+            >
+              {banner.description}
+            </Text>
+          ) : null}
+          {hasLink ? (
+            <View className="mt-2.5 flex-row items-center">
+              <Text
                 style={{
-                  width: bannerWidth,
-                  height: PLACEHOLDER_HEIGHT,
-                  backgroundColor: IMAGE_CANVAS_BG,
+                  fontFamily: APP_FONT.medium,
+                  fontSize: 12,
+                  color: APP_COLORS.blue,
                 }}
               >
-                <AppIcon name="image-outline" size={36} color={APP_COLORS.blue} />
-              </View>
-            )}
+                자세히 보기
+              </Text>
+              <AppIcon name="chevron-right" size={16} color={APP_COLORS.blue} />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
 
-            {hasText ? (
-              <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 16 }}>
-                {banner.title ? (
-                  <Text
-                    numberOfLines={2}
-                    style={{
-                      fontFamily: APP_FONT.bold,
-                      fontSize: 15,
-                      lineHeight: 21,
-                      color: APP_COLORS.textPrimary,
-                    }}
-                  >
-                    {banner.title}
-                  </Text>
-                ) : null}
-                {banner.description ? (
-                  <Text
-                    numberOfLines={2}
-                    style={{
-                      marginTop: banner.title ? 4 : 0,
-                      fontFamily: APP_FONT.regular,
-                      fontSize: 13,
-                      lineHeight: 19,
-                      color: APP_COLORS.textSecondary,
-                    }}
-                  >
-                    {banner.description}
-                  </Text>
-                ) : null}
-                {hasLink ? (
-                  <View className="mt-2.5 flex-row items-center">
-                    <Text
-                      style={{
-                        fontFamily: APP_FONT.medium,
-                        fontSize: 12,
-                        color: APP_COLORS.blue,
-                      }}
-                    >
-                      자세히 보기
-                    </Text>
-                    <AppIcon name="chevron-right" size={16} color={APP_COLORS.blue} />
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
-          </Pressable>
-        );
-      })}
+export function HomeEventBannerList({ banners }: HomeEventBannerListProps) {
+  if (banners.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={{ gap: BANNER_GAP }}>
+      {banners.map((banner) => (
+        <HomeEventBannerCard key={banner.id} banner={banner} />
+      ))}
     </View>
   );
 }

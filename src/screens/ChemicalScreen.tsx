@@ -25,6 +25,7 @@ import {
   loadMedicineBrowsePool,
   loadMoreMedicines,
   searchMedicinesByName,
+  getMedicineDataNotice,
 } from '@/services/medicineService';
 import type { MedicineChoseongFilter } from '@/utils/medicineChoseong';
 
@@ -62,6 +63,7 @@ function DrugModule() {
   const trimmedQuery = query.trim();
   const isSearchMode = trimmedQuery.length >= 2;
   const isBrowseMode = !isSearchMode;
+  const medicineNotice = getMedicineDataNotice();
 
   const filteredData = useMemo(
     () => applyChoseongFilter(medicines, choseong),
@@ -222,6 +224,11 @@ function DrugModule() {
           loading={loading && isSearchMode}
         />
         <ChoseongFilterPanel value={choseong} onChange={handleChoseongChange} />
+        {medicineNotice ? (
+          <View className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <Text className="text-sm leading-5 text-amber-900">{medicineNotice}</Text>
+          </View>
+        ) : null}
         {error ? (
           <View className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
             <Text className="text-sm text-red-700">{error}</Text>

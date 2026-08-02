@@ -37,11 +37,11 @@ export function HomeCommerceCuration({ items }: HomeCommerceCurationProps) {
         응급·건강 케어
       </Text>
 
-      <View style={{ gap: CARD_GAP }}>
+      <View style={{ gap: CARD_GAP, width: '100%' }}>
         {items.map((item) => (
           <Pressable
             key={item.id}
-            className="bg-kemix-surface active:opacity-90"
+            className="w-full bg-kemix-surface active:opacity-90"
             style={{
               borderRadius: APP_RADIUS.card,
               ...APP_SHADOW.cardSoft,

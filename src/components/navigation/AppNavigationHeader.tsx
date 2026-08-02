@@ -7,18 +7,27 @@ import {
   APP_NAV_HEADER_COLORS,
 } from '@/constants/navigationHeader';
 import { useAppNavigationHeaderState } from '@/hooks/useAppNavigationHeader';
-import { useSettingsMenu } from '@/contexts/SettingsMenuContext';
+import { navigationRef } from '@/navigation/navigationRef';
 
 const SIDE_CLUSTER_WIDTH = 96;
 
 export function AppNavigationHeader() {
   const insets = useSafeAreaInsets();
-  const { visible, title } = useAppNavigationHeaderState();
-  const { openSettings } = useSettingsMenu();
+  const { visible, title, showBack, onBack } = useAppNavigationHeaderState();
 
   if (!visible) {
     return null;
   }
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    if (navigationRef.isReady() && navigationRef.canGoBack()) {
+      navigationRef.goBack();
+    }
+  };
 
   return (
     <View
@@ -32,31 +41,33 @@ export function AppNavigationHeader() {
     >
       <View style={styles.row}>
         <View style={styles.leftCluster}>
-          <View style={styles.brandCluster}>
-            <View style={styles.logoMark}>
-              <AppIcon name="medical-bag" size={16} color="#FFFFFF" />
+          {showBack ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="뒤로 가기"
+              onPress={handleBack}
+              style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed]}
+              hitSlop={8}
+            >
+              <AppIcon name="chevron-left" size={24} color={APP_NAV_HEADER_COLORS.icon} />
+            </Pressable>
+          ) : (
+            <View style={styles.brandCluster}>
+              <View style={styles.logoMark}>
+                <AppIcon name="medical-bag" size={16} color="#FFFFFF" />
+              </View>
+              <Text style={styles.brandText} numberOfLines={1}>
+                {APP_HEADER_BRAND_NAME}
+              </Text>
             </View>
-            <Text style={styles.brandText} numberOfLines={1}>
-              {APP_HEADER_BRAND_NAME}
-            </Text>
-          </View>
+          )}
         </View>
 
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
 
-        <View style={styles.rightCluster}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="설정"
-            onPress={openSettings}
-            style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed]}
-            hitSlop={8}
-          >
-            <AppIcon name="cog-outline" size={22} color={APP_NAV_HEADER_COLORS.icon} />
-          </Pressable>
-        </View>
+        <View style={styles.rightCluster} />
       </View>
     </View>
   );
@@ -71,11 +82,6 @@ const styles = StyleSheet.create({
   wrapper: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: APP_NAV_HEADER_COLORS.border,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 4,
     zIndex: 900,
   },
   row: {
@@ -119,9 +125,6 @@ const styles = StyleSheet.create({
   },
   rightCluster: {
     width: SIDE_CLUSTER_WIDTH,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
   },
   iconButton: {
     width: 40,
@@ -131,6 +134,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconPressed: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
 });

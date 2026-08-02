@@ -24,6 +24,8 @@ export type ExpertTabBarTheme = {
   borderTopColor: string;
   labelFontSize?: number;
   tabBarItemPaddingHorizontal?: number;
+  /** 상단 구분선 숨김 (토스 스타일) */
+  hideTopBorder?: boolean;
   /** 메인 6탭 — 균등 분할·촘촘한 아이콘/라벨 */
   compactLayout?: boolean;
   /** 메인 하단 탭 위 EMS 서브 탭 — 하단 safe area 패딩 생략 */
@@ -109,7 +111,7 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
         tabBarActiveTintColor: theme.activeTintColor,
         tabBarInactiveTintColor: theme.inactiveTintColor,
         tabBarStyle: {
-          borderTopWidth: 1,
+          borderTopWidth: theme.hideTopBorder ? 0 : 1,
           borderTopColor: theme.borderTopColor,
           backgroundColor: theme.backgroundColor,
           height: metrics.tabBarHeight,
@@ -167,6 +169,7 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
       theme.inactiveTintColor,
       theme.labelFontSize,
       theme.tabBarItemPaddingHorizontal,
+      theme.hideTopBorder,
     ],
   );
 }

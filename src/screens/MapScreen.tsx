@@ -14,6 +14,12 @@ import { EmptyState } from '@/components/EmptyState';
 import { ErDutyContactButtons, ErHospitalSpecsPanel } from '@/components/facility/ErHospitalSpecsPanel';
 import { FacilitySearchBarComponent } from '@/components/facility/FacilitySearchBarComponent';
 import { PediatricHospitalCard } from '@/components/facility/PediatricHospitalCard';
+import {
+  MedicalFacilityListCard,
+  MedicalFacilityListDistanceRow,
+  MedicalFacilityListTitleRow,
+  MedicalFacilityStatusPill,
+} from '@/components/facility/MedicalFacilityListCard';
 import { PartnerHospitalBadge } from '@/components/facility/PartnerHospitalBadge';
 import { HospitalSpecialtyTags } from '@/components/facility/HospitalSpecialtyTags';
 import { HospitalWeeklyHours } from '@/components/facility/HospitalWeeklyHours';
@@ -27,9 +33,8 @@ import {
   MedicalDetailText,
 } from '@/components/map/MedicalDetailPrimitives';
 import { EmergencyMapView } from '@/components/map/EmergencyMapView';
-import { DistanceText } from '@/components/map/DistanceText';
 import { PharmacyOpenBadge } from '@/components/map/PharmacyOpenBadge';
-import { SegmentControl } from '@/components/SegmentControl';
+import { MedicalMapCategoryBar } from '@/components/map/MedicalMapCategoryBar';
 import { useFacilitySearchMode } from '@/hooks/useFacilitySearchMode';
 import {
   useFacilityMarkersQuery,
@@ -83,7 +88,6 @@ import {
 } from '@/utils/mapMarkers';
 import {
   MapMarkerDetailSheet,
-  MapMarkerShellCard,
 } from '@/components/map/MapMarkerDetailSheet';
 import { confirmPhoneCall } from '@/utils/confirmPhoneCall';
 import { buildEmergencyHospitalSpecs } from '@/utils/emergencyHospitalSpecs';
@@ -96,25 +100,28 @@ import {
 } from '@/utils/formatDistance';
 import { getPharmacyOpenStatus } from '@/utils/pharmacyHours';
 import { getTreatmentDayCode } from '@/utils/hospitalHours';
-
+import { createDeferredScreen } from '@/navigation/deferredScreen';
 import type { LocalAedMarker } from '@/types/localAed';
+import type { MedicalMapTab } from '@/types/medicalMap';
+
+const PrivateEmsCallScreen = createDeferredScreen(
+  () => require('@/screens/PrivateEmsCallScreen').PrivateEmsCallScreen,
+);
 
 type MapModuleSharedProps = {
   distanceUnitMode: DistanceUnitMode;
   onDistanceUnitModeChange: (mode: DistanceUnitMode) => void;
 };
 
-type MapTab = 'aed' | 'er' | 'pharmacy' | 'pediatric';
-
 type MapScreenParams = {
-  initialTab?: MapTab;
+  initialTab?: MedicalMapTab;
 };
 
 export function MapScreen() {
   const route = useRoute();
   const routeParams = route.params as MapScreenParams | undefined;
   const isFocused = useIsFocused();
-  const [tab, setTab] = useState<MapTab>(routeParams?.initialTab ?? 'aed');
+  const [tab, setTab] = useState<MedicalMapTab>(routeParams?.initialTab ?? 'aed');
   const [distanceUnitMode, setDistanceUnitMode] = useState<DistanceUnitMode>('auto');
   const [locationSnapshot, setLocationSnapshot] = useState<LocationSnapshot>(() =>
     getLocationWithRegionImmediate(),
@@ -148,18 +155,7 @@ export function MapScreen() {
 
   return (
     <View className="flex-1 bg-kemix-bg">
-      <View className="bg-kemix-surface px-4 pb-2 pt-2">
-        <SegmentControl
-          options={[
-            { value: 'aed', label: 'AED' },
-            { value: 'er', label: '응급실' },
-            { value: 'pediatric', label: '소아' },
-            { value: 'pharmacy', label: '약국' },
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
-      </View>
+      <MedicalMapCategoryBar value={tab} onChange={setTab} />
       <View style={{ flex: 1, display: tab === 'aed' ? 'flex' : 'none' }}>
         {tab === 'aed' ? (
           <AedModule
@@ -197,6 +193,9 @@ export function MapScreen() {
             {...mapModuleShared}
           />
         ) : null}
+      </View>
+      <View style={{ flex: 1, display: tab === 'privateEms' ? 'flex' : 'none' }}>
+        {tab === 'privateEms' ? <PrivateEmsCallScreen /> : null}
       </View>
     </View>
   );
@@ -299,18 +298,35 @@ function AedModule({
           />
         }
         renderItem={({ item, index }) => (
-          <MapMarkerShellCard
-            name={item.name || 'AED'}
-            distanceM={item.distanceM}
-            walkMin={item.walkMin}
-            icon="heart-circle"
-            iconColor={index === 0 && mode === 'gps' ? '#dc2626' : '#64748b'}
-            badge={index === 0 && mode === 'gps' ? '최단' : undefined}
+          <MedicalFacilityListCard
+            variant={index === 0 && mode === 'gps' ? 'aed' : 'default'}
             selected={selectedAED?.id === item.id}
-            distanceUnitMode={distanceUnitMode}
-            onDistanceUnitModeChange={onDistanceUnitModeChange}
             onPress={() => handleMarkerPress(item)}
-          />
+          >
+            {index === 0 && mode === 'gps' ? (
+              <View className="mb-2 self-start">
+                <MedicalFacilityStatusPill label="최단" tone="er" />
+              </View>
+            ) : null}
+            <MedicalFacilityListTitleRow title={item.name || 'AED'} />
+            {item.address?.trim() ? (
+              <Text className="mt-1 text-sm text-kemix-text-secondary" numberOfLines={2}>
+                {item.address.trim()}
+              </Text>
+            ) : null}
+            {item.location?.trim() ? (
+              <Text className="mt-1 text-xs text-kemix-text-secondary" numberOfLines={1}>
+                {item.location.trim()}
+              </Text>
+            ) : null}
+            <MedicalFacilityListDistanceRow
+              distanceM={item.distanceM}
+              walkMin={item.walkMin}
+              distanceUnitMode={distanceUnitMode}
+              onDistanceUnitModeChange={onDistanceUnitModeChange}
+              hint="탭하여 상세 정보 보기"
+            />
+          </MedicalFacilityListCard>
         )}
       />
 
@@ -726,11 +742,11 @@ function PediatricHospitalDetailContent({
     <MedicalDetailBody>
       {hospital.isMoonlightHospital ? (
         <View className="mb-2">
-          <MoonlightHospitalBadge />
+          <MoonlightHospitalBadge appearance="detail" />
         </View>
       ) : hospital.isPartner ? (
         <View className="mb-2">
-          <PartnerHospitalBadge />
+          <PartnerHospitalBadge appearance="detail" />
         </View>
       ) : null}
 
@@ -887,24 +903,38 @@ function PharmacyModule({
         renderItem={({ item }) => {
           const openStatus = getPharmacyOpenStatus(item);
           return (
-            <MapMarkerShellCard
-              name={item.n || '약국'}
-              distanceM={item.distanceM}
-              walkMin={item.walkMin}
-              icon="medical"
+            <MedicalFacilityListCard
               selected={selectedPlace?.i === item.i}
-              distanceUnitMode={distanceUnitMode}
-              onDistanceUnitModeChange={onDistanceUnitModeChange}
-              statusBadge={
-                openStatus.hasHours ? <PharmacyOpenBadge status={openStatus} compact /> : null
-              }
-              subtitle={
-                openStatus.hasHours
-                  ? `${openStatus.dayLabel} ${openStatus.hoursLabel}`
-                  : undefined
-              }
               onPress={() => handleMarkerPress(item)}
-            />
+            >
+              <MedicalFacilityListTitleRow
+                title={item.n || '약국'}
+                trailing={
+                  openStatus.hasHours ? (
+                    <PharmacyOpenBadge status={openStatus} compact appearance="list" />
+                  ) : null
+                }
+              />
+              {item.a?.trim() ? (
+                <Text className="mt-1 text-sm text-kemix-text-secondary" numberOfLines={2}>
+                  {item.a.trim()}
+                </Text>
+              ) : null}
+              {openStatus.hasHours ? (
+                <Text className="mt-1 text-xs text-kemix-text-secondary">
+                  {openStatus.dayLabel} {openStatus.hoursLabel}
+                </Text>
+              ) : (
+                <Text className="mt-1 text-xs text-kemix-muted">심야약국 운영시간 데이터 없음</Text>
+              )}
+              <MedicalFacilityListDistanceRow
+                distanceM={item.distanceM}
+                walkMin={item.walkMin}
+                distanceUnitMode={distanceUnitMode}
+                onDistanceUnitModeChange={onDistanceUnitModeChange}
+                hint="탭하여 상세 정보 보기"
+              />
+            </MedicalFacilityListCard>
           );
         }}
       />
@@ -952,7 +982,7 @@ function PharmacyLocalDetailContent({
 
       {openStatus.hasHours ? (
         <View className="mt-3">
-          <PharmacyOpenBadge status={openStatus} />
+          <PharmacyOpenBadge status={openStatus} appearance="detail" />
           <MedicalDetailText variant="secondary">
             {openStatus.dayLabel} 영업시간: {openStatus.hoursLabel}
           </MedicalDetailText>
@@ -1176,71 +1206,56 @@ function ErMarkerCard({
   const todayCode = getTreatmentDayCode();
   const todaySchedule = place.weeklySchedule?.find((day) => day.dayCode === todayCode) ?? null;
 
-  const borderClass = place.isErPriority
-    ? selected
-      ? 'border-red-400 bg-red-50'
-      : 'border-red-200'
+  const variant = place.isErPriority
+    ? 'er'
     : isMoonlight
-      ? selected
-        ? 'border-indigo-400 bg-indigo-50'
-        : 'border-indigo-200'
+      ? 'moonlight'
       : place.isPediatricPriority
-        ? selected
-          ? 'border-pink-400 bg-pink-50'
-          : 'border-pink-200'
-        : selected
-          ? 'border-kemix-border bg-kemix-bg'
-          : 'border-kemix-border';
+        ? 'pediatric'
+        : 'default';
 
   return (
-    <Pressable className={`mb-3 rounded-2xl border bg-kemix-surface p-4 ${borderClass}`} onPress={onPress}>
+    <MedicalFacilityListCard selected={selected} variant={variant} onPress={onPress}>
       {place.isPartner ? (
         <View className="mb-2">
           <PartnerHospitalBadge compact />
         </View>
       ) : null}
       {place.isErPriority ? (
-        <View className="mb-2 self-start rounded-full bg-red-100 px-2.5 py-1">
-          <Text className="text-xs font-bold text-red-700">🚨 응급실 운영</Text>
+        <View className="mb-2 self-start">
+          <MedicalFacilityStatusPill label="🚨 응급실 운영" tone="er" />
         </View>
       ) : isMoonlight ? (
         <View className="mb-2">
           <MoonlightHospitalBadge compact />
         </View>
       ) : place.isPediatricPriority ? (
-        <View className="mb-2 self-start rounded-full bg-pink-100 px-2.5 py-1">
-          <Text className="text-xs font-bold text-pink-700">👶 소아 특화</Text>
+        <View className="mb-2 self-start">
+          <MedicalFacilityStatusPill label="👶 소아 특화" tone="pediatric" />
         </View>
       ) : null}
 
-      <View className="flex-row items-start justify-between">
-        <Text className="flex-1 pr-2 text-base font-bold text-kemix-text">{place.n || '병원'}</Text>
-        <View className="flex-row items-center gap-1.5">
-          {place.openStatusLabel !== '확인 필요' ? (
+      <MedicalFacilityListTitleRow
+        title={place.n || '병원'}
+        trailing={
+          <>
+            {place.openStatusLabel !== '확인 필요' ? (
+              <MedicalFacilityStatusPill
+                label={place.openStatusLabel}
+                tone={place.isOpenNow ? 'open' : 'closed'}
+              />
+            ) : null}
             <View
-              className={`rounded-full px-2 py-0.5 ${
-                place.isOpenNow ? 'bg-green-100' : 'bg-kemix-elevated'
-              }`}
+              className="rounded-full px-3 py-1"
+              style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
             >
-              <Text
-                className={`text-[10px] font-bold ${
-                  place.isOpenNow ? 'text-green-700' : 'text-kemix-text-secondary'
-                }`}
-              >
-                {place.openStatusLabel}
+              <Text className="text-xs font-bold" style={{ color: ER_STATUS_COLORS[status] }}>
+                {place.liveSynced ? ER_STATUS_LABELS[status] : '확인중'}
               </Text>
             </View>
-          ) : null}
-          <View
-            className="rounded-full px-3 py-1"
-            style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
-          >
-            <Text className="text-xs font-bold" style={{ color: ER_STATUS_COLORS[status] }}>
-              {place.liveSynced ? ER_STATUS_LABELS[status] : '확인중'}
-            </Text>
-          </View>
-        </View>
-      </View>
+          </>
+        }
+      />
 
       {place.customMemo ? (
         <Text className="mt-2 text-xs leading-5 text-kemix-text-secondary">{place.customMemo}</Text>
@@ -1271,28 +1286,21 @@ function ErMarkerCard({
           compact
         />
       ) : null}
-      <View className="mt-3 flex-row items-center gap-3">
-        {place.distanceM > 0 ? (
-          <View className="flex-row items-center">
-            <Ionicons name="walk-outline" size={14} color="#64748b" />
-            <DistanceText
-              distanceM={place.distanceM}
-              walkMin={place.walkMin}
-              unitMode={distanceUnitMode}
-              onUnitModeChange={onDistanceUnitModeChange}
-              textStyle={{ fontSize: 14, color: '#475569' }}
-            />
-          </View>
-        ) : (
-          <Text className="text-xs text-kemix-muted">탭하여 주소·전화·상세 병상 확인</Text>
-        )}
-        {place.availablePediatricErBeds > 0 ? (
-          <Text className="text-xs font-semibold text-pink-700">
-            소아 {place.availablePediatricErBeds}병상
-          </Text>
-        ) : null}
-      </View>
-    </Pressable>
+      <MedicalFacilityListDistanceRow
+        distanceM={place.distanceM}
+        walkMin={place.walkMin}
+        distanceUnitMode={distanceUnitMode}
+        onDistanceUnitModeChange={onDistanceUnitModeChange}
+        hint="탭하여 주소·전화·상세 병상 확인"
+        trailing={
+          place.availablePediatricErBeds > 0 ? (
+            <Text className="text-xs font-semibold text-pink-300">
+              소아 {place.availablePediatricErBeds}병상
+            </Text>
+          ) : null
+        }
+      />
+    </MedicalFacilityListCard>
   );
 }
 
@@ -1429,21 +1437,21 @@ function ErLocalDetailContent({
 
       {place.isPartner ? (
         <View className="mb-2">
-          <PartnerHospitalBadge compact />
+          <PartnerHospitalBadge compact appearance="detail" />
         </View>
       ) : null}
 
       {place.isErPriority ? (
-        <View className="mb-2 self-start rounded-full bg-red-100 px-2.5 py-1">
-          <Text className="text-xs font-bold text-red-700">🚨 응급실 운영</Text>
+        <View className="mb-2 self-start">
+          <MedicalFacilityStatusPill label="🚨 응급실 운영" tone="er" />
         </View>
       ) : isMoonlight ? (
         <View className="mb-2">
-          <MoonlightHospitalBadge compact />
+          <MoonlightHospitalBadge compact appearance="detail" />
         </View>
       ) : place.isPediatricPriority ? (
-        <View className="mb-2 self-start rounded-full bg-pink-100 px-2.5 py-1">
-          <Text className="text-xs font-bold text-pink-700">👶 소아 특화</Text>
+        <View className="mb-2 self-start">
+          <MedicalFacilityStatusPill label="👶 소아 특화" tone="pediatric" />
         </View>
       ) : null}
 

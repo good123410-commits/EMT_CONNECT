@@ -1,3 +1,8 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+export function EmergencyWallpaperSection() { return null; }
+
+/*
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
@@ -38,3 +43,5 @@ export function EmergencyWallpaperSection({
     </View>
   );
 }
+
+*/

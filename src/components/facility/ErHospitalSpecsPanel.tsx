@@ -46,8 +46,8 @@ function SpecBadge({
           ? undefined
           : `flex-row items-center rounded-xl border px-2.5 py-1.5 ${
               available
-                ? 'border-blue-200 bg-blue-50'
-                : 'border-kemix-border bg-kemix-bg opacity-70'
+                ? 'border-blue-900/60 bg-blue-950/40'
+                : 'border-kemix-border bg-kemix-elevated opacity-70'
             } ${compact ? 'min-w-[30%] flex-1' : 'min-w-[28%] flex-grow basis-[30%]'}`
       }
       style={
@@ -72,7 +72,7 @@ function SpecBadge({
       <Ionicons
         name={ICON_MAP[icon]}
         size={compact ? 14 : 16}
-        color={available ? '#1d4ed8' : '#94a3b8'}
+        color={available ? (isLight ? '#1d4ed8' : '#60A5FA') : isLight ? '#94a3b8' : '#6B6B6B'}
       />
       <View className="ml-1.5 flex-1">
         <Text
@@ -80,7 +80,7 @@ function SpecBadge({
             isLight
               ? undefined
               : `font-semibold ${compact ? 'text-[10px]' : 'text-xs'} ${
-                  available ? 'text-blue-800' : 'text-kemix-text-secondary'
+                  available ? 'text-blue-300' : 'text-kemix-text-secondary'
                 }`
           }
           style={

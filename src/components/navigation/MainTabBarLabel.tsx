@@ -1,8 +1,8 @@
 import { Platform, Text, View } from 'react-native';
 import { APP_FONT } from '@/constants/appTheme';
 
-/** 메인 하단 탭 전용 — 한 줄·자동 축소 라벨 */
-export const MAIN_TAB_LABEL_FONT_SIZE = 10;
+/** 메인 하단 탭 전용 — 토스 스타일 컴팩트 라벨 */
+export const MAIN_TAB_LABEL_FONT_SIZE = 11;
 
 export function MainTabBarLabel({
   children,
@@ -22,9 +22,9 @@ export function MainTabBarLabel({
         style={{
           color,
           fontSize: MAIN_TAB_LABEL_FONT_SIZE,
-          lineHeight: 12,
+          lineHeight: 14,
           fontFamily: APP_FONT.semibold,
-          marginTop: 1,
+          marginTop: 2,
           marginBottom: 0,
           textAlign: 'center',
           width: '100%',

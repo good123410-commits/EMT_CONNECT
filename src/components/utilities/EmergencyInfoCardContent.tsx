@@ -1,3 +1,8 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+export function EmergencyInfoCardContent() { return null; }
+
+/*
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 import { EmergencyPublicCard } from '@/components/utilities/EmergencyPublicCard';
@@ -131,3 +136,5 @@ export function EmergencyInfoCardContent({
     </View>
   );
 }
+
+*/

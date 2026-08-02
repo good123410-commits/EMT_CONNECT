@@ -8,8 +8,9 @@ import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { UserRoleProvider } from '@/contexts/UserRoleContext';
 import { WalletProvider } from '@/contexts/WalletContext';
-import { EmergencyOverlayBootstrap } from '@/components/utilities/EmergencyOverlayBootstrap';
-import { EmergencyQuickViewBootstrap } from '@/components/utilities/EmergencyQuickViewBootstrap';
+// DISABLED: 비상연락망 & 응급카드 (ICE)
+// import { EmergencyOverlayBootstrap } from '@/components/utilities/EmergencyOverlayBootstrap';
+// import { EmergencyQuickViewBootstrap } from '@/components/utilities/EmergencyQuickViewBootstrap';
 import { AppLaunchGate } from '@/components/intro/AppLaunchGate';
 import { BrandSplashView } from '@/components/intro/BrandSplashView';
 import { APP_COLORS } from '@/constants/appTheme';
@@ -56,8 +57,9 @@ function AppProviders() {
           <UserRoleProvider>
             <WalletProvider>
               <View style={styles.root}>
-                <EmergencyOverlayBootstrap />
-                <EmergencyQuickViewBootstrap />
+                {/* DISABLED: 비상연락망 & 응급카드 (ICE) */}
+                {/* <EmergencyOverlayBootstrap /> */}
+                {/* <EmergencyQuickViewBootstrap /> */}
                 <AppNavigation />
                 {DevRoleCheatMenu ? <DevRoleCheatMenu /> : null}
               </View>

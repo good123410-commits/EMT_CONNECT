@@ -1,3 +1,12 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+import { DEFAULT_EMERGENCY_CONTACT_CARD, type EmergencyContactCardData } from '@/types/emergencyContactCard';
+export async function loadEmergencyContactCard(): Promise<EmergencyContactCardData> {
+  return DEFAULT_EMERGENCY_CONTACT_CARD();
+}
+export async function saveEmergencyContactCard(_data: EmergencyContactCardData): Promise<void> {}
+
+/*
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncEmergencyOverlayFromCard } from '@/services/emergencyOverlayService';
 import { syncEmergencyMedicalShare } from '@/services/emergencyShareService';
@@ -35,3 +44,5 @@ export async function saveEmergencyContactCard(data: EmergencyContactCardData): 
     // 오프라인·마이그레이션 미적용 시에도 로컬 저장은 유지
   }
 }
+
+*/

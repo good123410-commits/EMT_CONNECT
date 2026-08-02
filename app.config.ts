@@ -47,7 +47,8 @@ const expoConfig: ExpoConfig = {
   },
   plugins: [
     './plugins/withGoogleMapsApiKey.js',
-    './plugins/withLockScreenEmergencyActivity.js',
+    // DISABLED: 비상연락망 & 응급카드 (ICE) — 잠금화면 오버레이
+    // './plugins/withLockScreenEmergencyActivity.js',
     'expo-screen-orientation',
     'expo-web-browser',
     [

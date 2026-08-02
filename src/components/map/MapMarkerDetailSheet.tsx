@@ -131,7 +131,7 @@ function MapMarkerShellCardComponent({
             <Text style={styles.hintText}>탭하여 상세 정보 보기</Text>
           )}
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
+        <Ionicons name="chevron-forward" size={18} color="#6B6B6B" />
       </View>
     </Pressable>
   );
@@ -218,19 +218,20 @@ const styles = StyleSheet.create({
     backgroundColor: MEDICAL_DETAIL.background,
   },
   card: {
+    marginBottom: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 14,
+    borderColor: '#2E2E2E',
+    backgroundColor: '#1A1A1A',
+    padding: 16,
   },
   cardSelected: {
-    borderColor: '#fca5a5',
-    backgroundColor: '#fff1f2',
+    borderColor: '#3B82F6',
+    backgroundColor: '#242424',
   },
   cardRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   pinWrap: {
     alignItems: 'center',
@@ -240,38 +241,38 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#242424',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pinCircleSelected: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
   },
   badge: {
     marginTop: 4,
     fontSize: 10,
     fontWeight: '700',
-    color: '#dc2626',
+    color: '#fca5a5',
   },
   cardBody: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#FFFFFF',
   },
   subtitle: {
     marginTop: 4,
     fontSize: 12,
-    color: '#64748b',
+    color: '#A0A0A0',
   },
   distanceRow: {
-    marginTop: 6,
+    marginTop: 8,
   },
   hintText: {
     marginTop: 4,
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#6B6B6B',
   },
 });

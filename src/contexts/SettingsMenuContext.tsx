@@ -23,6 +23,11 @@ export function useSettingsMenu(): SettingsMenuContextValue {
   return ctx;
 }
 
+/** 설정 하단 시트 밖(레거시 SettingsScreen 등)에서는 null */
+export function useSettingsMenuOptional(): SettingsMenuContextValue | null {
+  return useContext(SettingsMenuContext);
+}
+
 export function SettingsMenuProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
 

@@ -1,3 +1,9 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
+export async function syncEmergencyMedicalShare(_data: EmergencyContactCardData): Promise<void> {}
+
+/*
 import { supabase } from '@/lib/supabaseClient';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
 import { ensureShareToken } from '@/utils/emergencyCardEncoding';
@@ -27,3 +33,5 @@ export async function syncEmergencyMedicalShare(data: EmergencyContactCardData):
     throw error;
   }
 }
+
+*/

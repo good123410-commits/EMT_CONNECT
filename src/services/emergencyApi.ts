@@ -1,7 +1,8 @@
 import type { HospitalDutyDay } from '@/utils/hospitalHours';
 import { parseWeeklyDutySchedule, resolveHospitalOpenStatus } from '@/utils/hospitalHours';
-import { PORTAL_API_KEY } from '@/constants/env';
+import { hasPortalApiKey, PORTAL_API_KEY } from '@/constants/env';
 import type { ErStatus } from '@/mockData/aedAndEmergency';
+import { browseMockMedicines, searchMockMedicines } from '@/mockData/medicines';
 import { searchHazardousMaterials } from '@/mockData/hazardousMaterials';
 import type { GeoCoordinate, LocationRegion } from '@/services/locationService';
 import {
@@ -1368,10 +1369,17 @@ function dedupeMedicines(items: MedicineInfo[]): MedicineInfo[] {
 export async function fetchMedicineBrowse(
   options: MedicineBrowseOptions = {},
 ): Promise<MedicineInfo[]> {
+  const pageNo = options.pageNo ?? 1;
+  const numOfRows = options.numOfRows ?? DEFAULT_MEDICINE_PAGE_SIZE;
+
+  if (!hasPortalApiKey()) {
+    return browseMockMedicines(pageNo, numOfRows, options.itemName);
+  }
+
   const params: Record<string, string | number | undefined> = {
     type: 'json',
-    pageNo: options.pageNo ?? 1,
-    numOfRows: options.numOfRows ?? DEFAULT_MEDICINE_PAGE_SIZE,
+    pageNo,
+    numOfRows,
   };
 
   if (options.itemName?.trim()) {
@@ -1384,6 +1392,9 @@ export async function fetchMedicineBrowse(
     const { rawText, contentType } = await fetchPortalRaw(url);
     return parseMedicineResponse(rawText, contentType);
   } catch (error) {
+    const mock = browseMockMedicines(pageNo, numOfRows, options.itemName);
+    if (mock.length > 0) return mock;
+
     if (error instanceof EmergencyApiError && error.statusCode === 403) {
       throw new EmergencyApiError(
         'e약은요 API 사용 권한이 없습니다. 공공데이터포털에서 "의약품개요정보(e약은요)" API 활용 신청 후 다시 시도해 주세요.',
@@ -1396,6 +1407,10 @@ export async function fetchMedicineBrowse(
 }
 
 export async function fetchInitialMedicines(limit = 30): Promise<MedicineInfo[]> {
+  if (!hasPortalApiKey()) {
+    return browseMockMedicines(1, limit).slice(0, limit);
+  }
+
   try {
     const browse = await fetchMedicineBrowse({ pageNo: 1, numOfRows: limit });
     if (browse.length > 0) return browse.slice(0, limit);
@@ -1410,7 +1425,10 @@ export async function fetchInitialMedicines(limit = 30): Promise<MedicineInfo[]>
     ),
   );
 
-  return dedupeMedicines(batches.flat()).slice(0, limit);
+  const merged = dedupeMedicines(batches.flat()).slice(0, limit);
+  if (merged.length > 0) return merged;
+
+  return browseMockMedicines(1, limit).slice(0, limit);
 }
 
 export async function searchMedicine(
@@ -1421,17 +1439,28 @@ export async function searchMedicine(
     throw new EmergencyApiError('검색할 약 이름을 입력해 주세요.');
   }
 
+  const limit = options.numOfRows ?? 10;
+
+  if (!hasPortalApiKey()) {
+    return searchMockMedicines(itemName, limit);
+  }
+
   const url = buildPortalUrl(DRUG_SEARCH_ENDPOINT, {
     type: 'json',
     pageNo: options.pageNo ?? 1,
-    numOfRows: options.numOfRows ?? 10,
+    numOfRows: limit,
     itemName,
   });
 
   try {
     const { rawText, contentType } = await fetchPortalRaw(url);
-    return parseMedicineResponse(rawText, contentType);
+    const results = parseMedicineResponse(rawText, contentType);
+    if (results.length > 0) return results;
+    return searchMockMedicines(itemName, limit);
   } catch (error) {
+    const mock = searchMockMedicines(itemName, limit);
+    if (mock.length > 0) return mock;
+
     if (error instanceof EmergencyApiError && error.statusCode === 403) {
       throw new EmergencyApiError(
         'e약은요 API 사용 권한이 없습니다. 공공데이터포털에서 "의약품개요정보(e약은요)" API 활용 신청 후 다시 시도해 주세요.',

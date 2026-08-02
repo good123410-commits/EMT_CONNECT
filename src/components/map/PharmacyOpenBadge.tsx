@@ -5,23 +5,46 @@ import type { PharmacyOpenStatus } from '@/utils/pharmacyHours';
 type PharmacyOpenBadgeProps = {
   status: PharmacyOpenStatus;
   compact?: boolean;
+  appearance?: 'list' | 'detail';
 };
 
-function PharmacyOpenBadgeComponent({ status, compact = false }: PharmacyOpenBadgeProps) {
+function PharmacyOpenBadgeComponent({
+  status,
+  compact = false,
+  appearance = 'list',
+}: PharmacyOpenBadgeProps) {
   if (!status.hasHours) return null;
 
   const open = status.isOpenNow;
   const label = open ? '영업 중 🟢' : '영업 종료 🔴';
+  const isList = appearance === 'list';
 
   return (
     <View
       style={[
         styles.badge,
         compact ? styles.badgeCompact : null,
-        open ? styles.badgeOpen : styles.badgeClosed,
+        isList
+          ? open
+            ? styles.badgeOpenList
+            : styles.badgeClosedList
+          : open
+            ? styles.badgeOpen
+            : styles.badgeClosed,
       ]}
     >
-      <Text style={[styles.badgeText, open ? styles.badgeTextOpen : styles.badgeTextClosed]}>
+      <Text
+        style={[
+          styles.badgeText,
+          isList
+            ? open
+              ? styles.badgeTextOpenList
+              : styles.badgeTextClosedList
+            : open
+              ? styles.badgeTextOpen
+              : styles.badgeTextClosed,
+        ]}
+      >
         {label}
       </Text>
     </View>
@@ -49,6 +72,16 @@ const styles = StyleSheet.create({
   badgeClosed: {
     backgroundColor: '#fee2e2',
   },
+  badgeOpenList: {
+    backgroundColor: 'rgba(20, 83, 45, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 83, 45, 0.65)',
+  },
+  badgeClosedList: {
+    backgroundColor: 'rgba(69, 10, 10, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(127, 29, 29, 0.65)',
+  },
   badgeText: {
     fontSize: 12,
     fontWeight: '700',
@@ -58,5 +91,11 @@ const styles = StyleSheet.create({
   },
   badgeTextClosed: {
     color: '#b91c1c',
+  },
+  badgeTextOpenList: {
+    color: '#86efac',
+  },
+  badgeTextClosedList: {
+    color: '#fca5a5',
   },
 });

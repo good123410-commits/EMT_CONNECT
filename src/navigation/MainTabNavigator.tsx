@@ -1,16 +1,17 @@
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { MainTabBar } from '@/components/navigation/MainTabBar';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 import { useMainTabBarConfig } from '@/navigation/mainTabBarOptions';
+import type { MedicalMapTab } from '@/types/medicalMap';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 export type MainTabParamList = {
   Home: undefined;
   Guide: undefined;
-  Map: { initialTab?: 'aed' | 'er' | 'pharmacy' | 'pediatric' } | undefined;
-  EmsCall: undefined;
+  Map: { initialTab?: MedicalMapTab } | undefined;
   Paramedic: undefined;
+  All: undefined;
 };
 
 /** @deprecated MainTabParamList 사용 */
@@ -23,8 +24,8 @@ type TabIconConfig = {
   inactive: AppIconName;
 };
 
-const MAIN_TAB_ICON_ACTIVE = 22;
-const MAIN_TAB_ICON_INACTIVE = 20;
+const MAIN_TAB_ICON_ACTIVE = 28;
+const MAIN_TAB_ICON_INACTIVE = 26;
 
 function TabBarIcon({
   config,
@@ -48,8 +49,8 @@ const TAB_ICONS: Record<string, TabIconConfig> = {
   Home: { active: 'home', inactive: 'home-outline' },
   Guide: { active: 'medical-bag', inactive: 'medical-bag' },
   Map: { active: 'hospital-box', inactive: 'hospital-box-outline' },
-  EmsCall: { active: 'car', inactive: 'car-outline' },
   Paramedic: { active: 'account-group', inactive: 'account-group-outline' },
+  All: { active: 'menu', inactive: 'menu' },
 };
 
 const HomeScreen = createDeferredScreen(() => require('@/screens/HomeScreen').HomeScreen);
@@ -57,11 +58,11 @@ const EmergencyGuideScreen = createDeferredScreen(
   () => require('@/screens/EmergencyGuideScreen').EmergencyGuideScreen,
 );
 const MapScreen = createDeferredScreen(() => require('@/screens/MapScreen').MapScreen);
-const PrivateEmsCallScreen = createDeferredScreen(
-  () => require('@/screens/PrivateEmsCallScreen').PrivateEmsCallScreen,
-);
 const ParamedicGateScreen = createDeferredScreen(
   () => require('@/screens/ParamedicGateScreen').ParamedicGateScreen,
+);
+const AllServicesScreen = createDeferredScreen(
+  () => require('@/screens/AllServicesScreen').AllServicesScreen,
 );
 
 export function MainTabNavigator() {
@@ -107,22 +108,22 @@ export function MainTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="EmsCall"
-        component={PrivateEmsCallScreen}
-        options={{
-          tabBarLabel: '민간 구급차',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon config={TAB_ICONS.EmsCall} color={color} focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
         name="Paramedic"
         component={ParamedicGateScreen}
         options={{
           tabBarLabel: EMS_COMMUNITY_TAB_LABEL,
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon config={TAB_ICONS.Paramedic} color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="All"
+        component={AllServicesScreen}
+        options={{
+          tabBarLabel: '전체',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon config={TAB_ICONS.All} color={color} focused={focused} />
           ),
         }}
       />

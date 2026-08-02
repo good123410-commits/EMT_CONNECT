@@ -1,3 +1,12 @@
+// DISABLED: 비상연락망 & 응급카드 (ICE) — 기능 일시 비활성화
+
+export type EmergencyShortcutResult = { ok: boolean; message: string };
+export async function addEmergencyLockScreenShortcut(): Promise<EmergencyShortcutResult> {
+  return { ok: false, message: '비활성화됨' };
+}
+export function promptEmergencyShortcutResult(_result: EmergencyShortcutResult): void {}
+
+/*
 import { Alert, Platform } from 'react-native';
 import {
   canPinMedicationShortcut,
@@ -42,3 +51,5 @@ export async function addEmergencyLockScreenShortcut(): Promise<EmergencyShortcu
 export function promptEmergencyShortcutResult(result: EmergencyShortcutResult): void {
   Alert.alert(result.ok ? '바로가기' : '안내', result.message);
 }
+
+*/

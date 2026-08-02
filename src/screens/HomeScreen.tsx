@@ -1,7 +1,8 @@
 import { ScrollView, View } from 'react-native';
 import { HomeCommerceCuration } from '@/components/home/HomeCommerceCuration';
 import { HomeEventBannerList } from '@/components/home/HomeEventBannerList';
-import { EmergencyOverlayToggleCard } from '@/components/utilities/EmergencyOverlayToggleCard';
+// DISABLED: 비상연락망 & 응급카드 (ICE)
+// import { EmergencyOverlayToggleCard } from '@/components/utilities/EmergencyOverlayToggleCard';
 import { APP_COLORS, APP_SPACING } from '@/constants/appTheme';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHomeDashboard } from '@/hooks/useHomeDashboard';
@@ -18,7 +19,7 @@ export function HomeScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingHorizontal: APP_SPACING.screen,
+          paddingHorizontal: APP_SPACING.contentHorizontal,
           paddingTop: APP_SPACING.screenTop,
           paddingBottom: fabBottomInset,
           flexGrow: 1,
@@ -31,9 +32,10 @@ export function HomeScreen() {
           </View>
         ) : null}
 
-        <View className="mb-6">
+        {/* DISABLED: 비상연락망 & 응급카드 (ICE) */}
+        {/* <View className="mb-6">
           <EmergencyOverlayToggleCard compact />
-        </View>
+        </View> */}
 
         <HomeCommerceCuration items={commerceItems} />
       </ScrollView>
