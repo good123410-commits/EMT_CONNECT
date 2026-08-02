@@ -64,9 +64,8 @@ export function SettingsDonationModal({ visible, onClose }: SettingsDonationModa
   }, []);
 
   useEffect(() => {
-    if (!visible) return;
     void load();
-  }, [visible, load]);
+  }, [load]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -91,7 +90,7 @@ export function SettingsDonationModal({ visible, onClose }: SettingsDonationModa
             </View>
           ) : null}
 
-          {!loading && notice ? (
+          {!loading && notice.trim().length > 0 ? (
             <View className="mb-4 rounded-2xl border border-kemix-border bg-kemix-surface p-4">
               <Text className="text-sm leading-6 text-kemix-text">{notice}</Text>
             </View>

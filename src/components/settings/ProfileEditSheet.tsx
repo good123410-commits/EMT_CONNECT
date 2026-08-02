@@ -109,7 +109,7 @@ export function ProfileEditSheet({ visible, onClose }: Props) {
     }
   };
 
-  if (!user) {
+  if (!visible || !user) {
     return null;
   }
 
@@ -147,7 +147,7 @@ export function ProfileEditSheet({ visible, onClose }: Props) {
           >
             <View className="rounded-2xl border border-kemix-border bg-kemix-bg px-4 py-3">
               <Text className="text-xs font-semibold text-kemix-muted">로그인 이메일</Text>
-              <Text className="mt-1 text-sm text-kemix-text">{user.email}</Text>
+              <Text className="mt-1 text-sm text-kemix-text">{user.email ?? ''}</Text>
             </View>
 
             <ProfileFieldSection title="별명(닉네임)">

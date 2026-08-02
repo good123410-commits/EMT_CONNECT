@@ -40,7 +40,7 @@ export function SettingsRow({
       <Ionicons name={icon} size={22} color={iconColor} />
       <View className="ml-3 flex-1">
         <Text className="text-base font-medium text-kemix-text">{label}</Text>
-        {subtitle ? (
+        {typeof subtitle === 'string' && subtitle.length > 0 ? (
           <Text className="mt-0.5 text-xs text-kemix-text-secondary">{subtitle}</Text>
         ) : null}
       </View>
