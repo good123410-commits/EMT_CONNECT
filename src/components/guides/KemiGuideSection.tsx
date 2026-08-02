@@ -385,6 +385,7 @@ function GuideDetailView({
     commentsLoading,
     likeLoading,
     commentSubmitting,
+    error: engagementError,
     toggleLike,
     submitComment,
   } = useKemiGuideEngagement(guide?.id ?? null);
@@ -457,6 +458,12 @@ function GuideDetailView({
             </Pressable>
           </View>
 
+          {engagementError ? (
+            <Text className="mt-2 text-xs text-amber-700">
+              {parseKemiGuideSocialError(engagementError)}
+            </Text>
+          ) : null}
+
           {guide.thumbnail_url ? (
             <View className="mt-4 overflow-hidden rounded-xl border border-kemix-border-light bg-kemix-bg">
               <Image
@@ -476,6 +483,7 @@ function GuideDetailView({
 
           <GuideCommentsSection
             comments={comments}
+            commentCount={engagement.comment_count}
             loading={commentsLoading}
             submitting={commentSubmitting}
             onSubmit={submitComment}

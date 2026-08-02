@@ -2,7 +2,8 @@ const AUTH_INTENT_KEY = 'kemix-auth-intent';
 
 export type AuthIntent =
   | { type: 'community-write' }
-  | { type: 'guide-unlock'; slug: string };
+  | { type: 'guide-unlock'; slug: string }
+  | { type: 'guide-comment' };
 
 export function storeAuthIntent(intent: AuthIntent) {
   if (typeof window === 'undefined') return;
@@ -17,7 +18,11 @@ export function consumeAuthIntent(): AuthIntent | null {
 
   try {
     const parsed = JSON.parse(raw) as AuthIntent;
-    if (parsed?.type === 'community-write' || parsed?.type === 'guide-unlock') {
+    if (
+      parsed?.type === 'community-write' ||
+      parsed?.type === 'guide-unlock' ||
+      parsed?.type === 'guide-comment'
+    ) {
       return parsed;
     }
   } catch {

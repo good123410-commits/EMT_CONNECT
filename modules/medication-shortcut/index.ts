@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 type MedicationShortcutNative = {
   isPinShortcutSupported: () => Promise<boolean>;
   requestPinShortcut: (deepLinkUrl: string, label: string) => Promise<boolean>;
+  requestPinEmergencyShortcut: (deepLinkUrl: string, label: string) => Promise<boolean>;
   openHomeScreen: () => Promise<void>;
 };
 
@@ -22,6 +23,14 @@ export async function requestPinMedicationShortcut(
 ): Promise<boolean> {
   if (!native) return false;
   return native.requestPinShortcut(deepLinkUrl, label);
+}
+
+export async function requestPinEmergencyShortcut(
+  deepLinkUrl: string,
+  label = 'KEMIX 응급',
+): Promise<boolean> {
+  if (!native) return false;
+  return native.requestPinEmergencyShortcut(deepLinkUrl, label);
 }
 
 export async function openAndroidHomeScreen(): Promise<void> {

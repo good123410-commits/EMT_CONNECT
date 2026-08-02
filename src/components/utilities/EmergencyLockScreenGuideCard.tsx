@@ -1,5 +1,9 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
+import {
+  addEmergencyLockScreenShortcut,
+  promptEmergencyShortcutResult,
+} from '@/services/emergencyShortcutService';
 import { getEmergencyQuickViewUrl } from '@/utils/emergencyCardEncoding';
 
 type EmergencyLockScreenGuideCardProps = {
@@ -58,6 +62,18 @@ export function EmergencyLockScreenGuideCard({
           {deepLink}
         </Text>
       </View>
+
+      {Platform.OS === 'android' ? (
+        <Pressable
+          className="mt-4 flex-row items-center justify-center rounded-xl border border-indigo-300 bg-kemix-surface py-3.5 active:bg-indigo-50"
+          onPress={() => {
+            void addEmergencyLockScreenShortcut().then(promptEmergencyShortcutResult);
+          }}
+        >
+          <Ionicons name="add-circle-outline" size={18} color="#4338ca" />
+          <Text className="ml-2 text-sm font-bold text-indigo-900">홈/잠금화면 바로가기 추가</Text>
+        </Pressable>
+      ) : null}
 
       <Pressable
         className="mt-4 flex-row items-center justify-center rounded-xl bg-indigo-600 py-3.5 active:bg-indigo-700"

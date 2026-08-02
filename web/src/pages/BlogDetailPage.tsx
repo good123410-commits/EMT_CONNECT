@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { GuideCommentsSection } from '../components/GuideCommentsSection';
 import { GuideContentGate } from '../components/GuideContentGate';
+import { GuideLikeButton } from '../components/GuideLikeButton';
+import { GuideShareSheet } from '../components/GuideShareSheet';
+import { GuestLoginPrompt } from '../components/GuestLoginPrompt';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useGuideEngagement } from '../hooks/useGuideEngagement';
 import {
   fetchGuideBySlug,
   fetchGuideCategories,
@@ -10,6 +16,7 @@ import {
   subscribeGuides,
   type KemixGuide,
 } from '../services/guideService';
+import { parseGuideSocialError } from '../services/guideSocialService';
 
 const APP_DEEP_LINK = import.meta.env.VITE_APP_DEEP_LINK ?? 'emtconnect://guide';
 const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL ?? '/download/app';
@@ -17,10 +24,24 @@ const APP_STORE_URL = import.meta.env.VITE_APP_STORE_URL ?? '/download/app';
 export function BlogDetailPage() {
   const { slug = '' } = useParams();
   const { showToast } = useToast();
+  const { user, profile } = useAuth();
   const [post, setPost] = useState<KemixGuide | null>(null);
   const [categorySlug, setCategorySlug] = useState('general');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+
+  const {
+    engagement,
+    comments,
+    commentsLoading,
+    likeLoading,
+    commentSubmitting,
+    error: engagementError,
+    toggleLike,
+    submitComment,
+  } = useGuideEngagement(post?.id ?? null);
 
   useEffect(() => {
     if (!slug) return;
@@ -58,18 +79,17 @@ export function BlogDetailPage() {
     return unsubscribe;
   }, [slug]);
 
-  const handleShare = async () => {
-    if (!post) return;
-    const url = window.location.href;
+  const handleToggleLike = async () => {
+    if (!user) {
+      setLoginOpen(true);
+      return;
+    }
+
     try {
-      if (navigator.share) {
-        await navigator.share({ title: post.title, text: post.summary ?? post.seo_description ?? '', url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      showToast('링크가 클립보드에 복사되었습니다.');
-    } catch {
-      showToast('공유에 실패했습니다.', 'error');
+      await toggleLike();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      showToast(parseGuideSocialError(message || '좋아요 처리에 실패했습니다.'), 'error');
     }
   };
 
@@ -121,23 +141,59 @@ export function BlogDetailPage() {
         </div>
       </header>
 
+      <div className="guide-detail-engagement">
+        <GuideLikeButton
+          liked={engagement.liked}
+          count={engagement.like_count}
+          loading={likeLoading}
+          onPress={() => void handleToggleLike()}
+        />
+        <button type="button" className="guide-share-btn" onClick={() => setShareOpen(true)}>
+          공유하기
+        </button>
+      </div>
+
+      {engagementError ? (
+        <p className="guide-engagement-error">{parseGuideSocialError(engagementError)}</p>
+      ) : null}
+
       {post.thumbnail_url ? (
         <img src={post.thumbnail_url} alt="" className="guide-detail-hero" />
       ) : null}
 
       <GuideContentGate slug={slug} content={post.content} summary={post.summary} />
 
+      <GuideCommentsSection
+        slug={slug}
+        comments={comments}
+        commentCount={engagement.comment_count}
+        loading={commentsLoading}
+        submitting={commentSubmitting}
+        onSubmit={submitComment}
+      />
+
       <footer className="guide-detail-actions">
         <Link to="/blog" className="btn btn-secondary">
           목록으로
         </Link>
-        <button type="button" className="btn btn-outline" onClick={() => void handleShare()}>
+        <button type="button" className="btn btn-outline" onClick={() => setShareOpen(true)}>
           공유하기
         </button>
         <a href={APP_STORE_URL !== '#' ? APP_STORE_URL : APP_DEEP_LINK} className="btn btn-primary">
           앱에서 보기
         </a>
       </footer>
+
+      <GuideShareSheet guide={post} open={shareOpen} onClose={() => setShareOpen(false)} />
+
+      <GuestLoginPrompt
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        title="좋아요"
+        description="로그인 후 좋아요를 남길 수 있습니다."
+        returnPath={`/blog/${slug}`}
+        intent={{ type: 'guide-comment' }}
+      />
     </article>
   );
 }

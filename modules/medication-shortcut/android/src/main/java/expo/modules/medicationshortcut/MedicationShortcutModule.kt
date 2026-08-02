@@ -21,25 +21,21 @@ class MedicationShortcutModule : Module() {
     }
 
     AsyncFunction("requestPinShortcut") { deepLinkUrl: String, label: String ->
-      val context = appContext.reactContext ?: return@AsyncFunction false
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return@AsyncFunction false
+      requestPinnedShortcut(
+        shortcutId = "kemix_medication_timer",
+        deepLinkUrl = deepLinkUrl,
+        shortLabel = label,
+        longLabel = "약물 복용 타이머",
+      )
+    }
 
-      val manager = context.getSystemService(ShortcutManager::class.java)
-      if (manager == null || !manager.isRequestPinShortcutSupported) return@AsyncFunction false
-
-      val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLinkUrl)).apply {
-        setPackage(context.packageName)
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-      }
-
-      val shortcut = ShortcutInfo.Builder(context, "kemix_medication_timer")
-        .setShortLabel(label)
-        .setLongLabel("약물 복용 타이머")
-        .setIcon(Icon.createWithResource(context, context.applicationInfo.icon))
-        .setIntent(intent)
-        .build()
-
-      return@AsyncFunction manager.requestPinShortcut(shortcut, null)
+    AsyncFunction("requestPinEmergencyShortcut") { deepLinkUrl: String, label: String ->
+      requestPinnedShortcut(
+        shortcutId = "kemix_emergency_quick_view",
+        deepLinkUrl = deepLinkUrl,
+        shortLabel = label,
+        longLabel = "KEMIX 응급 카드",
+      )
     }
 
     AsyncFunction("openHomeScreen") {
@@ -51,6 +47,47 @@ class MedicationShortcutModule : Module() {
       }
       context.startActivity(intent)
       null
+    }
+  }
+
+  private fun requestPinnedShortcut(
+    shortcutId: String,
+    deepLinkUrl: String,
+    shortLabel: String,
+    longLabel: String,
+  ): Boolean {
+    val context = appContext.reactContext ?: return false
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+
+    val manager = context.getSystemService(ShortcutManager::class.java)
+    if (manager == null || !manager.isRequestPinShortcutSupported) return false
+
+    val intent = buildShortcutLaunchIntent(context.packageName, deepLinkUrl)
+
+    val shortcut = ShortcutInfo.Builder(context, shortcutId)
+      .setShortLabel(shortLabel)
+      .setLongLabel(longLabel)
+      .setIcon(Icon.createWithResource(context, context.applicationInfo.icon))
+      .setIntent(intent)
+      .build()
+
+    return manager.requestPinShortcut(shortcut, null)
+  }
+
+  private fun buildShortcutLaunchIntent(packageName: String, deepLinkUrl: String): Intent {
+    return Intent(Intent.ACTION_VIEW, Uri.parse(deepLinkUrl)).apply {
+      setPackage(packageName)
+      addCategory(Intent.CATEGORY_DEFAULT)
+      addCategory(Intent.CATEGORY_BROWSABLE)
+      addFlags(
+        Intent.FLAG_ACTIVITY_NEW_TASK or
+          Intent.FLAG_ACTIVITY_CLEAR_TOP or
+          Intent.FLAG_ACTIVITY_SINGLE_TOP or
+          Intent.FLAG_ACTIVITY_REORDER_TO_FRONT,
+      )
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        addFlags(Intent.FLAG_ACTIVITY_REQUIRE_NON_BROWSER)
+      }
     }
   }
 }

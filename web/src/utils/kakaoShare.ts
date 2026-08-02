@@ -1,5 +1,7 @@
 import { OPENING_SLIDES } from '../constants/openingSlides';
+import type { KemixGuide } from '../services/guideService';
 import type { KemixResource } from '../types';
+import { buildGuidePageUrl, buildGuideShareSummary } from './guideShare';
 import {
   ensureKakaoReady,
   isKakaoReadySync,
@@ -65,6 +67,66 @@ function invokeKakaoShare(resource: KemixResource): string | null {
 
   window.setTimeout(restoreLayer, 3000);
   return null;
+}
+
+function invokeGuideKakaoShare(guide: KemixGuide): string | null {
+  const kakao = window.Kakao;
+  if (!kakao?.Share?.sendDefault) {
+    return '카카오 공유 모듈을 사용할 수 없습니다.';
+  }
+
+  const pageUrl = buildGuidePageUrl(guide.slug);
+  const description = buildGuideShareSummary(guide);
+  const imageUrl = guide.thumbnail_url?.trim() || SHARE_IMAGE_FALLBACK;
+  const restoreLayer = prepareKakaoShareLayer();
+
+  try {
+    kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: guide.title,
+        description,
+        imageUrl,
+        link: {
+          mobileWebUrl: pageUrl,
+          webUrl: pageUrl,
+        },
+      },
+      buttons: [
+        {
+          title: '자세히 보기',
+          link: {
+            mobileWebUrl: pageUrl,
+            webUrl: pageUrl,
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    console.error('Kakao guide share failed:', error);
+    restoreLayer();
+    return '카카오톡 공유 요청에 실패했습니다.';
+  }
+
+  window.setTimeout(restoreLayer, 3000);
+  return null;
+}
+
+export function shareGuideOnKakaoSync(guide: KemixGuide): string | null {
+  if (!isKakaoReadySync()) {
+    return '카카오 공유를 준비 중입니다. 잠시 후 다시 눌러 주세요.';
+  }
+  return invokeGuideKakaoShare(guide);
+}
+
+export async function shareGuideOnKakao(guide: KemixGuide): Promise<string | null> {
+  if (isKakaoReadySync()) {
+    return shareGuideOnKakaoSync(guide);
+  }
+
+  const setupError = await ensureKakaoReady();
+  if (setupError) return setupError;
+  return shareGuideOnKakaoSync(guide);
 }
 
 /**

@@ -8,6 +8,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { UserRoleProvider } from '@/contexts/UserRoleContext';
 import { WalletProvider } from '@/contexts/WalletContext';
 import { EmergencyOverlayBootstrap } from '@/components/utilities/EmergencyOverlayBootstrap';
+import { EmergencyQuickViewBootstrap } from '@/components/utilities/EmergencyQuickViewBootstrap';
 import { AppLaunchGate } from '@/components/intro/AppLaunchGate';
 import { BrandSplashView } from '@/components/intro/BrandSplashView';
 import { APP_COLORS } from '@/constants/appTheme';
@@ -55,6 +56,7 @@ function AppProviders() {
             <WalletProvider>
               <View style={styles.root}>
                 <EmergencyOverlayBootstrap />
+                <EmergencyQuickViewBootstrap />
                 <AppNavigation />
                 {DevRoleCheatMenu ? <DevRoleCheatMenu /> : null}
               </View>

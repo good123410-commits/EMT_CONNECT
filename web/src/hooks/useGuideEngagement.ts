@@ -1,44 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  subscribeKemiPostComments,
-  subscribeKemiPostEngagement,
-} from '@/lib/realtimeSubscription';
-import {
-  createKemiGuideComment,
-  fetchKemiGuideComments,
-  fetchKemiGuideEngagement,
-  toggleKemiGuideLike,
-} from '@/services/kemiGuideSocialService';
-import type { KemiGuideComment, KemiGuideEngagement } from '@/types/kemiGuideSocial';
+  createGuideComment,
+  fetchGuideComments,
+  fetchGuideEngagement,
+  subscribeGuideSocial,
+  toggleGuideLike,
+} from '../services/guideSocialService';
+import type { GuideComment, GuideEngagement } from '../types/guideSocial';
 
-type UseKemiGuideEngagementResult = {
-  engagement: KemiGuideEngagement;
-  comments: KemiGuideComment[];
-  loading: boolean;
-  commentsLoading: boolean;
-  likeLoading: boolean;
-  commentSubmitting: boolean;
-  error: string | null;
-  reload: () => Promise<void>;
-  toggleLike: () => Promise<void>;
-  submitComment: (content: string, authorLabel?: string) => Promise<void>;
-};
-
-const DEFAULT_ENGAGEMENT: KemiGuideEngagement = {
+const DEFAULT_ENGAGEMENT: GuideEngagement = {
   like_count: 0,
   comment_count: 0,
   liked: false,
 };
 
-export function useKemiGuideEngagement(postId: string | null): UseKemiGuideEngagementResult {
-  const [engagement, setEngagement] = useState<KemiGuideEngagement>(DEFAULT_ENGAGEMENT);
-  const [comments, setComments] = useState<KemiGuideComment[]>([]);
+export function useGuideEngagement(postId: string | null) {
+  const [engagement, setEngagement] = useState<GuideEngagement>(DEFAULT_ENGAGEMENT);
+  const [comments, setComments] = useState<GuideComment[]>([]);
   const [loading, setLoading] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reloadTimer = useRef<number | null>(null);
   const likeLoadingRef = useRef(false);
 
   const reload = useCallback(async () => {
@@ -48,8 +32,8 @@ export function useKemiGuideEngagement(postId: string | null): UseKemiGuideEngag
     setError(null);
     try {
       const [nextEngagement, nextComments] = await Promise.all([
-        fetchKemiGuideEngagement(postId),
-        fetchKemiGuideComments(postId),
+        fetchGuideEngagement(postId),
+        fetchGuideComments(postId),
       ]);
       setEngagement(nextEngagement);
       setComments(nextComments);
@@ -62,8 +46,8 @@ export function useKemiGuideEngagement(postId: string | null): UseKemiGuideEngag
   }, [postId]);
 
   const scheduleReload = useCallback(() => {
-    if (reloadTimer.current) clearTimeout(reloadTimer.current);
-    reloadTimer.current = setTimeout(() => {
+    if (reloadTimer.current !== null) window.clearTimeout(reloadTimer.current);
+    reloadTimer.current = window.setTimeout(() => {
       void reload();
     }, 320);
   }, [reload]);
@@ -76,13 +60,10 @@ export function useKemiGuideEngagement(postId: string | null): UseKemiGuideEngag
     }
 
     void reload();
-    const unsubComments = subscribeKemiPostComments(postId, scheduleReload);
-    const unsubEngagement = subscribeKemiPostEngagement(postId, scheduleReload);
-
+    const unsubscribe = subscribeGuideSocial(postId, scheduleReload);
     return () => {
-      unsubComments();
-      unsubEngagement();
-      if (reloadTimer.current) clearTimeout(reloadTimer.current);
+      unsubscribe();
+      if (reloadTimer.current !== null) window.clearTimeout(reloadTimer.current);
     };
   }, [postId, reload, scheduleReload]);
 
@@ -93,7 +74,7 @@ export function useKemiGuideEngagement(postId: string | null): UseKemiGuideEngag
     setLikeLoading(true);
     setError(null);
 
-    let previous: KemiGuideEngagement = DEFAULT_ENGAGEMENT;
+    let previous = DEFAULT_ENGAGEMENT;
     setEngagement((prev) => {
       previous = prev;
       return {
@@ -104,7 +85,7 @@ export function useKemiGuideEngagement(postId: string | null): UseKemiGuideEngag
     });
 
     try {
-      const next = await toggleKemiGuideLike(postId);
+      const next = await toggleGuideLike(postId);
       setEngagement((current) => ({
         ...current,
         like_count: next.like_count,
@@ -125,7 +106,7 @@ export function useKemiGuideEngagement(postId: string | null): UseKemiGuideEngag
       setCommentSubmitting(true);
       setError(null);
       try {
-        const row = await createKemiGuideComment(postId, content, authorLabel);
+        const row = await createGuideComment(postId, content, authorLabel);
         setComments((prev) => {
           if (prev.some((item) => item.id === row.id)) return prev;
           return [...prev, row];

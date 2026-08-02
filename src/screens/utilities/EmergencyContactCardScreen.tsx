@@ -1,5 +1,4 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { EmergencyInfoCardContent } from '@/components/utilities/EmergencyInfoCardContent';
@@ -14,10 +13,7 @@ import {
   saveEmergencyContactCard,
 } from '@/services/emergencyContactStorage';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
-import {
-  hasEmergencyCardContent,
-  isEmergencyQuickViewUrl,
-} from '@/utils/emergencyCardEncoding';
+import { hasEmergencyCardContent } from '@/utils/emergencyCardEncoding';
 
 export function EmergencyContactCardScreen() {
   const [loading, setLoading] = useState(true);
@@ -36,23 +32,6 @@ export function EmergencyContactCardScreen() {
       setLoading(false);
     });
   }, []);
-
-  useEffect(() => {
-    const handleUrl = (event: { url: string }) => {
-      if (isEmergencyQuickViewUrl(event.url)) {
-        openQuickView('quick');
-      }
-    };
-
-    const subscription = Linking.addEventListener('url', handleUrl);
-    void Linking.getInitialURL().then((url) => {
-      if (url && isEmergencyQuickViewUrl(url)) {
-        openQuickView('quick');
-      }
-    });
-
-    return () => subscription.remove();
-  }, [openQuickView]);
 
   const updateField = <K extends keyof EmergencyContactCardData>(
     key: K,
@@ -177,9 +156,9 @@ export function EmergencyContactCardScreen() {
       </Pressable>
 
       <View className="mb-5 rounded-2xl border border-kemix-border bg-kemix-surface p-4">
-        <Text className="text-sm font-semibold text-kemix-text">카드 미리보기</Text>
+        <Text className="text-sm font-semibold text-kemix-text">앱 내 전체 미리보기</Text>
         <Text className="mt-1 text-xs leading-5 text-kemix-text-secondary">
-          저장된 정보가 응급 카드 형태로 표시됩니다.
+          편집 화면에서만 상세 정보가 보입니다. 잠금화면·숏컷·위젯에는 QR만 표시됩니다.
         </Text>
         <View className="mt-3">
           <EmergencyInfoCardContent data={data} />

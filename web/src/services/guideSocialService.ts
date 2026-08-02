@@ -1,7 +1,7 @@
-import { supabase } from '@/lib/supabaseClient';
-import type { KemiGuideComment, KemiGuideEngagement } from '@/types/kemiGuideSocial';
+import { supabase } from '../lib/supabase';
+import type { GuideComment, GuideEngagement } from '../types/guideSocial';
 
-const EMPTY_ENGAGEMENT: KemiGuideEngagement = {
+const EMPTY_ENGAGEMENT: GuideEngagement = {
   like_count: 0,
   comment_count: 0,
   liked: false,
@@ -16,7 +16,7 @@ function isMissingRpcError(message: string): boolean {
   );
 }
 
-function mapEngagement(row: Record<string, unknown>): KemiGuideEngagement {
+function mapEngagement(row: Record<string, unknown>): GuideEngagement {
   return {
     like_count: Number(row.like_count) || 0,
     comment_count: Number(row.comment_count) || 0,
@@ -24,7 +24,7 @@ function mapEngagement(row: Record<string, unknown>): KemiGuideEngagement {
   };
 }
 
-function mapComment(row: Record<string, unknown>): KemiGuideComment {
+function mapComment(row: Record<string, unknown>): GuideComment {
   return {
     id: String(row.id ?? ''),
     post_id: String(row.post_id ?? ''),
@@ -35,7 +35,7 @@ function mapComment(row: Record<string, unknown>): KemiGuideComment {
   };
 }
 
-async function fetchEngagementFallback(postId: string): Promise<KemiGuideEngagement> {
+async function fetchEngagementFallback(postId: string): Promise<GuideEngagement> {
   const { data: post, error: postError } = await supabase
     .from('kemi_posts')
     .select('like_count, comment_count')
@@ -67,7 +67,7 @@ async function fetchEngagementFallback(postId: string): Promise<KemiGuideEngagem
   };
 }
 
-async function fetchCommentsFallback(postId: string): Promise<KemiGuideComment[]> {
+async function fetchCommentsFallback(postId: string): Promise<GuideComment[]> {
   const { data, error } = await supabase
     .from('kemi_post_comments')
     .select('id, post_id, author_id, author_label, content, created_at')
@@ -78,37 +78,27 @@ async function fetchCommentsFallback(postId: string): Promise<KemiGuideComment[]
   return (data ?? []).map((row) => mapComment(row as Record<string, unknown>));
 }
 
-export async function fetchKemiGuideEngagement(postId: string): Promise<KemiGuideEngagement> {
+export async function fetchGuideEngagement(postId: string): Promise<GuideEngagement> {
   const { data, error } = await supabase.rpc('get_kemi_post_engagement', {
     p_post_id: postId,
   });
 
   if (error) {
-    if (error.message.includes('post_not_found')) {
-      return EMPTY_ENGAGEMENT;
-    }
-    if (isMissingRpcError(error.message)) {
-      return fetchEngagementFallback(postId);
-    }
+    if (error.message.includes('post_not_found')) return EMPTY_ENGAGEMENT;
+    if (isMissingRpcError(error.message)) return fetchEngagementFallback(postId);
     throw error;
   }
 
   return mapEngagement((data ?? {}) as Record<string, unknown>);
 }
 
-export async function toggleKemiGuideLike(
+export async function toggleGuideLike(
   postId: string,
-): Promise<Pick<KemiGuideEngagement, 'like_count' | 'liked'>> {
+): Promise<Pick<GuideEngagement, 'like_count' | 'liked'>> {
   const { data, error } = await supabase.rpc('toggle_kemi_post_like', {
     p_post_id: postId,
   });
-
-  if (error) {
-    if (isMissingRpcError(error.message)) {
-      throw new Error('not_authenticated_or_migration_pending');
-    }
-    throw error;
-  }
+  if (error) throw error;
 
   const row = (data ?? {}) as Record<string, unknown>;
   return {
@@ -117,55 +107,37 @@ export async function toggleKemiGuideLike(
   };
 }
 
-export async function fetchKemiGuideComments(postId: string): Promise<KemiGuideComment[]> {
+export async function fetchGuideComments(postId: string): Promise<GuideComment[]> {
   const { data, error } = await supabase.rpc('list_kemi_post_comments', {
     p_post_id: postId,
   });
 
   if (error) {
-    if (isMissingRpcError(error.message)) {
-      return fetchCommentsFallback(postId);
-    }
+    if (isMissingRpcError(error.message)) return fetchCommentsFallback(postId);
     throw error;
   }
 
   return (data ?? []).map((row: Record<string, unknown>) => mapComment(row));
 }
 
-export async function createKemiGuideComment(
+export async function createGuideComment(
   postId: string,
   content: string,
   authorLabel?: string,
-): Promise<KemiGuideComment> {
+): Promise<GuideComment> {
   const { data, error } = await supabase.rpc('create_kemi_post_comment', {
     p_post_id: postId,
     p_content: content.trim(),
     p_author_label: authorLabel ?? '회원',
   });
-
-  if (error) {
-    if (isMissingRpcError(error.message)) {
-      throw new Error('not_authenticated_or_migration_pending');
-    }
-    throw error;
-  }
-
+  if (error) throw error;
   return mapComment(data as Record<string, unknown>);
 }
 
-export function parseKemiGuideSocialError(message: string): string {
-  if (message.includes('not_authenticated')) {
-    return '로그인이 필요합니다.';
-  }
-  if (message.includes('not_authenticated_or_migration_pending')) {
-    return '좋아요·댓글 기능을 사용하려면 로그인 후 Supabase 마이그레이션(v58)을 적용해 주세요.';
-  }
-  if (message.includes('content_too_short')) {
-    return '댓글을 입력해 주세요.';
-  }
-  if (message.includes('post_not_found')) {
-    return '게시물을 찾을 수 없습니다.';
-  }
+export function parseGuideSocialError(message: string): string {
+  if (message.includes('not_authenticated')) return '로그인이 필요합니다.';
+  if (message.includes('content_too_short')) return '댓글을 입력해 주세요.';
+  if (message.includes('post_not_found')) return '게시물을 찾을 수 없습니다.';
   return message;
 }
 
@@ -181,4 +153,29 @@ export function formatGuideCommentTime(iso: string): string {
   const diffDay = Math.floor(diffHour / 24);
   if (diffDay < 7) return `${diffDay}일 전`;
   return new Date(iso).toLocaleDateString('ko-KR');
+}
+
+export function subscribeGuideSocial(postId: string, onChange: () => void): () => void {
+  const channel = supabase
+    .channel(`guide_social_web_${postId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'kemi_post_comments', filter: `post_id=eq.${postId}` },
+      onChange,
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'kemi_posts', filter: `id=eq.${postId}` },
+      onChange,
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'kemi_post_likes', filter: `post_id=eq.${postId}` },
+      onChange,
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
 }

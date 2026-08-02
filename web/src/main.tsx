@@ -27,6 +27,7 @@ import { InterviewPage } from './pages/InterviewPage';
 import { SchedulePage } from './pages/content/SchedulePage';
 import { TrainingDetailPage } from './pages/content/TrainingDetailPage';
 import { TrainingListPage } from './pages/content/TrainingListPage';
+import { EmergencySharePage } from './pages/EmergencySharePage';
 import { LandingPage } from './pages/LandingPage';
 import { LegalPage } from './pages/legal/LegalPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
@@ -64,6 +65,9 @@ createRoot(document.getElementById('root')!).render(
               <Route path="training" element={<TrainingListPage />} />
               <Route path="training/:id" element={<TrainingDetailPage />} />
             </Route>
+
+            {/* 응급 의료 QR 공유 (앱 잠금화면·숏컷) */}
+            <Route path="emergency/:token" element={<EmergencySharePage />} />
 
             {/* 생활 응급처치 가이드 */}
             <Route path="blog" element={<BlogListPage />} />

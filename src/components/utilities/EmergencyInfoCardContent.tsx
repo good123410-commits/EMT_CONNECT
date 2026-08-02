@@ -1,12 +1,13 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
+import { EmergencyPublicCard } from '@/components/utilities/EmergencyPublicCard';
+import { EmergencyQrCard } from '@/components/utilities/EmergencyQrCard';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
-import { buildEmergencyCardPayload } from '@/utils/emergencyCardEncoding';
 
 type EmergencyInfoCardContentProps = {
   data: EmergencyContactCardData;
   variant?: 'default' | 'wallpaper';
-  showQr?: boolean;
+  mode?: 'full' | 'public';
 };
 
 function ContactRow({
@@ -63,10 +64,13 @@ function NoteBlock({
 export function EmergencyInfoCardContent({
   data,
   variant = 'default',
-  showQr = true,
+  mode = 'full',
 }: EmergencyInfoCardContentProps) {
+  if (mode === 'public') {
+    return <EmergencyPublicCard data={data} variant={variant === 'wallpaper' ? 'dark' : 'dark'} />;
+  }
+
   const light = variant === 'wallpaper';
-  const payload = buildEmergencyCardPayload(data);
   const border = light ? 'border-red-400' : 'border-red-200';
   const headerBg = light ? 'bg-red-700' : 'bg-red-600';
   const bodyBg = light ? 'bg-red-900' : 'bg-kemix-surface';
@@ -80,7 +84,7 @@ export function EmergencyInfoCardContent({
             <Text className="ml-2 text-base font-bold text-white">응급 의료 정보 카드</Text>
           </View>
           <View className="rounded-full bg-kemix-surface/20 px-2 py-0.5">
-            <Text className="text-[10px] font-bold text-white">EMERGENCY</Text>
+            <Text className="text-[10px] font-bold text-white">앱 전용 미리보기</Text>
           </View>
         </View>
         {data.fullName.trim() ? (
@@ -109,36 +113,20 @@ export function EmergencyInfoCardContent({
         <NoteBlock label="선호 응급 병원" value={data.preferredHospital} light={light} />
         <NoteBlock label="응급 의료 메모" value={data.medicalNotes} light={light} />
 
-        {showQr ? (
-          <View
-            className={`mt-2 flex-row items-start rounded-xl border p-3 ${
-              light ? 'border-red-700 bg-red-950' : 'border-kemix-border-light bg-kemix-bg'
+        <View
+          className={`mt-4 items-center rounded-xl border p-4 ${
+            light ? 'border-red-700 bg-red-950' : 'border-kemix-border-light bg-kemix-bg'
+          }`}
+        >
+          <Text
+            className={`mb-3 text-center text-xs font-semibold ${
+              light ? 'text-red-100' : 'text-kemix-text-secondary'
             }`}
           >
-            <View
-              className={`h-20 w-20 items-center justify-center rounded-lg ${
-                light ? 'bg-kemix-surface' : 'bg-kemix-surface'
-              }`}
-            >
-              <Ionicons name="qr-code" size={56} color="#0f172a" />
-            </View>
-            <View className="ml-3 flex-1">
-              <Text
-                className={`text-[10px] font-bold uppercase tracking-wide ${
-                  light ? 'text-red-200' : 'text-kemix-text-secondary'
-                }`}
-              >
-                응급 QR 데이터
-              </Text>
-              <Text
-                className={`mt-1 text-[10px] leading-4 ${light ? 'text-red-100' : 'text-kemix-text-secondary'}`}
-                numberOfLines={6}
-              >
-                {payload}
-              </Text>
-            </View>
-          </View>
-        ) : null}
+            잠금화면·숏컷에는 아래 QR만 표시됩니다
+          </Text>
+          <EmergencyQrCard data={data} size={160} variant={light ? 'dark' : 'light'} />
+        </View>
       </View>
     </View>
   );

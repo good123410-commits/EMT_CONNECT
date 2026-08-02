@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRef } from 'react';
-import { ActivityIndicator, Animated, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, Text } from 'react-native';
 
 type GuideLikeButtonProps = {
   liked: boolean;
@@ -38,15 +38,11 @@ export function GuideLikeButton({ liked, count, loading, onPress }: GuideLikeBut
       hitSlop={6}
     >
       <Animated.View style={{ transform: [{ scale }] }}>
-        {loading ? (
-          <ActivityIndicator size="small" color="#ef4444" />
-        ) : (
-          <Ionicons
-            name={liked ? 'heart' : 'heart-outline'}
-            size={20}
-            color={liked ? '#ef4444' : '#64748b'}
-          />
-        )}
+        <Ionicons
+          name={liked ? 'heart' : 'heart-outline'}
+          size={20}
+          color={liked ? '#ef4444' : '#64748b'}
+        />
       </Animated.View>
       <Text className={`ml-1.5 text-sm font-bold ${liked ? 'text-red-500' : 'text-kemix-text-secondary'}`}>
         {count}

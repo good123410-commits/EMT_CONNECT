@@ -18,6 +18,7 @@ import type { KemiGuideComment } from '@/types/kemiGuideSocial';
 
 type GuideCommentsSectionProps = {
   comments: KemiGuideComment[];
+  commentCount?: number;
   loading?: boolean;
   submitting?: boolean;
   onSubmit: (content: string, authorLabel?: string) => Promise<void>;
@@ -39,6 +40,7 @@ function CommentRow({ comment }: { comment: KemiGuideComment }) {
 
 export function GuideCommentsSection({
   comments,
+  commentCount,
   loading,
   submitting,
   onSubmit,
@@ -78,7 +80,9 @@ export function GuideCommentsSection({
     <View className="mt-8">
       <View className="mb-3 flex-row items-center justify-between">
         <Text className="text-base font-bold text-kemix-text">댓글</Text>
-        <Text className="text-sm text-kemix-text-secondary">{comments.length}개</Text>
+        <Text className="text-sm text-kemix-text-secondary">
+          {commentCount ?? comments.length}개
+        </Text>
       </View>
 
       <View className="rounded-2xl border border-kemix-border-light bg-kemix-bg p-3">

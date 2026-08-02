@@ -1,7 +1,10 @@
-import { Linking, Platform, Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { InteractionManager, Linking, Platform, Share } from 'react-native';
 import { KEMIX_WEB_URL } from '@/constants/env';
 import type { KemiGuide } from '@/types/kemiGuide';
 import { stripGuideHtml } from '@/services/kemiPostService';
+
+export type GuideShareResult = 'shared' | 'dismissed' | 'copied' | 'opened';
 
 export function buildGuideWebUrl(slug: string): string | null {
   const base = KEMIX_WEB_URL.trim().replace(/\/$/, '');
@@ -26,36 +29,84 @@ export function buildGuideShareMessage(guide: KemiGuide): string {
   return lines.join('\n');
 }
 
+/** Modal 닫힘 애니메이션 이후 네이티브 공유/링크 열기 (겹침으로 시트가 바로 닫히는 현상 방지) */
+export function runAfterShareModalClose(action: () => Promise<void>): void {
+  const delayMs = Platform.OS === 'ios' ? 420 : Platform.OS === 'web' ? 300 : 320;
+  setTimeout(() => {
+    if (Platform.OS === 'web') {
+      void action();
+      return;
+    }
+    InteractionManager.runAfterInteractions(() => {
+      void action();
+    });
+  }, delayMs);
+}
+
+function isShareAbortError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.name === 'AbortError' || error.message.toLowerCase().includes('abort');
+}
+
 /**
- * 카카오톡·메시지 등 OS 공유 시트로 가이드 링크 전달.
+ * OS 시스템 공유 시트 (카카오톡·메시지·메일·복사 등).
+ * Modal 위에서 호출하지 말고 `runAfterShareModalClose`와 함께 사용.
  */
-export async function shareGuideOnKakao(guide: KemiGuide): Promise<void> {
-  const message = buildGuideShareMessage(guide);
+export async function shareGuideWithSystemSheet(guide: KemiGuide): Promise<GuideShareResult> {
+  const summary = buildGuideShareSummary(guide);
   const pageUrl = buildGuideWebUrl(guide.slug);
+  const title = guide.title;
+
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    try {
+      await navigator.share({
+        title,
+        text: summary,
+        url: pageUrl ?? (typeof window !== 'undefined' ? window.location.href : undefined),
+      });
+      return 'shared';
+    } catch (error) {
+      if (isShareAbortError(error)) return 'dismissed';
+      throw error;
+    }
+  }
+
+  const message =
+    Platform.OS === 'ios' && pageUrl
+      ? `${title}\n\n${summary}`
+      : buildGuideShareMessage(guide);
 
   const result = await Share.share(
     Platform.OS === 'ios'
       ? {
           message,
           url: pageUrl ?? undefined,
-          title: guide.title,
+          title,
         }
       : {
           message,
-          title: guide.title,
+          title,
         },
     {
-      dialogTitle: '카카오톡으로 공유',
-      subject: guide.title,
+      dialogTitle: '공유하기',
+      subject: title,
     },
   );
 
-  if (result.action === Share.dismissedAction) {
-    return;
-  }
+  return result.action === Share.dismissedAction ? 'dismissed' : 'shared';
 }
 
-export async function emailGuideShare(guide: KemiGuide, recipient?: string | null): Promise<void> {
+export async function copyGuideLink(guide: KemiGuide): Promise<GuideShareResult> {
+  const pageUrl = buildGuideWebUrl(guide.slug);
+  const text = pageUrl ?? buildGuideShareMessage(guide);
+  await Clipboard.setStringAsync(text);
+  return 'copied';
+}
+
+export async function emailGuideShare(
+  guide: KemiGuide,
+  recipient?: string | null,
+): Promise<GuideShareResult> {
   const summary = buildGuideShareSummary(guide);
   const pageUrl = buildGuideWebUrl(guide.slug);
   const bodyLines = [
@@ -78,4 +129,10 @@ export async function emailGuideShare(guide: KemiGuide, recipient?: string | nul
     throw new Error('이메일 앱을 열 수 없습니다.');
   }
   await Linking.openURL(mailto);
+  return 'opened';
+}
+
+/** @deprecated shareGuideWithSystemSheet 사용 */
+export async function shareGuideOnKakao(guide: KemiGuide): Promise<void> {
+  await shareGuideWithSystemSheet(guide);
 }

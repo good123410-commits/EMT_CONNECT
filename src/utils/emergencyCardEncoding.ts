@@ -1,4 +1,5 @@
 import * as Linking from 'expo-linking';
+import { KEMIX_WEB_URL } from '@/constants/env';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
 
 export const EMERGENCY_QUICK_VIEW_PATH = 'emergency-quick-view';
@@ -15,6 +16,34 @@ export function isEmergencyQuickViewUrl(url: string): boolean {
   );
 }
 
+function createShareToken(): string {
+  const template = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
+  return template.replace(/[xy]/g, (char) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = char === 'x' ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+export function ensureShareToken(data: EmergencyContactCardData): EmergencyContactCardData {
+  const existing = data.shareToken?.trim();
+  if (existing && existing.length >= 16) {
+    return { ...data, shareToken: existing };
+  }
+  return { ...data, shareToken: createShareToken() };
+}
+
+export function buildEmergencyShareUrl(shareToken: string): string {
+  const base = KEMIX_WEB_URL.trim().replace(/\/$/, '');
+  return `${base}/emergency/${encodeURIComponent(shareToken)}`;
+}
+
+export function getEmergencyShareUrl(data: EmergencyContactCardData): string {
+  const withToken = ensureShareToken(data);
+  return buildEmergencyShareUrl(withToken.shareToken!);
+}
+
+/** 앱 내 상세 미리보기·인쇄용 텍스트 (공개 화면에서는 사용하지 않음) */
 export function buildEmergencyCardPayload(data: EmergencyContactCardData): string {
   const lines: string[] = ['KEMIX 응급 의료 정보'];
   if (data.fullName.trim()) lines.push(`이름: ${data.fullName.trim()}`);
@@ -33,6 +62,7 @@ export function buildEmergencyCardPayload(data: EmergencyContactCardData): strin
   if (data.medicalNotes.trim()) {
     lines.push(`메모: ${data.medicalNotes.trim()}`);
   }
+  lines.push('', `웹 프로필: ${getEmergencyShareUrl(data)}`);
   return lines.join('\n');
 }
 
@@ -47,4 +77,12 @@ export function hasEmergencyCardContent(data: EmergencyContactCardData): boolean
       data.medicalNotes.trim() ||
       data.preferredHospital.trim(),
   );
+}
+
+export function buildEmergencyOverlaySyncPayload(data: EmergencyContactCardData): string {
+  const withToken = ensureShareToken(data);
+  return JSON.stringify({
+    publicShareUrl: buildEmergencyShareUrl(withToken.shareToken!),
+    hasContent: hasEmergencyCardContent(data),
+  });
 }

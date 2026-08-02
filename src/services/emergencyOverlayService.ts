@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PermissionsAndroid, Platform } from 'react-native';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';
+import { buildEmergencyOverlaySyncPayload } from '@/utils/emergencyCardEncoding';
 import {
   canDrawEmergencyOverlay,
   isEmergencyOverlayEnabled,
@@ -53,7 +54,7 @@ export async function requestOverlayPermissionFlow(): Promise<boolean> {
 
 export async function syncEmergencyOverlayFromCard(data: EmergencyContactCardData): Promise<void> {
   if (!isEmergencyOverlaySupported) return;
-  await syncEmergencyOverlayCardData(JSON.stringify(data));
+  await syncEmergencyOverlayCardData(buildEmergencyOverlaySyncPayload(data));
 }
 
 export async function enableEmergencyOverlay(data: EmergencyContactCardData): Promise<{

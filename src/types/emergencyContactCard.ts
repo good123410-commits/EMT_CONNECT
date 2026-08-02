@@ -7,6 +7,8 @@ export type EmergencyContactCardData = {
   allergiesMedications: string;
   medicalNotes: string;
   preferredHospital: string;
+  /** QR 공유용 비공개 토큰 (URL에만 사용) */
+  shareToken?: string;
 };
 
 export const DEFAULT_EMERGENCY_CONTACT_CARD = (): EmergencyContactCardData => ({
