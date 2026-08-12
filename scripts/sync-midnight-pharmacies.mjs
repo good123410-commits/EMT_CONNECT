@@ -10,6 +10,7 @@
  * GitHub Actions: .github/workflows/sync-pharmacies.yml
  */
 import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -243,6 +244,20 @@ async function upsertBatches(supabase, rows) {
   return upserted;
 }
 
+function createSupabaseAdminClient(url, serviceRoleKey) {
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      // Node.js(GitHub Actions 포함) — Realtime용 네이티브 WebSocket 폴리필
+      WebSocket: ws,
+    },
+  });
+}
+
 async function main() {
   if (!DRY_RUN && (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY)) {
     logError('SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 환경 변수가 필요합니다.');
@@ -264,9 +279,7 @@ async function main() {
     return;
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const supabase = createSupabaseAdminClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
     logInfo('Supabase upsert 시작…');
