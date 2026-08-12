@@ -44,7 +44,90 @@ const ALLOW_LOCAL_FALLBACK =
   process.env.ALLOW_LOCAL_CSV_FALLBACK === '1' ||
   process.env.ALLOW_LOCAL_CSV_FALLBACK === 'true';
 
+
+const CHROME_USER_AGENT =
+  process.env.EGEN_USER_AGENT?.trim() ||
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
 const DRY_RUN = process.argv.includes('--dry-run');
+
+function buildBrowserDownloadHeaders(cookie = '') {
+  const headers = {
+    Accept:
+      'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    Pragma: 'no-cache',
+    Referer: EGEN_REFERER,
+    'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Ch-Ua-Platform': '"Windows"',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-User': '?1',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': CHROME_USER_AGENT,
+  };
+
+  if (cookie) {
+    headers.Cookie = cookie;
+  }
+
+  return headers;
+}
+
+function extractSetCookieHeader(response) {
+  if (typeof response.headers.getSetCookie === 'function') {
+    return response.headers
+      .getSetCookie()
+      .map((entry) => entry.split(';')[0]?.trim())
+      .filter(Boolean)
+      .join('; ');
+  }
+
+  const raw = response.headers.get('set-cookie');
+  if (!raw) return '';
+  return raw
+    .split(/,(?=\s*[^;,]+=)/)
+    .map((entry) => entry.split(';')[0]?.trim())
+    .filter(Boolean)
+    .join('; ');
+}
+
+async function warmupEgenSession() {
+  logInfo(`E-Gen 세션 워밍업: ${EGEN_REFERER}`);
+
+  const response = await fetch(EGEN_REFERER, {
+    method: 'GET',
+    headers: buildBrowserDownloadHeaders(),
+    redirect: 'follow',
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+  });
+
+  const cookie = extractSetCookieHeader(response);
+  if (!response.ok) {
+    logInfo(`워밍업 HTTP ${response.status} — 쿠키 없이 CSV 다운로드 시도`);
+    return '';
+  }
+
+  if (cookie) {
+    logInfo('E-Gen 세션 쿠키 확보');
+  }
+
+  return cookie;
+}
+
+function formatFetchError(error) {
+  if (!(error instanceof Error)) return String(error);
+  const parts = [error.message];
+  if (error.cause instanceof Error) {
+    parts.push(`cause: ${error.cause.message}`);
+  }
+  return parts.join(' | ');
+}
 
 function logInfo(message) {
   console.log(`[sync-pharmacies] ${message}`);
@@ -144,6 +227,13 @@ function parseMidnightPharmacyCsv(csvText, sourceLabel) {
 
 async function downloadEgenMidnightCsv() {
   let lastError = null;
+  let sessionCookie = '';
+
+  try {
+    sessionCookie = await warmupEgenSession();
+  } catch (warmupError) {
+    logError('E-Gen 세션 워밍업 실패 — 쿠키 없이 CSV 다운로드 시도', warmupError);
+  }
 
   for (let attempt = 1; attempt <= DOWNLOAD_MAX_RETRIES; attempt += 1) {
     try {
@@ -151,11 +241,8 @@ async function downloadEgenMidnightCsv() {
 
       const response = await fetch(EGEN_CSV_URL, {
         method: 'GET',
-        headers: {
-          Accept: 'text/csv, application/vnd.ms-excel, application/octet-stream, */*',
-          'User-Agent': 'EMS-Connect-Pharmacy-Sync/1.0 (+https://github.com)',
-          Referer: EGEN_REFERER,
-        },
+        headers: buildBrowserDownloadHeaders(sessionCookie),
+        redirect: 'follow',
         signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
       });
 
@@ -180,17 +267,20 @@ async function downloadEgenMidnightCsv() {
       return rows;
     } catch (error) {
       lastError = error;
-      logError(`다운로드 실패 (시도 ${attempt})`, error);
+      logError(`다운로드 실패 (시도 ${attempt}): ${formatFetchError(error)}`, error);
       if (attempt < DOWNLOAD_MAX_RETRIES) {
         await sleep(1500 * attempt);
+        try {
+          sessionCookie = await warmupEgenSession();
+        } catch {
+          // 재시도 시 워밍업 실패해도 다음 fetch는 진행
+        }
       }
     }
   }
 
   throw new Error(
-    `E-Gen CSV 다운로드 최종 실패 (${DOWNLOAD_MAX_RETRIES}회): ${
-      lastError instanceof Error ? lastError.message : String(lastError)
-    }`,
+    `E-Gen CSV 다운로드 최종 실패 (${DOWNLOAD_MAX_RETRIES}회): ${formatFetchError(lastError)}`,
   );
 }
 
