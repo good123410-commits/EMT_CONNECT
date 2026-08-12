@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify E-Gen CSV download (dry-run)
+        run: node scripts/sync-midnight-pharmacies.mjs --dry-run
+
       - name: Sync midnight pharmacy CSV to Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
