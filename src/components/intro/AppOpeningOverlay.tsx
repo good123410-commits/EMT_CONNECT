@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandSplashView } from '@/components/intro/BrandSplashView';
-import { APP_COLORS, APP_FONT } from '@/constants/appTheme';
+import { APP_FONT } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 const AUTO_DISMISS_MS = 2800;
 const EXIT_MS = 450;
@@ -26,6 +27,7 @@ type AppOpeningOverlayProps = {
 /** 설정 > 오프닝 다시 보기 · 수동 재생용 브랜드 오프닝 */
 export function AppOpeningOverlay({ visible, onComplete }: AppOpeningOverlayProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useThemedColors();
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
@@ -122,7 +124,7 @@ export function AppOpeningOverlay({ visible, onComplete }: AppOpeningOverlayProp
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent>
-      <Animated.View style={[styles.root, { opacity: containerOpacity }]}>
+      <Animated.View style={[styles.root, { opacity: containerOpacity, backgroundColor: colors.background }]}>
         <Animated.View
           style={[
             styles.contentWrap,
@@ -144,10 +146,20 @@ export function AppOpeningOverlay({ visible, onComplete }: AppOpeningOverlayProp
             onPress={() => setHideForDay((prev) => !prev)}
             style={styles.hideForDayBtn}
           >
-            <View style={[styles.hideForDayCheck, hideForDay && styles.hideForDayCheckActive]}>
-              {hideForDay ? <Text style={styles.hideForDayMark}>✓</Text> : null}
+            <View
+              style={[
+                styles.hideForDayCheck,
+                { borderColor: colors.border },
+                hideForDay && { backgroundColor: colors.blue, borderColor: colors.blue },
+              ]}
+            >
+              {hideForDay ? (
+                <Text style={[styles.hideForDayMark, { color: colors.textPrimary }]}>✓</Text>
+              ) : null}
             </View>
-            <Text style={styles.hideForDayText}>오늘 하루 보지 않기</Text>
+            <Text style={[styles.hideForDayText, { color: colors.textSecondary }]}>
+              오늘 하루 보지 않기
+            </Text>
           </Pressable>
 
           <Pressable
@@ -155,9 +167,15 @@ export function AppOpeningOverlay({ visible, onComplete }: AppOpeningOverlayProp
             accessibilityLabel="건너뛰기"
             hitSlop={CONTROL_HIT_SLOP}
             onPress={dismiss}
-            style={styles.skipBtn}
+            style={[
+              styles.skipBtn,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.surfaceElevated,
+              },
+            ]}
           >
-            <Text style={styles.skipText}>건너뛰기</Text>
+            <Text style={[styles.skipText, { color: colors.textPrimary }]}>건너뛰기</Text>
           </Pressable>
         </View>
       </Animated.View>
@@ -168,7 +186,6 @@ export function AppOpeningOverlay({ visible, onComplete }: AppOpeningOverlayProp
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: APP_COLORS.background,
   },
   contentWrap: {
     flex: 1,
@@ -183,15 +200,12 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: APP_COLORS.border,
     paddingHorizontal: 28,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: APP_COLORS.surfaceElevated,
   },
   skipText: {
-    color: APP_COLORS.textPrimary,
     fontFamily: APP_FONT.semibold,
     fontSize: 15,
   },
@@ -208,22 +222,15 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: APP_COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hideForDayCheckActive: {
-    backgroundColor: APP_COLORS.blue,
-    borderColor: APP_COLORS.blue,
-  },
   hideForDayMark: {
-    color: APP_COLORS.textPrimary,
     fontSize: 11,
     fontWeight: '800',
     lineHeight: 12,
   },
   hideForDayText: {
-    color: APP_COLORS.textSecondary,
     fontFamily: APP_FONT.medium,
     fontSize: 13,
   },

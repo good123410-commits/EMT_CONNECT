@@ -2,26 +2,28 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 
 export type UtilitiesStackParamList = {
+  MedicalTerminology: undefined;
   PediatricAntipyreticCalc: undefined;
   MedicationLogTimer: undefined;
-  // DISABLED: 비상연락망 & 응급카드 (ICE)
-  // EmergencyContactCard: undefined;
+  EmergencyResponse: undefined;
   LocalCommunityTalk: undefined;
   SymptomOtcGuide: undefined;
 };
 
 const Stack = createNativeStackNavigator<UtilitiesStackParamList>();
 
+const MedicalTerminologyScreen = createDeferredScreen(
+  () => require('@/screens/utilities/MedicalTerminologyScreen').MedicalTerminologyScreen,
+);
 const PediatricAntipyreticCalculatorScreen = createDeferredScreen(
   () => require('@/screens/utilities/PediatricAntipyreticCalculatorScreen').PediatricAntipyreticCalculatorScreen,
 );
 const MedicationLogTimerScreen = createDeferredScreen(
   () => require('@/screens/utilities/MedicationLogTimerScreen').MedicationLogTimerScreen,
 );
-// DISABLED: 비상연락망 & 응급카드 (ICE)
-// const EmergencyContactCardScreen = createDeferredScreen(
-//   () => require('@/screens/utilities/EmergencyContactCardScreen').EmergencyContactCardScreen,
-// );
+const EmergencyResponseScreen = createDeferredScreen(
+  () => require('@/screens/utilities/EmergencyResponseScreen').EmergencyResponseScreen,
+);
 const LocalCommunityTalkScreen = createDeferredScreen(
   () => require('@/screens/utilities/LocalCommunityTalkScreen').LocalCommunityTalkScreen,
 );
@@ -37,10 +39,10 @@ export function UtilitiesStackNavigator() {
         animation: 'slide_from_right',
       }}
     >
+      <Stack.Screen name="MedicalTerminology" component={MedicalTerminologyScreen} />
       <Stack.Screen name="PediatricAntipyreticCalc" component={PediatricAntipyreticCalculatorScreen} />
       <Stack.Screen name="MedicationLogTimer" component={MedicationLogTimerScreen} />
-      {/* DISABLED: 비상연락망 & 응급카드 (ICE) */}
-      {/* <Stack.Screen name="EmergencyContactCard" component={EmergencyContactCardScreen} /> */}
+      <Stack.Screen name="EmergencyResponse" component={EmergencyResponseScreen} />
       <Stack.Screen name="LocalCommunityTalk" component={LocalCommunityTalkScreen} />
       <Stack.Screen name="SymptomOtcGuide" component={SymptomOtcGuideScreen} />
     </Stack.Navigator>

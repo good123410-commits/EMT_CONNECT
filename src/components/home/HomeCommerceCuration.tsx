@@ -1,7 +1,8 @@
 import * as Linking from 'expo-linking';
 import { Alert, Image, Pressable, Text, View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { APP_BORDER, APP_COLORS, APP_RADIUS, APP_SHADOW } from '@/constants/appTheme';
+import { APP_RADIUS, APP_SHADOW } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import type { HomeCommerceItem } from '@/types/homeDashboard';
 
 type HomeCommerceCurationProps = {
@@ -12,6 +13,8 @@ const CARD_GAP = 12;
 const THUMB_SIZE = 96;
 
 export function HomeCommerceCuration({ items }: HomeCommerceCurationProps) {
+  const { colors } = useThemedColors();
+
   const openPartnerLink = async (item: HomeCommerceItem) => {
     const url = item.partnerUrl.trim();
     if (!url) {
@@ -31,8 +34,8 @@ export function HomeCommerceCuration({ items }: HomeCommerceCurationProps) {
   return (
     <View>
       <Text
-        className="mb-4"
-        style={{ fontFamily: 'Pretendard-Bold', color: APP_COLORS.textPrimary, fontSize: 20, lineHeight: 28 }}
+        className="mb-4 text-kemix-text"
+        style={{ fontFamily: 'Pretendard-Bold', fontSize: 20, lineHeight: 28 }}
       >
         응급·건강 케어
       </Text>
@@ -45,7 +48,8 @@ export function HomeCommerceCuration({ items }: HomeCommerceCurationProps) {
             style={{
               borderRadius: APP_RADIUS.card,
               ...APP_SHADOW.cardSoft,
-              ...APP_BORDER.card,
+              borderWidth: 1,
+              borderColor: colors.border,
             }}
             onPress={() => void openPartnerLink(item)}
           >
@@ -55,7 +59,7 @@ export function HomeCommerceCuration({ items }: HomeCommerceCurationProps) {
                 style={{
                   width: THUMB_SIZE,
                   height: THUMB_SIZE,
-                  backgroundColor: APP_COLORS.blueMuted,
+                  backgroundColor: colors.blueMuted,
                   borderTopLeftRadius: APP_RADIUS.card,
                   borderBottomLeftRadius: APP_RADIUS.card,
                 }}
@@ -68,26 +72,25 @@ export function HomeCommerceCuration({ items }: HomeCommerceCurationProps) {
                   />
                 ) : (
                   <View
-                    className="h-14 w-14 items-center justify-center rounded-2xl"
-                    style={{ backgroundColor: APP_COLORS.surface }}
+                    className="h-14 w-14 items-center justify-center rounded-2xl bg-kemix-surface"
                   >
-                    <AppIcon name="shopping-outline" size={28} color={APP_COLORS.blue} />
+                    <AppIcon name="shopping-outline" size={28} color={colors.blue} />
                   </View>
                 )}
               </View>
 
               <View className="flex-1" style={{ padding: 20 }}>
                 <Text
-                  className="text-[14px] leading-5"
+                  className="text-[14px] leading-5 text-kemix-text"
                   numberOfLines={2}
-                  style={{ fontFamily: 'Pretendard-SemiBold', color: APP_COLORS.navy }}
+                  style={{ fontFamily: 'Pretendard-SemiBold' }}
                 >
                   {item.title}
                 </Text>
                 <Text
-                  className="mt-1.5 text-[12px] leading-5"
+                  className="mt-1.5 text-[12px] leading-5 text-kemix-text-secondary"
                   numberOfLines={3}
-                  style={{ fontFamily: 'Pretendard', color: APP_COLORS.textSecondary }}
+                  style={{ fontFamily: 'Pretendard' }}
                 >
                   {item.description}
                 </Text>
@@ -96,16 +99,16 @@ export function HomeCommerceCuration({ items }: HomeCommerceCurationProps) {
                   style={{
                     paddingTop: 8,
                     borderTopWidth: 1,
-                    borderTopColor: APP_COLORS.borderLight,
+                    borderTopColor: colors.borderLight,
                   }}
                 >
                   <Text
                     className="text-[11px] leading-4"
-                    style={{ fontFamily: 'Pretendard-Medium', color: APP_COLORS.blue }}
+                    style={{ fontFamily: 'Pretendard-Medium', color: colors.blue }}
                   >
                     {item.partnerLabel}
                   </Text>
-                  <AppIcon name="chevron-right" size={16} color={APP_COLORS.textMuted} />
+                  <AppIcon name="chevron-right" size={16} color={colors.textMuted} />
                 </View>
               </View>
             </View>
@@ -114,8 +117,8 @@ export function HomeCommerceCuration({ items }: HomeCommerceCurationProps) {
       </View>
 
       <Text
-        className="mt-4 text-[11px] leading-5"
-        style={{ fontFamily: 'Pretendard', color: APP_COLORS.textMuted }}
+        className="mt-4 text-[11px] leading-5 text-kemix-text-muted"
+        style={{ fontFamily: 'Pretendard' }}
       >
         쿠팡 파트너스 등 제휴 링크는 구매 추천이며 의료 행위·처방을 대체하지 않습니다.
       </Text>

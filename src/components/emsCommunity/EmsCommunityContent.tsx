@@ -5,6 +5,7 @@ import { ParamedicTabNavigator } from '@/navigation/ParamedicTabNavigator';
 import { EmsQaBoardScreen } from '@/screens/emsCommunity/EmsQaBoardScreen';
 import { PendingApprovalScreen } from '@/screens/PrivateEmsCallScreen';
 import { isExpertRole } from '@/utils/roleAccess';
+import { ParamedicCommunityProvider } from '@/contexts/ParamedicCommunityContext';
 
 /** EMS 커뮤니티 세그먼트 — 질문함·전문가 라운지 등 기존 흐름 */
 export function EmsCommunityContent() {
@@ -25,5 +26,9 @@ export function EmsCommunityContent() {
     return <PendingApprovalScreen />;
   }
 
-  return <EmsQaBoardScreen key="ems-qa-board" />;
+  return (
+    <ParamedicCommunityProvider>
+      <EmsQaBoardScreen key="ems-qa-board" />
+    </ParamedicCommunityProvider>
+  );
 }

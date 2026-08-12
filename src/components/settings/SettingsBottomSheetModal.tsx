@@ -6,15 +6,18 @@ import {
   SettingsScreenProvider,
   SettingsScrollBody,
 } from '@/components/settings/settingsScreenModel';
-import { APP_COLORS, APP_RADIUS } from '@/constants/appTheme';
+import { APP_RADIUS } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
+  initialAction?: string;
 };
 
-export function SettingsBottomSheetModal({ visible, onClose }: Props) {
+export function SettingsBottomSheetModal({ visible, onClose, initialAction }: Props) {
   const insets = useSafeAreaInsets();
+  const { colors } = useThemedColors();
   const { height: windowHeight } = useWindowDimensions();
   const sheetHeight = windowHeight * 0.88;
   const bottomInset = Math.max(insets.bottom, 12);
@@ -24,7 +27,7 @@ export function SettingsBottomSheetModal({ visible, onClose }: Props) {
   }
 
   return (
-    <SettingsScreenProvider>
+    <SettingsScreenProvider initialAction={initialAction}>
       <Modal visible animationType="slide" transparent onRequestClose={onClose}>
         <View style={styles.overlay}>
           <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="닫기" />
@@ -36,29 +39,30 @@ export function SettingsBottomSheetModal({ visible, onClose }: Props) {
                 height: sheetHeight,
                 maxHeight: sheetHeight,
                 paddingBottom: bottomInset,
+                backgroundColor: colors.surface,
               },
             ]}
           >
             <Pressable onPress={onClose} accessibilityLabel="설정 닫기">
               <View style={styles.handleWrap}>
-                <View style={styles.handle} />
+                <View style={[styles.handle, { backgroundColor: colors.border }]} />
               </View>
             </Pressable>
 
             <View
               className="flex-row items-center justify-between px-5 py-3"
-              style={{ borderBottomWidth: 1, borderBottomColor: APP_COLORS.borderLight }}
+              style={{ borderBottomWidth: 1, borderBottomColor: colors.borderLight }}
             >
-              <Text style={styles.sheetTitle}>설정</Text>
+              <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>설정</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="닫기"
                 className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
-                style={{ backgroundColor: APP_COLORS.blueLight }}
+                style={{ backgroundColor: colors.blueLight }}
                 onPress={onClose}
                 hitSlop={8}
               >
-                <AppIcon name="close" size={18} color={APP_COLORS.textSecondary} />
+                <AppIcon name="close" size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
 
@@ -95,12 +99,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 999,
-    backgroundColor: APP_COLORS.border,
   },
   sheetTitle: {
     fontFamily: 'Pretendard-Bold',
     fontSize: 17,
     lineHeight: 24,
-    color: APP_COLORS.navy,
   },
 });

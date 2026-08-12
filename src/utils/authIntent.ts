@@ -6,7 +6,8 @@ export type AuthIntent =
   | { type: 'community-write' }
   | { type: 'guide-unlock'; slug: string }
   | { type: 'guide-comment' }
-  | { type: 'question-write' };
+  | { type: 'question-write' }
+  | { type: 'medicine-favorite' };
 
 export async function storeAuthIntent(intent: AuthIntent): Promise<void> {
   await AsyncStorage.setItem(AUTH_INTENT_KEY, JSON.stringify(intent));
@@ -23,7 +24,8 @@ export async function consumeAuthIntent(): Promise<AuthIntent | null> {
       parsed?.type === 'community-write' ||
       parsed?.type === 'guide-unlock' ||
       parsed?.type === 'guide-comment' ||
-      parsed?.type === 'question-write'
+      parsed?.type === 'question-write' ||
+      parsed?.type === 'medicine-favorite'
     ) {
       return parsed;
     }

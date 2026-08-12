@@ -13,8 +13,24 @@ export type UtilityToolItem = {
   accentBg: string;
 };
 
-/** 더보기 응급 유틸 — 해열제 계산 · 복용 타이머 (비상 카드·우리동네토크는 EMS 커뮤니티 탭으로 이동) */
+/** 더보기 응급 유틸 — 해열제 계산 · 복용 타이머 · 의학용어 사전 */
 export const UTILITY_TOOL_ITEMS: UtilityToolItem[] = [
+  {
+    id: 'emergency-response',
+    route: 'EmergencyResponse',
+    title: '응급 정보 및 위치 문자',
+    icon: 'message-alert-outline',
+    accent: '#F87171',
+    accentBg: '#3A1F1F',
+  },
+  {
+    id: 'medical-terminology',
+    route: 'MedicalTerminology',
+    title: '의학용어 사전',
+    icon: 'book-open-variant',
+    accent: '#34D399',
+    accentBg: '#1A2E28',
+  },
   {
     id: 'pediatric-antipyretic',
     route: 'PediatricAntipyreticCalc',

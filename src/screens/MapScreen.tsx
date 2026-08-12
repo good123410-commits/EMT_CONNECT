@@ -1,19 +1,22 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import { FlashList } from '@shopify/flash-list';
+﻿import { FlashList } from '@shopify/flash-list';
 import { useIsFocused, useRoute } from '@react-navigation/native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
+  FlatList,
   Text,
   View,
 } from 'react-native';
 import { BedAvailabilityBar } from '@/components/ErDashboard';
 import { EmptyState } from '@/components/EmptyState';
+import { SearchBar } from '@/components/SearchBar';
 import { ErDutyContactButtons, ErHospitalSpecsPanel } from '@/components/facility/ErHospitalSpecsPanel';
 import { FacilitySearchBarComponent } from '@/components/facility/FacilitySearchBarComponent';
 import { PediatricHospitalCard } from '@/components/facility/PediatricHospitalCard';
+import { PediatricLocalDetailContent } from '@/components/facility/PediatricLocalDetailContent';
+import { PharmacyLocalDetailContent } from '@/components/facility/PharmacyLocalDetailContent';
+import { PharmacyNightPharmacyBadge } from '@/components/facility/PharmacyNightPharmacyBadge';
 import {
   MedicalFacilityListCard,
   MedicalFacilityListDistanceRow,
@@ -29,6 +32,7 @@ import {
   MedicalDetailBody,
   MedicalDetailCard,
   MedicalDetailInfoTile,
+  MedicalDetailLocationHeader,
   MedicalDetailSectionTitle,
   MedicalDetailText,
 } from '@/components/map/MedicalDetailPrimitives';
@@ -36,6 +40,8 @@ import { EmergencyMapView } from '@/components/map/EmergencyMapView';
 import { PharmacyOpenBadge } from '@/components/map/PharmacyOpenBadge';
 import { MedicalMapCategoryBar } from '@/components/map/MedicalMapCategoryBar';
 import { useFacilitySearchMode } from '@/hooks/useFacilitySearchMode';
+import { usePediatricHospitalsQuery } from '@/hooks/usePediatricHospitalsQuery';
+import { usePharmacyMarkersQuery } from '@/hooks/usePharmacyMarkersQuery';
 import {
   useFacilityMarkersQuery,
   usePrefetchFacilityMarkers,
@@ -52,17 +58,11 @@ import {
 } from '@/services/emergencyApi';
 
 import {
-  evaluatePediatricTreatmentsEnded,
-  fetchPediatricHospitals,
   fetchRegionalHospitalMetadataIndex,
-  sortPediatricHospitals,
-  type HospitalFinderItem,
   type HospitalMetadataEntry,
 } from '@/services/hospitalFinderService';
-import {
-  ensureCustomHospitalDbHydrated,
-  mergeCustomHospitalsIntoPediatricList,
-} from '@/services/customHospitalService';
+import { ensureCustomHospitalDbHydrated } from '@/services/customHospitalService';
+import type { HospitalFinderItem } from '@/services/hospitalFinderService';
 import {
   applyErLiveOverlayToLocal,
   enrichErMarkersWithMetadata,
@@ -89,7 +89,6 @@ import {
 import {
   MapMarkerDetailSheet,
 } from '@/components/map/MapMarkerDetailSheet';
-import { confirmPhoneCall } from '@/utils/confirmPhoneCall';
 import { buildEmergencyHospitalSpecs } from '@/utils/emergencyHospitalSpecs';
 import { getHospitalErOverride } from '@/services/customHospitalService';
 import { mergeEmergencyBedWithOverride, mergeSpecsWithErOverride } from '@/utils/hospitalEquipmentOverride';
@@ -98,7 +97,7 @@ import {
   formatDistanceMeters,
   type DistanceUnitMode,
 } from '@/utils/formatDistance';
-import { getPharmacyOpenStatus } from '@/utils/pharmacyHours';
+import { getPharmacyOpenStatus, isTodayNightPharmacy } from '@/utils/pharmacyHours';
 import { getTreatmentDayCode } from '@/utils/hospitalHours';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 import type { LocalAedMarker } from '@/types/localAed';
@@ -353,58 +352,50 @@ function AedDetailContent({
   distanceUnitMode: DistanceUnitMode;
   onDistanceUnitToggle: () => void;
 }) {
-  const hasCoords =
-    Number.isFinite(aed.latitude) &&
-    Number.isFinite(aed.longitude) &&
-    !(aed.latitude === 0 && aed.longitude === 0);
   const phone = aed.phone?.trim();
+
+  const titleExtras = aed.location?.trim() ? (
+    <MedicalDetailText variant="secondary">설치 위치: {aed.location}</MedicalDetailText>
+  ) : null;
+
+  const distanceBlock = (
+    <View className="flex-row gap-3">
+      <MedicalDetailInfoTile
+        icon="navigate"
+        label="거리"
+        value={formatDistanceMeters(aed.distanceM ?? 0, distanceUnitMode)}
+        onPress={onDistanceUnitToggle}
+      />
+      <MedicalDetailInfoTile icon="walk" label="도보" value={`${aed.walkMin ?? 0}분`} />
+      <MedicalDetailInfoTile icon="hardware-chip" label="모델" value={aed.model?.trim() || '-'} />
+    </View>
+  );
 
   return (
     <MedicalDetailBody>
-      <MedicalDetailCard>
-        <View className="h-28 items-center justify-center">
-          <Ionicons name="map" size={40} color={MEDICAL_DETAIL.textMuted} />
-          <MedicalDetailText variant="secondary">AED 설치 위치</MedicalDetailText>
-          <MedicalDetailText variant="muted">
-            {hasCoords
-              ? `${aed.latitude.toFixed(4)}, ${aed.longitude.toFixed(4)}`
-              : '좌표 정보 없음'}
-          </MedicalDetailText>
-        </View>
-      </MedicalDetailCard>
-
-      <MedicalDetailText variant="title">{aed.name || 'AED'}</MedicalDetailText>
-      <MedicalDetailText variant="secondary">{aed.address?.trim() || '주소 정보 없음'}</MedicalDetailText>
-      {aed.location?.trim() ? (
-        <MedicalDetailText variant="secondary">설치 위치: {aed.location}</MedicalDetailText>
-      ) : null}
-
-      <View className="mt-4 flex-row gap-3">
-        <MedicalDetailInfoTile
-          icon="navigate"
-          label="거리"
-          value={formatDistanceMeters(aed.distanceM ?? 0, distanceUnitMode)}
-          onPress={onDistanceUnitToggle}
-        />
-        <MedicalDetailInfoTile icon="walk" label="도보" value={`${aed.walkMin ?? 0}분`} />
-        <MedicalDetailInfoTile icon="hardware-chip" label="모델" value={aed.model?.trim() || '-'} />
-      </View>
-
-      {phone ? (
-        <Pressable
-          className="mt-4 rounded-xl border px-3 py-2"
-          style={{ borderColor: MEDICAL_DETAIL.border, backgroundColor: MEDICAL_DETAIL.card }}
-          onPress={() => confirmPhoneCall(aed.name || 'AED', phone)}
-        >
-          <MedicalDetailText variant="secondary">관리자 연락처</MedicalDetailText>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: MEDICAL_DETAIL.accent }}>{phone}</Text>
-        </Pressable>
-      ) : (
-        <MedicalDetailText variant="secondary">관리자 연락처: -</MedicalDetailText>
-      )}
+      <MedicalDetailLocationHeader
+        name={aed.name || 'AED'}
+        address={aed.address}
+        latitude={aed.latitude}
+        longitude={aed.longitude}
+        phone={phone}
+        mapKind="aed"
+        titleExtras={titleExtras}
+        distanceBlock={distanceBlock}
+      />
       <MedicalDetailText variant="muted">로컬 내장 데이터 · 즉시 표시</MedicalDetailText>
     </MedicalDetailBody>
   );
+}
+
+function filterPediatricHospitals(items: HospitalFinderItem[], query: string): HospitalFinderItem[] {
+  const normalized = query.trim().replace(/\s+/g, '').toLowerCase();
+  if (!normalized) return items;
+  return items.filter((item) => {
+    const name = item.name.replace(/\s+/g, '').toLowerCase();
+    const address = item.address.replace(/\s+/g, '').toLowerCase();
+    return name.includes(normalized) || address.includes(normalized);
+  });
 }
 
 function PediatricModule({
@@ -418,17 +409,9 @@ function PediatricModule({
   locationSnapshot: LocationSnapshot;
   facilitySearch: FacilitySearchState;
 } & MapModuleSharedProps) {
-  const [hospitals, setHospitals] = useState<HospitalFinderItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
-  const [allTreatmentsEnded, setAllTreatmentsEnded] = useState(false);
-  const [selectedPlace, setSelectedPlace] = useState<HospitalFinderItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedHospital, setSelectedHospital] = useState<HospitalFinderItem | null>(null);
   const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
-  const fetchRef = useRef(0);
-  const lastAlertKeyRef = useRef('');
-  const lastTimeoutAlertKeyRef = useRef('');
-  const autoFetchBlockedRef = useRef(false);
 
   const {
     mode,
@@ -442,168 +425,41 @@ function PediatricModule({
     handleSigunguChange,
   } = facilitySearch;
 
-  const apiRegion = useMemo(
-    () => resolveErLiveApiRegion(searchParams, locationSnapshot),
-    [searchParams, locationSnapshot],
-  );
+  const { data, isFetching } = usePediatricHospitalsQuery(searchParams, active);
 
-  const regionKey = `${apiRegion.stage1}|${apiRegion.stage2 ?? ''}`;
+  const hospitals = useMemo(() => {
+    const base = data?.items ?? [];
+    return filterPediatricHospitals(base, searchQuery);
+  }, [data?.items, searchQuery]);
 
   const mapPoints = useMemo(() => toPediatricHospitalMapPoints(hospitals), [hospitals]);
-  const moonlightCount = useMemo(
-    () => hospitals.filter((item) => item.isMoonlightHospital).length,
-    [hospitals],
-  );
-
-  const applyPediatricSearchResult = (
-    result: Awaited<ReturnType<typeof fetchPediatricHospitals>>,
-  ) => {
-    if (result.timedOut) {
-      autoFetchBlockedRef.current = true;
-      setHospitals([]);
-      setAllTreatmentsEnded(false);
-      setFallbackNotice(null);
-      setErrorMessage(
-        result.errorMessage ??
-          '달빛어린이병원 API 응답 시간이 초과되어 조회를 중단했습니다.',
-      );
-
-      const timeoutAlertKey = `${regionKey}|timeout`;
-      if (lastTimeoutAlertKeyRef.current !== timeoutAlertKey) {
-        lastTimeoutAlertKeyRef.current = timeoutAlertKey;
-        Alert.alert(
-          '병원 정보 조회 지연',
-          '달빛어린이병원 API 응답이 2회 이상 지연되어 조회를 중단했습니다.\n지역을 변경하거나 잠시 후 「다시 시도」를 눌러 주세요.',
-          [{ text: '확인' }],
-        );
-      }
-      return;
-    }
-
-    const mergeRegion = result.fallbackUsed
-      ? { stage1: result.requestedRegion.stage1 }
-      : {
-          stage1: result.requestedRegion.stage1,
-          stage2: result.requestedRegion.stage2,
-        };
-    const merged = sortPediatricHospitals(
-      mergeCustomHospitalsIntoPediatricList(
-        result.items,
-        locationSnapshot.coordinate,
-        mergeRegion,
-      ),
-    );
-    const treatmentsEnded = evaluatePediatricTreatmentsEnded(merged);
-
-    setHospitals(merged);
-    setAllTreatmentsEnded(treatmentsEnded);
-    setErrorMessage(
-      result.success || merged.length > 0
-        ? null
-        : result.errorMessage ?? '소아 의료기관 정보를 불러오지 못했습니다.',
-    );
-
-    if (result.fallbackUsed && result.requestedRegion.stage2?.trim()) {
-      setFallbackNotice(
-        `선택하신 ${result.requestedRegion.stage2}에 진료 중인 달빛·소아 병원이 없어 ${result.requestedRegion.stage1} 내 가까운 병원을 표시합니다.`,
-      );
-    } else {
-      setFallbackNotice(null);
-    }
-  };
-
-  const loadPediatricHospitals = async (seq: number) => {
-    setLoading(true);
-    try {
-      const result = await fetchPediatricHospitals({
-        coordinate: locationSnapshot.coordinate,
-        region: apiRegion,
-      });
-      if (seq !== fetchRef.current) return;
-      applyPediatricSearchResult(result);
-    } catch (error) {
-      if (seq !== fetchRef.current) return;
-      setHospitals([]);
-      setAllTreatmentsEnded(false);
-      setFallbackNotice(null);
-      setErrorMessage(
-        error instanceof EmergencyApiError
-          ? error.message
-          : '소아 의료기관 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
-      );
-    } finally {
-      if (seq === fetchRef.current) setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    autoFetchBlockedRef.current = false;
-    lastTimeoutAlertKeyRef.current = '';
-    lastAlertKeyRef.current = '';
-  }, [regionKey]);
-
-  useEffect(() => {
-    if (!active) return undefined;
-    if (autoFetchBlockedRef.current) return undefined;
-
-    const seq = ++fetchRef.current;
-    const timer = setTimeout(() => {
-      void loadPediatricHospitals(seq);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [active, apiRegion.stage1, apiRegion.stage2, apiRegion.label]);
-
-  useEffect(() => {
-    if (!active || loading || !allTreatmentsEnded) return;
-
-    const alertKey = `${apiRegion.stage1}|${apiRegion.stage2}|ended`;
-    if (lastAlertKeyRef.current === alertKey) return;
-    lastAlertKeyRef.current = alertKey;
-
-    Alert.alert(
-      '진료 종료 안내',
-      '모든 병원의 진료가 종료되었습니다. 타 시도를 검색하세요.',
-      [
-        {
-          text: '확인',
-          onPress: () => {
-            if (sigungu) {
-              handleSigunguChange('');
-            }
-          },
-        },
-      ],
-    );
-  }, [
-    active,
-    allTreatmentsEnded,
-    apiRegion.stage1,
-    apiRegion.stage2,
-    handleSigunguChange,
-    loading,
-    sigungu,
-  ]);
-
-  useEffect(() => {
-    if (selectedPlace) return;
+    if (selectedHospital) return;
     const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
     if (nextCenter) setMapCenter(nextCenter);
-  }, [locationSnapshot, selectedPlace]);
+  }, [locationSnapshot, selectedHospital]);
 
-  const handleMarkerPress = (place: HospitalFinderItem) => {
-    setSelectedPlace(place);
-    if (place.latitude && place.longitude) {
-      setMapCenter({ latitude: place.latitude, longitude: place.longitude });
+  const handleMarkerPress = (hospital: HospitalFinderItem) => {
+    setSelectedHospital(hospital);
+    if (hospital.latitude && hospital.longitude) {
+      setMapCenter({ latitude: hospital.latitude, longitude: hospital.longitude });
     }
   };
 
-  const resync = () => {
-    autoFetchBlockedRef.current = false;
-    lastTimeoutAlertKeyRef.current = '';
-    const seq = ++fetchRef.current;
-    void loadPediatricHospitals(seq);
+  const handleCloseSheet = () => {
+    setSelectedHospital(null);
   };
+
+  const emptyMessage = useMemo(() => {
+    if (searchQuery.trim()) {
+      return `'${searchQuery.trim()}' 검색 결과가 없습니다`;
+    }
+    if (searchParams.regionFilter) {
+      return `${statusLabel} 소아 의료기관을 찾을 수 없습니다`;
+    }
+    return '주변 소아 의료기관을 찾을 수 없습니다';
+  }, [searchParams.regionFilter, searchQuery, statusLabel]);
 
   return (
     <View className="flex-1">
@@ -612,8 +468,8 @@ function PediatricModule({
           <EmergencyMapView
             points={mapPoints}
             kind="pediatric"
-            selectedId={selectedPlace?.hpid}
-            loading={loading}
+            selectedId={selectedHospital?.hpid}
+            loading={isFetching}
             center={mapCenter}
             onMarkerPress={(point: { payload: HospitalFinderItem }) => handleMarkerPress(point.payload)}
           />
@@ -623,13 +479,14 @@ function PediatricModule({
       <FlashList
         style={{ flex: 1 }}
         data={hospitals}
-        estimatedItemSize={LIST_ESTIMATED_ITEM_SIZE + 56}
-        keyExtractor={(item) => item.hpid}
+        estimatedItemSize={LIST_ESTIMATED_ITEM_SIZE + 48}
+        keyExtractor={(item) => item.hpid || `${item.name}-${item.address}`}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View className="mb-2 gap-3">
             <FacilitySearchBarComponent
-              facilityLabel="소아 의료기관"
+              facilityLabel="소아"
               mode={mode}
               sido={sido}
               sigungu={sigungu}
@@ -640,66 +497,40 @@ function PediatricModule({
               onSidoChange={handleSidoChange}
               onSigunguChange={handleSigunguChange}
             />
-            <View className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
-              <Text className="text-xs font-semibold text-indigo-900">
-                {apiRegion.label} · 🌙 달빛어린이병원 {moonlightCount}곳 우선 표시
+            <SearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="병원 이름·주소 검색"
+            />
+            {data?.fallbackUsed ? (
+              <Text className="text-xs text-amber-700">
+                선택 지역 결과가 없어 {data.region.label} 전체를 조회했습니다.
               </Text>
-              <Text className="mt-0.5 text-[11px] text-indigo-700">
-                국립중앙의료원 병·의원 찾기 API · 진료시간은 방문 전 전화 확인 권장
+            ) : null}
+            {data?.localSource ? (
+              <Text className="text-xs text-kemix-text-secondary">
+                로컬 내장 데이터를 우선 표시합니다
+                {isFetching ? ' · API 보강 중…' : data.apiEnriched ? ' · API 보강 완료' : ''}
               </Text>
-            </View>
-            {fallbackNotice ? (
-              <View className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2">
-                <Text className="text-xs font-semibold text-sky-900">{fallbackNotice}</Text>
-                <Text className="mt-0.5 text-[11px] text-sky-800">
-                  GPS 기준 가까운 순으로 정렬되었습니다.
-                </Text>
-              </View>
             ) : null}
-            {allTreatmentsEnded && !loading ? (
-              <View className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-                <Text className="text-xs font-semibold text-amber-900">
-                  현재 시·도 내 진료 중인 달빛·소아 병원이 없습니다.
-                </Text>
-                <Text className="mt-0.5 text-[11px] text-amber-800">
-                  상단에서 다른 시·도 또는 시·군·구를 선택해 주세요.
-                </Text>
-              </View>
-            ) : null}
-            {loading ? <ActivityIndicator size="small" color="#7c3aed" /> : null}
-            {errorMessage ? (
-              <View className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <Text className="text-sm text-amber-800">{errorMessage}</Text>
-                <Pressable className="mt-2 self-start rounded-lg bg-amber-600 px-3 py-1.5" onPress={resync}>
-                  <Text className="text-xs font-semibold text-white">다시 시도</Text>
-                </Pressable>
-              </View>
-            ) : null}
+            {isFetching ? <ActivityIndicator size="small" color="#64748b" /> : null}
           </View>
         }
         ListEmptyComponent={
-          !loading ? (
-            <EmptyState
-              message={
-                allTreatmentsEnded
-                  ? '현재 시·도 내 진료 중인 병원이 없습니다'
-                  : searchParams.regionFilter
-                    ? `${statusLabel} 소아 의료기관을 찾을 수 없습니다`
-                    : '소아 의료기관 정보가 없습니다'
-              }
-              hint={
-                allTreatmentsEnded
-                  ? '다른 시·도를 선택하거나 시·군·구를 변경해 보세요'
-                  : '시·도 또는 시·군·구를 선택해 보세요'
-              }
-            />
-          ) : null
+          <EmptyState
+            message={emptyMessage}
+            hint={
+              mode === 'gps'
+                ? '지역을 선택하거나 검색어를 변경해 보세요'
+                : '「현재 위치 기준으로 보기」를 켜거나 시·도를 선택해 보세요'
+            }
+          />
         }
         renderItem={({ item }) => (
           <PediatricHospitalCard
             hospital={item}
-            selected={selectedPlace?.hpid === item.hpid}
-            expanded={selectedPlace?.hpid === item.hpid}
+            selected={selectedHospital?.hpid === item.hpid}
+            expanded={selectedHospital?.hpid === item.hpid}
             distanceUnitMode={distanceUnitMode}
             onDistanceUnitModeChange={onDistanceUnitModeChange}
             onPress={() => handleMarkerPress(item)}
@@ -708,14 +539,14 @@ function PediatricModule({
       />
 
       <MapMarkerDetailSheet
-        visible={selectedPlace !== null}
-        title={selectedPlace?.name || '소아 의료기관'}
+        visible={selectedHospital !== null}
+        title={selectedHospital?.name || '소아 의료기관'}
         loading={false}
-        onClose={() => setSelectedPlace(null)}
+        onClose={handleCloseSheet}
       >
-        {selectedPlace ? (
-          <PediatricHospitalDetailContent
-            hospital={selectedPlace}
+        {selectedHospital ? (
+          <PediatricLocalDetailContent
+            hospital={selectedHospital}
             distanceUnitMode={distanceUnitMode}
             onDistanceUnitToggle={() =>
               onDistanceUnitModeChange(cycleDistanceUnitMode(distanceUnitMode))
@@ -724,87 +555,6 @@ function PediatricModule({
         ) : null}
       </MapMarkerDetailSheet>
     </View>
-  );
-}
-
-function PediatricHospitalDetailContent({
-  hospital,
-  distanceUnitMode,
-  onDistanceUnitToggle,
-}: {
-  hospital: HospitalFinderItem;
-  distanceUnitMode: DistanceUnitMode;
-  onDistanceUnitToggle: () => void;
-}) {
-  const phone = hospital.phone?.trim();
-
-  return (
-    <MedicalDetailBody>
-      {hospital.isMoonlightHospital ? (
-        <View className="mb-2">
-          <MoonlightHospitalBadge appearance="detail" />
-        </View>
-      ) : hospital.isPartner ? (
-        <View className="mb-2">
-          <PartnerHospitalBadge appearance="detail" />
-        </View>
-      ) : null}
-
-      <View className="mb-2 flex-row items-center justify-between">
-        <MedicalDetailText variant="title">{hospital.name}</MedicalDetailText>
-        <View
-          className="rounded-full px-2.5 py-1"
-          style={{ backgroundColor: hospital.isOpenNow ? '#dcfce7' : MEDICAL_DETAIL.cardMuted }}
-        >
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: '700',
-              color: hospital.isOpenNow ? '#15803d' : MEDICAL_DETAIL.textSecondary,
-            }}
-          >
-            {hospital.openStatusLabel}
-          </Text>
-        </View>
-      </View>
-
-      <MedicalDetailText variant="secondary">{hospital.address}</MedicalDetailText>
-      {hospital.customMemo ? (
-        <Text className="mt-2 text-xs leading-5 text-amber-800">{hospital.customMemo}</Text>
-      ) : null}
-      <MedicalDetailText variant="secondary">{hospital.facilityType}</MedicalDetailText>
-
-      <View className="mt-3">
-        <MedicalDetailSectionTitle>진료 과목</MedicalDetailSectionTitle>
-        <HospitalSpecialtyTags specialties={hospital.specialties} maxTags={12} appearance="light" />
-      </View>
-
-      <View className="mt-4">
-        <MedicalDetailSectionTitle>요일별 진료시간</MedicalDetailSectionTitle>
-        <HospitalWeeklyHours schedule={hospital.weeklySchedule} appearance="light" />
-      </View>
-
-      <View className="mt-4 flex-row gap-3">
-        <MedicalDetailInfoTile
-          icon="navigate"
-          label="거리"
-          value={formatDistanceMeters(hospital.distanceM ?? 0, distanceUnitMode)}
-          onPress={onDistanceUnitToggle}
-        />
-        <MedicalDetailInfoTile icon="walk" label="도보" value={`${hospital.walkMin ?? 0}분`} />
-        <MedicalDetailInfoTile
-          icon="call"
-          label="전화"
-          value={phone && phone !== '-' ? phone : '-'}
-          onPress={phone && phone !== '-' ? () => confirmPhoneCall(hospital.name, phone) : undefined}
-          valueColor={phone && phone !== '-' ? MEDICAL_DETAIL.accent : MEDICAL_DETAIL.text}
-        />
-      </View>
-
-      {hospital.description ? (
-        <MedicalDetailText variant="secondary">{hospital.description}</MedicalDetailText>
-      ) : null}
-    </MedicalDetailBody>
   );
 }
 
@@ -832,7 +582,10 @@ function PharmacyModule({
     handleSigunguChange,
   } = facilitySearch;
 
-  const { data: markers = [], isFetching } = useFacilityMarkersQuery('pharmacy', searchParams);
+  const { data: markers = [], isFetching, isNightHoursLoading } = usePharmacyMarkersQuery(
+    searchParams,
+    true,
+  );
 
   const mapPoints = useMemo(() => toLocalPharmacyMapPoints(markers), [markers]);
 
@@ -879,7 +632,7 @@ function PharmacyModule({
           onSidoChange={handleSidoChange}
           onSigunguChange={handleSigunguChange}
         />
-        {isFetching ? (
+        {isFetching || isNightHoursLoading ? (
           <ActivityIndicator size="small" color="#64748b" className="mt-1" />
         ) : null}
       </View>
@@ -902,11 +655,17 @@ function PharmacyModule({
         }
         renderItem={({ item }) => {
           const openStatus = getPharmacyOpenStatus(item);
+          const isNightPharmacyToday = isTodayNightPharmacy(item);
           return (
             <MedicalFacilityListCard
               selected={selectedPlace?.i === item.i}
               onPress={() => handleMarkerPress(item)}
             >
+              {isNightPharmacyToday ? (
+                <View className="mb-2">
+                  <PharmacyNightPharmacyBadge appearance="list" compact />
+                </View>
+              ) : null}
               <MedicalFacilityListTitleRow
                 title={item.n || '약국'}
                 trailing={
@@ -956,65 +715,6 @@ function PharmacyModule({
         ) : null}
       </MapMarkerDetailSheet>
     </View>
-  );
-}
-
-function PharmacyLocalDetailContent({
-  place,
-  distanceUnitMode,
-  onDistanceUnitToggle,
-}: {
-  place: LocalPharmacyMarker;
-  distanceUnitMode: DistanceUnitMode;
-  onDistanceUnitToggle: () => void;
-}) {
-  const hasCoords =
-    Number.isFinite(place.lat) &&
-    Number.isFinite(place.lng) &&
-    !(place.lat === 0 && place.lng === 0);
-  const openStatus = getPharmacyOpenStatus(place);
-  const phone = place.p?.trim();
-
-  return (
-    <MedicalDetailBody>
-      <MedicalDetailText variant="title">{place.n || '약국'}</MedicalDetailText>
-      <MedicalDetailText variant="secondary">{place.a?.trim() || '주소 정보 없음'}</MedicalDetailText>
-
-      {openStatus.hasHours ? (
-        <View className="mt-3">
-          <PharmacyOpenBadge status={openStatus} appearance="detail" />
-          <MedicalDetailText variant="secondary">
-            {openStatus.dayLabel} 영업시간: {openStatus.hoursLabel}
-          </MedicalDetailText>
-        </View>
-      ) : (
-        <MedicalDetailText variant="muted">심야약국 운영시간 데이터 없음</MedicalDetailText>
-      )}
-
-      <View className="mt-4 flex-row gap-3">
-        <MedicalDetailInfoTile
-          icon="navigate"
-          label="거리"
-          value={formatDistanceMeters(place.distanceM ?? 0, distanceUnitMode)}
-          onPress={onDistanceUnitToggle}
-        />
-        <MedicalDetailInfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
-        <MedicalDetailInfoTile
-          icon="call"
-          label="전화"
-          value={phone || '-'}
-          onPress={phone ? () => confirmPhoneCall(place.n || '약국', phone) : undefined}
-          valueColor={phone ? MEDICAL_DETAIL.accent : MEDICAL_DETAIL.text}
-        />
-      </View>
-
-      {hasCoords ? (
-        <MedicalDetailText variant="muted">
-          좌표: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
-        </MedicalDetailText>
-      ) : null}
-      <MedicalDetailText variant="muted">로컬 내장 데이터 · 즉시 표시</MedicalDetailText>
-    </MedicalDetailBody>
   );
 }
 
@@ -1385,10 +1085,6 @@ function ErLocalDetailContent({
   )
     ? (detail?.availablePediatricErBeds ?? place.availablePediatricErBeds)
     : 0;
-  const hasCoords =
-    Number.isFinite(place.lat) &&
-    Number.isFinite(place.lng) &&
-    !(place.lat === 0 && place.lng === 0);
   const phone = (detail?.phone || place.p)?.trim();
   const erPhone = (detail?.erPhone || detail?.erDoctorPhone || place.p)?.trim();
   const callPhone =
@@ -1420,6 +1116,77 @@ function ErLocalDetailContent({
       ].filter((row) => row.value > 0 || row.label === '응급실' || row.label === '소아응급')
     : [];
 
+  const hospitalName = detail?.hospitalName || place.n || '병원';
+  const hospitalAddress = detail?.address?.trim() || place.a?.trim() || '주소 정보 없음';
+  const phoneSublabel = erPhone && erPhone === callPhone ? '응급실' : undefined;
+
+  const leadingContent = (
+    <>
+      {place.isPartner ? (
+        <View className="mb-2">
+          <PartnerHospitalBadge compact appearance="detail" />
+        </View>
+      ) : null}
+      {place.isErPriority ? (
+        <View className="mb-2 self-start">
+          <MedicalFacilityStatusPill label="🚨 응급실 운영" tone="er" />
+        </View>
+      ) : isMoonlight ? (
+        <View className="mb-2">
+          <MoonlightHospitalBadge compact appearance="detail" />
+        </View>
+      ) : place.isPediatricPriority ? (
+        <View className="mb-2 self-start">
+          <MedicalFacilityStatusPill label="👶 소아 특화" tone="pediatric" />
+        </View>
+      ) : null}
+      <ErDutyContactButtons
+        specs={hospitalSpecs}
+        hospitalName={hospitalName}
+        appearance="light"
+      />
+    </>
+  );
+
+  const titleExtras = (
+    <>
+      {(detail?.emergencyClassName || place.td)?.trim() ? (
+        <MedicalDetailText variant="secondary">
+          {detail?.emergencyClassName || place.td}
+        </MedicalDetailText>
+      ) : null}
+      {place.sg?.trim() ? <MedicalDetailText variant="muted">{place.sg}</MedicalDetailText> : null}
+      {openStatusLabel !== '확인 필요' ? (
+        <View
+          className="mt-2 self-start rounded-full px-2.5 py-1"
+          style={{ backgroundColor: isOpenNow ? '#dcfce7' : MEDICAL_DETAIL.cardMuted }}
+        >
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: '700',
+              color: isOpenNow ? '#15803d' : MEDICAL_DETAIL.textSecondary,
+            }}
+          >
+            {openStatusLabel}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+
+  const distanceBlock = (
+    <View className="flex-row gap-3">
+      <MedicalDetailInfoTile
+        icon="navigate"
+        label="거리"
+        value={formatDistanceMeters(place.distanceM ?? 0, distanceUnitMode)}
+        onPress={onDistanceUnitToggle}
+      />
+      <MedicalDetailInfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
+    </View>
+  );
+
   return (
     <MedicalDetailBody>
       {detailLoading ? (
@@ -1435,79 +1202,18 @@ function ErLocalDetailContent({
         </View>
       ) : null}
 
-      {place.isPartner ? (
-        <View className="mb-2">
-          <PartnerHospitalBadge compact appearance="detail" />
-        </View>
-      ) : null}
-
-      {place.isErPriority ? (
-        <View className="mb-2 self-start">
-          <MedicalFacilityStatusPill label="🚨 응급실 운영" tone="er" />
-        </View>
-      ) : isMoonlight ? (
-        <View className="mb-2">
-          <MoonlightHospitalBadge compact appearance="detail" />
-        </View>
-      ) : place.isPediatricPriority ? (
-        <View className="mb-2 self-start">
-          <MedicalFacilityStatusPill label="👶 소아 특화" tone="pediatric" />
-        </View>
-      ) : null}
-
-      <ErDutyContactButtons
-        specs={hospitalSpecs}
-        hospitalName={detail?.hospitalName || place.n || '병원'}
-        appearance="light"
+      <MedicalDetailLocationHeader
+        name={hospitalName}
+        address={hospitalAddress}
+        latitude={place.lat}
+        longitude={place.lng}
+        phone={callPhone}
+        phoneSublabel={phoneSublabel}
+        mapKind="er"
+        leadingContent={leadingContent}
+        titleExtras={titleExtras}
+        distanceBlock={distanceBlock}
       />
-
-      <View className="flex-row items-start gap-3">
-        <View className="flex-1">
-          <MedicalDetailText variant="title">
-            {detail?.hospitalName || place.n || '병원'}
-          </MedicalDetailText>
-          <MedicalDetailText variant="secondary">
-            {detail?.address?.trim() || place.a?.trim() || '주소 정보 없음'}
-          </MedicalDetailText>
-          {(detail?.emergencyClassName || place.td)?.trim() ? (
-            <MedicalDetailText variant="secondary">
-              {detail?.emergencyClassName || place.td}
-            </MedicalDetailText>
-          ) : null}
-          {place.sg?.trim() ? <MedicalDetailText variant="muted">{place.sg}</MedicalDetailText> : null}
-          {openStatusLabel !== '확인 필요' ? (
-            <View
-              className="mt-2 self-start rounded-full px-2.5 py-1"
-              style={{ backgroundColor: isOpenNow ? '#dcfce7' : MEDICAL_DETAIL.cardMuted }}
-            >
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: '700',
-                  color: isOpenNow ? '#15803d' : MEDICAL_DETAIL.textSecondary,
-                }}
-              >
-                {openStatusLabel}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {callPhone ? (
-          <Pressable
-            className="items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 shadow-sm"
-            onPress={() => confirmPhoneCall(place.n || '병원', callPhone)}
-            accessibilityRole="button"
-            accessibilityLabel="전화하기"
-          >
-            <Ionicons name="call" size={22} color="#ffffff" />
-            <Text className="mt-1 text-xs font-bold text-white">전화하기</Text>
-            {erPhone && erPhone === callPhone ? (
-              <Text className="mt-0.5 text-[10px] text-blue-100">응급실</Text>
-            ) : null}
-          </Pressable>
-        ) : null}
-      </View>
 
       <ErHospitalSpecsPanel
         specs={hospitalSpecs}
@@ -1585,22 +1291,6 @@ function ErLocalDetailContent({
           <Text className="text-xs font-semibold text-amber-800">안내</Text>
           <Text className="mt-1 text-xs leading-5 text-amber-900">{place.customMemo}</Text>
         </View>
-      ) : null}
-
-      <View className="mt-4 flex-row gap-3">
-        <MedicalDetailInfoTile
-          icon="navigate"
-          label="거리"
-          value={formatDistanceMeters(place.distanceM ?? 0, distanceUnitMode)}
-          onPress={onDistanceUnitToggle}
-        />
-        <MedicalDetailInfoTile icon="walk" label="도보" value={`${place.walkMin ?? 0}분`} />
-      </View>
-
-      {hasCoords ? (
-        <MedicalDetailText variant="muted">
-          좌표: {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
-        </MedicalDetailText>
       ) : null}
     </MedicalDetailBody>
   );

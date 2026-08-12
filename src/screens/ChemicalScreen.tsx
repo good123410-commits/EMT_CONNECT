@@ -1,33 +1,26 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
 import { EmptyState } from '@/components/EmptyState';
 import { ChoseongFilterPanel } from '@/components/medicine/ChoseongFilterPanel';
 import { MedicineImage } from '@/components/medicine/MedicineImage';
+import { MedicineListCard } from '@/components/medicine/MedicineListCard';
 import { SearchBar } from '@/components/SearchBar';
 import { useAppHeader } from '@/hooks/useAppHeader';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import { useMedicineFavorites } from '@/hooks/useMedicineFavorites';
 import { navigationRef } from '@/navigation/navigationRef';
-import { EmergencyApiError, type MedicineInfo } from '@/services/emergencyApi';
+import type { MedicineInfo } from '@/services/emergencyApi';
 import {
-  applyChoseongFilter,
-  BROWSE_PAGE_SIZE,
-  CHOSEONG_BROWSE_COUNT,
-  loadDefaultMedicines,
-  loadMedicineBrowsePool,
-  loadMoreMedicines,
-  searchMedicinesByName,
-  getMedicineDataNotice,
+  browseLocalMedicinesByChoseong,
+  getLocalMedicineCount,
+  searchLocalMedicines,
 } from '@/services/medicineService';
 import type { MedicineChoseongFilter } from '@/utils/medicineChoseong';
+
+type MedicineViewMode = 'all' | 'favorites';
 
 export function ChemicalScreen() {
   return (
@@ -38,17 +31,21 @@ export function ChemicalScreen() {
 }
 
 function DrugModule() {
-  const fabBottomInset = useGlobalFabBottomInset();
+  const [viewMode, setViewMode] = useState<MedicineViewMode>('all');
   const [query, setQuery] = useState('');
-  const [medicines, setMedicines] = useState<MedicineInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<MedicineInfo | null>(null);
   const [choseong, setChoseong] = useState<MedicineChoseongFilter>('전체');
-  const [browsePage, setBrowsePage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const loadSeq = useRef(0);
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
+
+  const {
+    user,
+    favoriteMedicines,
+    loading: favoritesLoading,
+    error: favoritesError,
+    togglingSeq,
+    isFavorite,
+    toggleFavorite,
+  } = useMedicineFavorites();
 
   useAppHeader(
     selected
@@ -61,94 +58,56 @@ function DrugModule() {
   );
 
   const trimmedQuery = query.trim();
-  const isSearchMode = trimmedQuery.length >= 2;
-  const isBrowseMode = !isSearchMode;
-  const medicineNotice = getMedicineDataNotice();
+  const isSearchMode = trimmedQuery.length >= 1;
+  const totalCount = useMemo(() => getLocalMedicineCount(), []);
 
-  const filteredData = useMemo(
-    () => applyChoseongFilter(medicines, choseong),
-    [medicines, choseong],
-  );
+  const searchResults = useMemo(() => {
+    if (!isSearchMode) return [];
+    return searchLocalMedicines(trimmedQuery);
+  }, [isSearchMode, trimmedQuery]);
 
-  useEffect(() => {
-    const tachionItems = filteredData.filter((item) =>
-      item.itemName?.trim().includes('타치온'),
-    );
-    console.log('[DrugSearch] filteredData', {
-      choseong,
-      isSearchMode,
-      total: filteredData.length,
-      tachionCount: tachionItems.length,
-      tachionNames: tachionItems.map((item) => item.itemName),
-      preview: filteredData.slice(0, 8).map((item) => item.itemName),
+  const browseResults = useMemo(() => {
+    if (isSearchMode) return [];
+    return browseLocalMedicinesByChoseong(choseong);
+  }, [isSearchMode, choseong]);
+
+  const allListData = isSearchMode ? searchResults : browseResults;
+
+  const favoritesListData = useMemo(() => {
+    if (!isSearchMode) return favoriteMedicines;
+    const normalized = trimmedQuery.toLowerCase();
+    return favoriteMedicines.filter((item) => {
+      const name = item.itemName?.toLowerCase() ?? '';
+      const entp = item.entpName?.toLowerCase() ?? '';
+      return name.includes(normalized) || entp.includes(normalized);
     });
-  }, [filteredData, choseong, isSearchMode]);
+  }, [favoriteMedicines, isSearchMode, trimmedQuery]);
 
-  const loadBrowseData = useCallback(async (filter: MedicineChoseongFilter) => {
-    const seq = ++loadSeq.current;
-    setLoading(true);
-    setError(null);
-    setMedicines([]);
+  const listData = viewMode === 'favorites' ? favoritesListData : allListData;
+
+  const handleViewModeChange = (mode: MedicineViewMode) => {
+    if (mode === 'favorites' && !user) {
+      setLoginPromptOpen(true);
+      return;
+    }
+    setViewMode(mode);
+  };
+
+  const handleToggleFavorite = async (medicine: MedicineInfo) => {
+    if (!user) {
+      setLoginPromptOpen(true);
+      return;
+    }
 
     try {
-      const results =
-        filter === '전체'
-          ? await loadDefaultMedicines()
-          : await loadMedicineBrowsePool(CHOSEONG_BROWSE_COUNT);
-
-      if (seq !== loadSeq.current) return;
-      setMedicines(results);
-      setBrowsePage(1);
-      setHasMore(filter === '전체');
+      await toggleFavorite(medicine);
     } catch (err) {
-      if (seq !== loadSeq.current) return;
-      const message =
-        err instanceof EmergencyApiError ? err.message : '의약품 목록을 불러오지 못했습니다.';
-      setError(message);
-      setMedicines([]);
-    } finally {
-      if (seq === loadSeq.current) setLoading(false);
+      Alert.alert(
+        '즐겨찾기 실패',
+        err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
+      );
     }
-  }, []);
-
-  const runSearch = useCallback(async (text: string) => {
-    const q = text.trim();
-    if (q.length < 2) return;
-
-    const seq = ++loadSeq.current;
-    setLoading(true);
-    setError(null);
-    setMedicines([]);
-
-    try {
-      const results = await searchMedicinesByName(q);
-      if (seq !== loadSeq.current) return;
-      setMedicines(results);
-      setHasMore(false);
-    } catch (err) {
-      if (seq !== loadSeq.current) return;
-      const message =
-        err instanceof EmergencyApiError ? err.message : '약물 정보를 불러오지 못했습니다.';
-      setError(message);
-      setMedicines([]);
-    } finally {
-      if (seq === loadSeq.current) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isSearchMode) return undefined;
-    void loadBrowseData(choseong);
-    return undefined;
-  }, [isSearchMode, choseong, loadBrowseData]);
-
-  useEffect(() => {
-    if (!isSearchMode || trimmedQuery.length < 2) return undefined;
-    const timer = setTimeout(() => {
-      void runSearch(trimmedQuery);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [trimmedQuery, isSearchMode, runSearch]);
+  };
 
   useHardwareBackHandler(() => {
     if (selected) {
@@ -161,170 +120,179 @@ function DrugModule() {
     return true;
   }, true);
 
-  const handleQueryChange = (text: string) => {
-    setQuery(text);
-    if (text.trim().length < 2 && choseong !== '전체') {
-      setChoseong('전체');
-    }
-  };
-
-  const handleChoseongChange = (filter: MedicineChoseongFilter) => {
-    if (filter === choseong) return;
-    loadSeq.current += 1;
-    setChoseong(filter);
-    if (!isSearchMode) {
-      setMedicines([]);
-      setLoading(true);
-      setError(null);
-    }
-  };
-
-  const handleLoadMore = async () => {
-    if (!isBrowseMode || loadingMore || !hasMore || choseong !== '전체') return;
-
-    setLoadingMore(true);
-    try {
-      const nextPage = browsePage + 1;
-      const batch = await loadMoreMedicines(nextPage);
-      if (batch.length === 0) {
-        setHasMore(false);
-        return;
-      }
-      setMedicines((prev) => {
-        const seen = new Set(prev.map((item) => item.itemSeq || item.itemName));
-        const merged = [...prev];
-        for (const item of batch) {
-          const key = item.itemSeq || item.itemName;
-          if (!key || seen.has(key)) continue;
-          seen.add(key);
-          merged.push(item);
-        }
-        return merged;
-      });
-      setBrowsePage(nextPage);
-      if (batch.length < BROWSE_PAGE_SIZE) setHasMore(false);
-    } catch {
-      setHasMore(false);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
   if (selected) {
-    return <MedicineDetail medicine={selected} onBack={() => setSelected(null)} />;
+    return (
+      <>
+        <MedicineDetail
+          medicine={selected}
+          isFavorite={isFavorite(selected.itemSeq)}
+          favoriteLoading={togglingSeq === selected.itemSeq?.trim()}
+          onToggleFavorite={() => void handleToggleFavorite(selected)}
+          onBack={() => setSelected(null)}
+        />
+        <GuestLoginPromptModal
+          visible={loginPromptOpen}
+          onClose={() => setLoginPromptOpen(false)}
+          title="나의 즐겨찾기"
+          description="로그인 후 약물을 즐겨찾기에 저장할 수 있습니다."
+          intent={{ type: 'medicine-favorite' }}
+        />
+      </>
+    );
   }
 
   return (
     <View className="flex-1">
       <View className="border-b border-kemix-border-light bg-kemix-surface px-4 pb-2 pt-2">
+        <MedicineViewModeBar value={viewMode} onChange={handleViewModeChange} />
         <SearchBar
           value={query}
-          onChangeText={handleQueryChange}
+          onChangeText={setQuery}
           placeholder="제품명 검색 (예: 타이레놀, 게보린)"
-          loading={loading && isSearchMode}
         />
-        <ChoseongFilterPanel value={choseong} onChange={handleChoseongChange} />
-        {medicineNotice ? (
-          <View className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <Text className="text-sm leading-5 text-amber-900">{medicineNotice}</Text>
-          </View>
+        {viewMode === 'all' && !isSearchMode ? (
+          <ChoseongFilterPanel value={choseong} onChange={setChoseong} />
         ) : null}
-        {error ? (
-          <View className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
-            <Text className="text-sm text-red-700">{error}</Text>
-            <Pressable
-              className="mt-2 self-start rounded-lg bg-red-600 px-3 py-1.5"
-              onPress={() =>
-                isSearchMode ? void runSearch(trimmedQuery) : void loadBrowseData(choseong)
-              }
-            >
-              <Text className="text-xs font-semibold text-white">다시 시도</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Text className="mt-2 text-xs text-kemix-muted">
-            {isSearchMode
-              ? `'${trimmedQuery}' 검색 · ${filteredData.length}건`
-              : choseong === '전체'
-                ? `기본 의약품 ${filteredData.length}건 · 아래로 더 불러오기`
-                : `초성 '${choseong}' · ${filteredData.length}건`}
+
+        <View className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+          <Text className="text-xs font-semibold text-emerald-900">
+            {viewMode === 'favorites'
+              ? `나의 즐겨찾기 ${favoriteMedicines.length}건`
+              : `오프라인 내장 데이터 ${totalCount.toLocaleString('ko-KR')}건 · 즉시 검색`}
           </Text>
-        )}
+          <Text className="mt-0.5 text-[11px] text-emerald-800">
+            {viewMode === 'favorites'
+              ? '별(★) 아이콘으로 저장한 약물만 표시됩니다'
+              : '네트워크 없이 제품명·제조사 검색이 가능합니다'}
+          </Text>
+        </View>
+
+        <Text className="mt-2 text-xs text-kemix-muted">
+          {viewMode === 'favorites'
+            ? isSearchMode
+              ? `즐겨찾기 검색 · ${listData.length}건`
+              : favoritesLoading
+                ? '즐겨찾기 동기화 중…'
+                : `즐겨찾기 ${listData.length}건`
+            : isSearchMode
+              ? `'${trimmedQuery}' 검색 · ${listData.length}건`
+              : choseong === '전체'
+                ? `전체 목록 ${listData.length}건 · 초성 필터 또는 검색어 입력`
+                : `초성 '${choseong}' · ${listData.length}건`}
+        </Text>
+
+        {favoritesError && viewMode === 'favorites' ? (
+          <Text className="mt-1 text-xs text-red-600">{favoritesError}</Text>
+        ) : null}
       </View>
 
-      {loading && medicines.length === 0 ? (
-        <View className="flex-1 items-center justify-center gap-3">
-          <ActivityIndicator size="large" color="#2563eb" />
-          <Text className="text-sm text-kemix-text-secondary">의약품 정보를 불러오는 중...</Text>
-        </View>
-      ) : (
-        <FlatList
-          key={`drug-list-${choseong}-${isSearchMode ? trimmedQuery : 'browse'}`}
-          data={filteredData}
-          extraData={{ choseong, query: trimmedQuery, count: filteredData.length }}
-          keyExtractor={(item, index) =>
-            `${item.itemSeq?.trim() || 'no-seq'}::${item.itemName?.trim() || 'no-name'}::${index}`
-          }
-          contentContainerClassName="px-4 pb-8 pt-3 gap-3"
-          onEndReached={() => void handleLoadMore()}
-          onEndReachedThreshold={0.4}
-          ListFooterComponent={
-            loadingMore ? (
-              <View className="items-center py-4">
-                <ActivityIndicator color="#64748b" />
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            !loading ? (
+      <FlatList
+        data={listData}
+        keyExtractor={(item, index) =>
+          `${item.itemSeq?.trim() || 'no-seq'}::${item.itemName?.trim() || 'no-name'}::${index}`
+        }
+        contentContainerClassName="px-4 pb-8 pt-3 gap-3"
+        keyboardShouldPersistTaps="handled"
+        initialNumToRender={14}
+        maxToRenderPerBatch={20}
+        windowSize={8}
+        removeClippedSubviews
+        ListEmptyComponent={
+          viewMode === 'favorites' ? (
+            favoritesLoading ? (
+              <Text className="py-10 text-center text-sm text-kemix-text-secondary">
+                즐겨찾기를 불러오는 중…
+              </Text>
+            ) : (
               <EmptyState
-                message={
-                  isSearchMode
-                    ? '검색 결과가 없습니다'
-                    : choseong === '전체'
-                      ? '표시할 의약품이 없습니다'
-                      : `'${choseong}' 초성 의약품이 없습니다`
-                }
+                message={isSearchMode ? '검색 결과가 없습니다' : '즐겨찾기한 약물이 없습니다'}
                 hint={
                   isSearchMode
-                    ? '다른 제품명으로 검색하거나 초성 필터를 변경해 보세요'
-                    : '전체 버튼을 눌러 기본 목록으로 돌아가 보세요'
+                    ? '다른 제품명으로 검색해 보세요'
+                    : '전체보기에서 별(★) 아이콘을 눌러 약물을 저장해 보세요'
                 }
               />
-            ) : null
-          }
-          renderItem={({ item }) => (
-            <MedicineCard item={item} onPress={() => setSelected(item)} />
-          )}
-        />
-      )}
+            )
+          ) : (
+            <EmptyState
+              message={isSearchMode ? '검색 결과가 없습니다' : '표시할 의약품이 없습니다'}
+              hint={
+                isSearchMode
+                  ? '다른 제품명으로 검색하거나 초성 필터를 변경해 보세요'
+                  : '검색어를 입력하거나 다른 초성을 선택해 보세요'
+              }
+            />
+          )
+        }
+        renderItem={({ item }) => (
+          <MedicineListCard
+            item={item}
+            isFavorite={isFavorite(item.itemSeq)}
+            favoriteLoading={togglingSeq === item.itemSeq?.trim()}
+            onToggleFavorite={() => void handleToggleFavorite(item)}
+            onPress={() => setSelected(item)}
+          />
+        )}
+      />
+
+      <GuestLoginPromptModal
+        visible={loginPromptOpen}
+        onClose={() => setLoginPromptOpen(false)}
+        title="나의 즐겨찾기"
+        description="로그인 후 약물을 즐겨찾기에 저장하고 나만의 목록을 관리할 수 있습니다."
+        intent={{ type: 'medicine-favorite' }}
+      />
     </View>
   );
 }
 
-function MedicineCard({ item, onPress }: { item: MedicineInfo; onPress: () => void }) {
-  const summary = stripHtml(item.efficacy) || '효능 정보를 확인하려면 탭하세요';
+function MedicineViewModeBar({
+  value,
+  onChange,
+}: {
+  value: MedicineViewMode;
+  onChange: (mode: MedicineViewMode) => void;
+}) {
+  return (
+    <View className="mb-3 flex-row rounded-xl border border-kemix-border bg-kemix-bg p-1">
+      <ModeButton
+        label="전체보기"
+        icon="list"
+        selected={value === 'all'}
+        onPress={() => onChange('all')}
+      />
+      <ModeButton
+        label="나의 즐겨찾기"
+        icon="star"
+        selected={value === 'favorites'}
+        onPress={() => onChange('favorites')}
+      />
+    </View>
+  );
+}
 
+function ModeButton({
+  label,
+  icon,
+  selected,
+  onPress,
+}: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
-      className="flex-row rounded-2xl border border-kemix-border bg-kemix-surface p-3 active:bg-kemix-bg"
+      className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-lg px-3 py-2 ${
+        selected ? 'bg-blue-600' : 'bg-transparent'
+      }`}
       onPress={onPress}
     >
-      <MedicineImage uri={item.itemImage} size={80} />
-      <View className="ml-3 flex-1">
-        <Text className="text-xs font-medium text-blue-600">{item.entpName || 'e약은요'}</Text>
-        <Text className="mt-1 text-base font-bold text-kemix-text" numberOfLines={2}>
-          {item.itemName?.trim() || '제품명 없음'}
-        </Text>
-        <Text className="mt-1.5 text-sm leading-5 text-kemix-text-secondary" numberOfLines={2}>
-          {summary}
-        </Text>
-        <View className="mt-2 flex-row items-center">
-          <Ionicons name="document-text-outline" size={14} color="#64748b" />
-          <Text className="ml-1 text-xs text-kemix-text-secondary">상세 · 복용법 · 주의사항</Text>
-          <Ionicons name="chevron-forward" size={16} color="#94a3b8" style={{ marginLeft: 'auto' }} />
-        </View>
-      </View>
+      <Ionicons name={icon} size={16} color={selected ? '#ffffff' : '#64748b'} />
+      <Text className={`text-xs font-bold ${selected ? 'text-white' : 'text-kemix-text-secondary'}`}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -333,7 +301,19 @@ function stripHtml(value: string): string {
   return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function MedicineDetail({ medicine, onBack }: { medicine: MedicineInfo; onBack: () => void }) {
+function MedicineDetail({
+  medicine,
+  isFavorite,
+  favoriteLoading,
+  onToggleFavorite,
+  onBack,
+}: {
+  medicine: MedicineInfo;
+  isFavorite: boolean;
+  favoriteLoading: boolean;
+  onToggleFavorite: () => void;
+  onBack: () => void;
+}) {
   useHardwareBackHandler(onBack, true);
   const fabBottomInset = useGlobalFabBottomInset();
 
@@ -342,23 +322,41 @@ function MedicineDetail({ medicine, onBack }: { medicine: MedicineInfo; onBack: 
       className="flex-1"
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: fabBottomInset }}
     >
-
       <View className="mb-4 flex-row rounded-2xl border border-kemix-border bg-kemix-surface p-4">
         <MedicineImage uri={medicine.itemImage} size={96} />
         <View className="ml-4 flex-1 justify-center">
-          <Text className="text-xs font-medium text-blue-600">{medicine.entpName || 'e약은요'}</Text>
+          <Text className="text-xs font-medium text-blue-600">{medicine.entpName || '의약품'}</Text>
           <Text className="mt-1 text-lg font-bold text-kemix-text">{medicine.itemName}</Text>
           <Text className="mt-1 text-xs text-kemix-muted">품목코드: {medicine.itemSeq || '-'}</Text>
         </View>
+        <Pressable
+          className="self-start rounded-full p-2 active:opacity-80"
+          disabled={favoriteLoading}
+          onPress={onToggleFavorite}
+          accessibilityRole="button"
+          accessibilityLabel={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+        >
+          <Ionicons
+            name={isFavorite ? 'star' : 'star-outline'}
+            size={26}
+            color={isFavorite ? '#FBBF24' : '#94a3b8'}
+          />
+        </Pressable>
       </View>
 
       <MedicineSection title="효능·효과" body={medicine.efficacy} />
-      <MedicineSection title="복용법" body={medicine.usage} />
+      <MedicineSection title="용법·용량" body={medicine.usage} />
       <MedicineSection title="사용 전 주의" body={medicine.warningBeforeUse} highlight="amber" />
       <MedicineSection title="주의사항" body={medicine.precautions} highlight="amber" />
       <MedicineSection title="약물 상호작용" body={medicine.interactions} />
       <MedicineSection title="부작용" body={medicine.sideEffects} highlight="red" />
       <MedicineSection title="보관법" body={medicine.storage} />
+
+      <View className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+        <Text className="text-xs text-emerald-900">
+          로컬 내장 데이터 · 최종 갱신 {medicine.updatedAt || '-'}
+        </Text>
+      </View>
     </ScrollView>
   );
 }

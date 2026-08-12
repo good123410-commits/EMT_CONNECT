@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -8,7 +8,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { APP_COLORS, APP_SHADOW } from '@/constants/appTheme';
+import { APP_SHADOW } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import {
   DRAGGABLE_FAB_SIZE,
   FAB_DRAG_SPRING,
@@ -28,6 +29,7 @@ function clampWorklet(value: number, min: number, max: number) {
  * 드래그 가능한 글로벌 더보기 FAB — 짧은 탭으로 메뉴, 길게 눌러 드래그
  */
 export function DraggableMoreFab() {
+  const { colors } = useThemedColors();
   const visible = useShowGlobalMoreFab();
   const bounds = useFabDragBounds();
   const { openMoreMenu } = useMoreMenu();
@@ -156,7 +158,7 @@ export function DraggableMoreFab() {
   const fabVisual = (
     <Animated.View
       collapsable={false}
-      accessibilityRole="button"
+      accessible
       accessibilityLabel="더보기 메뉴. 길게 눌러 위치를 옮길 수 있습니다."
       style={[
         styles.fab,
@@ -164,24 +166,23 @@ export function DraggableMoreFab() {
           width: DRAGGABLE_FAB_SIZE,
           height: DRAGGABLE_FAB_SIZE,
           borderRadius: DRAGGABLE_FAB_SIZE / 2,
+          cursor: Platform.OS === 'web' ? 'pointer' : undefined,
         },
         animatedStyle,
       ]}
+      {...(Platform.OS === 'web'
+        ? {
+            // @ts-expect-error web pointer handler
+            onClick: handleOpenMenu,
+          }
+        : {})}
     >
-      {Platform.OS === 'web' ? (
-        <Pressable
-          style={styles.fabInner}
-          onPress={handleOpenMenu}
-          accessibilityRole="button"
-          accessibilityLabel="더보기 메뉴"
-        >
-          <AppIcon name="dots-horizontal" size={28} color="#FFFFFF" />
-        </Pressable>
-      ) : (
-        <View style={styles.fabInner} pointerEvents="none">
-          <AppIcon name="dots-horizontal" size={28} color="#FFFFFF" />
-        </View>
-      )}
+      <View
+        style={[styles.fabInner, { backgroundColor: colors.blue }]}
+        pointerEvents="none"
+      >
+        <AppIcon name="dots-horizontal" size={28} color="#FFFFFF" />
+      </View>
     </Animated.View>
   );
 
@@ -209,7 +210,6 @@ const styles = StyleSheet.create({
   fabInner: {
     flex: 1,
     borderRadius: 999,
-    backgroundColor: APP_COLORS.blue,
     alignItems: 'center',
     justifyContent: 'center',
   },

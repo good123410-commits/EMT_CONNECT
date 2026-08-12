@@ -20,7 +20,6 @@ import { CommunityHtmlContent } from '@/components/community/CommunityHtmlConten
 import {
   LoungeAnonymousBadge,
   LoungeBackBar,
-  LoungeBody,
   LoungeCard,
   LoungeCommentButton,
   LoungeErrorBanner,
@@ -29,14 +28,14 @@ import {
   LoungePrimaryButton,
   LoungeScreen,
   LoungeTitle,
-  LoungeWriteBar,
   useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
-import { EMS_LOUNGE, EMS_LOUNGE_SPACING } from '@/constants/emsLoungeTheme';
+import { EMS_LOUNGE_SPACING, useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import { useParamedicTabWrite } from '@/hooks/useParamedicTabWrite';
 import {
   createPostComment,
   createQaPost,
@@ -46,10 +45,7 @@ import {
   parseCommunityError,
 } from '@/services/communityService';
 import type { CommunityComment, CommunityPost } from '@/types/community';
-import {
-  buildCommunityPreview,
-  getFirstCommunityImageUrl,
-} from '@/utils/communityContent';
+import { getFirstCommunityImageUrl } from '@/utils/communityContent';
 import { canWriteCommunityAnswer } from '@/utils/communityRbac';
 import { consumeAuthIntent } from '@/utils/authIntent';
 
@@ -62,32 +58,29 @@ function QaPostCard({
   onPress: () => void;
   lounge?: boolean;
 }) {
-  const preview = buildCommunityPreview(post.content, post.summary);
+  const { lounge: loungeColors } = useEmsLoungeTheme();
   const thumb = getFirstCommunityImageUrl(post.content);
 
   if (lounge) {
     return (
       <LoungeCard onPress={onPress}>
-        <View className="flex-row items-start gap-3">
+        <View className="flex-row items-center gap-3">
           {thumb ? (
             <Image
               source={{ uri: thumb }}
-              style={{ width: 72, height: 72, borderRadius: 14 }}
+              style={{ width: 48, height: 48, borderRadius: 8 }}
               resizeMode="cover"
             />
           ) : null}
           <View className="flex-1">
-            <LoungeTitle numberOfLines={2}>{post.title?.trim() || '제목 없음'}</LoungeTitle>
-            <View className="mt-2">
-              <LoungeBody numberOfLines={2}>{preview}</LoungeBody>
-            </View>
-            <View className="mt-3 flex-row flex-wrap items-center gap-2">
+            <LoungeTitle numberOfLines={1}>{post.title?.trim() || '제목 없음'}</LoungeTitle>
+            <View className="mt-1 flex-row items-center gap-2">
               <LoungeAnonymousBadge label={post.anonymous_label} />
               <LoungeMetaText>{formatRelativeTime(post.created_at)}</LoungeMetaText>
               <LoungeCommentButton count={post.comment_count} />
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={EMS_LOUNGE.textMuted} />
+          <Ionicons name="chevron-forward" size={16} color={loungeColors.textMuted} />
         </View>
       </LoungeCard>
     );
@@ -98,27 +91,24 @@ function QaPostCard({
       className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4 active:bg-kemix-bg"
       onPress={onPress}
     >
-      <View className="flex-row items-start gap-3">
+      <View className="flex-row items-center gap-3">
         {thumb ? (
           <Image
             source={{ uri: thumb }}
-            style={{ width: 72, height: 72, borderRadius: 10 }}
+            style={{ width: 48, height: 48, borderRadius: 6 }}
             resizeMode="cover"
           />
         ) : null}
         <View className="flex-1">
-          <Text className="text-base font-bold text-kemix-text" numberOfLines={2}>
+          <Text className="text-base font-bold text-kemix-text" numberOfLines={1}>
             {post.title?.trim() || '제목 없음'}
           </Text>
-          <Text className="mt-1 text-sm leading-6 text-kemix-text-secondary" numberOfLines={2}>
-            {preview}
-          </Text>
-          <Text className="mt-2 text-xs text-kemix-muted">
+          <Text className="mt-1 text-xs text-kemix-muted">
             {post.anonymous_label} · {formatRelativeTime(post.created_at)} · 답변{' '}
             {post.comment_count}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+        <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
       </View>
     </Pressable>
   );
@@ -158,6 +148,7 @@ type EmsQaBoardScreenProps = {
 };
 
 export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps) {
+  const { lounge } = useEmsLoungeTheme();
   const isLounge = variant === 'paramedic';
   const loungeListContentStyle = useLoungeListContentStyle();
   const { user } = useAuth();
@@ -248,20 +239,22 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
       return true;
     }
     return false;
-  }, Boolean(selected || writeOpen));
+  });
 
   const openLogin = (intent: 'question-write' | 'community-write') => {
     setLoginIntent(intent);
     setLoginOpen(true);
   };
 
-  const handleWritePress = () => {
+  const handleWritePress = useCallback(() => {
     if (!user) {
       openLogin('question-write');
       return;
     }
     setWriteOpen(true);
-  };
+  }, [user]);
+
+  useParamedicTabWrite('QaBoard', handleWritePress, { enabled: isLounge });
 
   const handleSubmitPost = async () => {
     if (!user) {
@@ -281,7 +274,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
 
     setSubmittingPost(true);
     try {
-      await createQaPost({
+      const created = await createQaPost({
         title: trimmedTitle,
         content: trimmedContent,
         authorLabel: (user.user_metadata?.name as string | undefined) ?? '회원',
@@ -289,6 +282,8 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
       setTitle('');
       setContent('');
       setWriteOpen(false);
+      setPosts((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
+      setTotalCount((count) => count + 1);
       await loadPage(1, false);
       Alert.alert('등록 완료', '질문이 등록되었습니다.');
     } catch (err) {
@@ -355,12 +350,12 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                   marginBottom: 10,
                   fontFamily: 'Pretendard-Bold',
                   fontSize: 14,
-                  color: EMS_LOUNGE.text,
+                  color: lounge.text,
                 }}
               >
                 답변 {comments.length}
               </Text>
-              {commentsLoading ? <ActivityIndicator color={EMS_LOUNGE.accent} /> : null}
+              {commentsLoading ? <ActivityIndicator color={lounge.accent} /> : null}
               {comments.map((comment) => (
                 <CommentRow key={comment.id} comment={comment} lounge />
               ))}
@@ -369,7 +364,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                   style={{
                     fontFamily: 'Pretendard',
                     fontSize: 14,
-                    color: EMS_LOUNGE.textSecondary,
+                    color: lounge.textSecondary,
                   }}
                 >
                   아직 답변이 없습니다.
@@ -383,7 +378,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                       marginBottom: 10,
                       fontFamily: 'Pretendard-Bold',
                       fontSize: 14,
-                      color: EMS_LOUNGE.text,
+                      color: lounge.text,
                     }}
                   >
                     답변 작성
@@ -405,7 +400,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                   style={{
                     marginTop: 16,
                     borderRadius: 16,
-                    backgroundColor: EMS_LOUNGE.amberBg,
+                    backgroundColor: lounge.amberBg,
                     paddingHorizontal: 16,
                     paddingVertical: 14,
                   }}
@@ -415,7 +410,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                       textAlign: 'center',
                       fontFamily: 'Pretendard',
                       fontSize: 13,
-                      color: EMS_LOUNGE.amberText,
+                      color: lounge.amberText,
                     }}
                   >
                     답변은 구급대원 및 관리자만 작성 가능합니다.
@@ -493,13 +488,12 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
     return (
       <LoungeScreen>
         <ParamedicHeader />
-        <LoungeWriteBar label="질문하기" onPress={handleWritePress} />
 
         {error ? <LoungeErrorBanner message={error} /> : null}
 
         {loading ? (
           <View className="items-center py-16">
-            <ActivityIndicator color={EMS_LOUNGE.accent} />
+            <ActivityIndicator color={lounge.accent} />
           </View>
         ) : (
           <FlatList
@@ -510,13 +504,13 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
             )}
             ListEmptyComponent={
               <View className="items-center py-16">
-                <Ionicons name="chatbubbles-outline" size={40} color={EMS_LOUNGE.textMuted} />
+                <Ionicons name="chatbubbles-outline" size={40} color={lounge.textMuted} />
                 <Text
                   style={{
                     marginTop: 12,
                     fontFamily: 'Pretendard',
                     fontSize: 14,
-                    color: EMS_LOUNGE.textSecondary,
+                    color: lounge.textSecondary,
                   }}
                 >
                   아직 질문이 없습니다
@@ -531,7 +525,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
             ListFooterComponent={
               loadingMore ? (
                 <View className="py-4">
-                  <ActivityIndicator color={EMS_LOUNGE.accent} />
+                  <ActivityIndicator color={lounge.accent} />
                 </View>
               ) : (
                 <View className="h-8" />
@@ -554,24 +548,24 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
         <Modal visible={writeOpen} animationType="slide" onRequestClose={() => setWriteOpen(false)}>
           <KeyboardAvoidingView
             className="flex-1"
-            style={{ backgroundColor: EMS_LOUNGE.background }}
+            style={{ backgroundColor: lounge.background }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View
               className="flex-row items-center justify-between px-4 py-3"
-              style={{ backgroundColor: EMS_LOUNGE.surface }}
+              style={{ backgroundColor: lounge.surface }}
             >
               <Text
                 style={{
                   fontFamily: 'Pretendard-Bold',
                   fontSize: 18,
-                  color: EMS_LOUNGE.text,
+                  color: lounge.text,
                 }}
               >
                 질문 작성
               </Text>
               <Pressable onPress={() => setWriteOpen(false)}>
-                <Ionicons name="close" size={24} color={EMS_LOUNGE.textMuted} />
+                <Ionicons name="close" size={24} color={lounge.textMuted} />
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 32 }}>
@@ -580,7 +574,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                   marginBottom: 4,
                   fontFamily: 'Pretendard-SemiBold',
                   fontSize: 12,
-                  color: EMS_LOUNGE.textMuted,
+                  color: lounge.textMuted,
                 }}
               >
                 제목
@@ -591,7 +585,7 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                   marginBottom: 4,
                   fontFamily: 'Pretendard-SemiBold',
                   fontSize: 12,
-                  color: EMS_LOUNGE.textMuted,
+                  color: lounge.textMuted,
                 }}
               >
                 내용
@@ -617,14 +611,6 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-kemix-bg">
       <View className="flex-1 px-4 pt-3">
-        <Pressable
-          className="mb-4 flex-row items-center justify-center rounded-2xl bg-green-700 py-3.5 active:bg-green-800"
-          onPress={handleWritePress}
-        >
-          <Ionicons name="create-outline" size={20} color="#fff" />
-          <Text className="ml-2 font-bold text-white">질문하기</Text>
-        </Pressable>
-
         {error ? (
           <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
             <Text className="text-sm text-red-700">{error}</Text>
@@ -660,10 +646,18 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
                 <View className="h-8" />
               )
             }
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingBottom: 80 }}
           />
         )}
       </View>
+
+      <Pressable
+        onPress={handleWritePress}
+        className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-green-700 shadow-lg active:bg-green-800"
+        style={{ elevation: 5 }}
+      >
+        <Ionicons name="add" size={32} color="#fff" />
+      </Pressable>
 
       <GuestLoginPromptModal
         visible={loginOpen}

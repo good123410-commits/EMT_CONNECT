@@ -12,7 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MedicationIntervalPicker } from '@/components/utilities/MedicationIntervalPicker';
 import { UtilityFormField } from '@/components/utilities/UtilityFormField';
-import { APP_COLORS, APP_RADIUS } from '@/constants/appTheme';
+import { APP_RADIUS } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import {
   activateMedicationTimer,
   quickStartMedicationTimer,
@@ -35,6 +36,7 @@ export function MedicationInstantStartModal({
   onOpenFullScreen,
 }: MedicationInstantStartModalProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useThemedColors();
   const [loading, setLoading] = useState(true);
   const [registration, setRegistration] = useState<MedicationRegistration | null>(null);
   const [drugName, setDrugName] = useState('');
@@ -112,7 +114,7 @@ export function MedicationInstantStartModal({
         style={{
           borderTopLeftRadius: APP_RADIUS.cardLg,
           borderTopRightRadius: APP_RADIUS.cardLg,
-          backgroundColor: APP_COLORS.surface,
+          backgroundColor: colors.surface,
           paddingBottom: Math.max(insets.bottom, 16),
           maxHeight: '85%',
         }}
@@ -120,13 +122,13 @@ export function MedicationInstantStartModal({
         <View className="flex-row items-center justify-between border-b border-kemix-border-light px-5 py-4">
           <Text className="text-base font-bold text-kemix-text">약물 타이머 즉시 시작</Text>
           <Pressable onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={22} color="#64748b" />
+            <Ionicons name="close" size={22} color={colors.textMuted} />
           </Pressable>
         </View>
 
         {loading ? (
           <View className="items-center py-10">
-            <ActivityIndicator color={APP_COLORS.blue} />
+            <ActivityIndicator color={colors.blue} />
           </View>
         ) : (
           <View className="px-5 pt-4">

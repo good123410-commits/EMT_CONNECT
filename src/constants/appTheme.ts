@@ -1,4 +1,5 @@
-/** KEMIX 앱 전역 디자인 토큰 — 다크 모드 리브랜딩 */
+/** KEMIX 앱 전역 디자인 토큰 — 기본값은 다크(레거시). 동적 테마는 useAppTheme() 사용 */
+import { getAppThemePalette } from '@/constants/appThemes';
 
 export const APP_FONT = {
   regular: 'Pretendard',
@@ -7,32 +8,7 @@ export const APP_FONT = {
   bold: 'Pretendard-Bold',
 } as const;
 
-export const APP_COLORS = {
-  /** 메인 배경 — 딥 차콜 */
-  background: '#121212',
-  /** 카드·시트·탭바 */
-  surface: '#1A1A1A',
-  /** 세그먼트·칩·입력 필드 트랙 */
-  surfaceElevated: '#242424',
-  border: '#2E2E2E',
-  borderLight: '#333333',
-  textPrimary: '#FFFFFF',
-  textSecondary: '#A0A0A0',
-  textMuted: '#6B6B6B',
-  /** 시그니처 블루 — 버튼·활성·링크 */
-  blue: '#3B82F6',
-  blueSoft: '#60A5FA',
-  blueMuted: '#1E3A5F',
-  blueLight: '#1A2332',
-  /** 레거시 alias — 제목·강조 텍스트 */
-  navy: '#FFFFFF',
-  navySoft: '#A0A0A0',
-  tabActive: '#3B82F6',
-  tabInactive: '#6B6B6B',
-  accent: '#3B82F6',
-  /** 카드 위 반투명 오버레이 */
-  overlay: 'rgba(0, 0, 0, 0.55)',
-} as const;
+export const APP_COLORS = getAppThemePalette('dark');
 
 export const APP_RADIUS = {
   sm: 12,

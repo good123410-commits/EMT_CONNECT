@@ -9,7 +9,7 @@ import {
 import { SettingsBottomSheetModal } from '@/components/settings/SettingsBottomSheetModal';
 
 type SettingsMenuContextValue = {
-  openSettings: () => void;
+  openSettings: (initialAction?: string) => void;
   closeSettings: () => void;
 };
 
@@ -30,9 +30,16 @@ export function useSettingsMenuOptional(): SettingsMenuContextValue | null {
 
 export function SettingsMenuProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
+  const [initialAction, setInitialAction] = useState<string | undefined>(undefined);
 
-  const openSettings = useCallback(() => setVisible(true), []);
-  const closeSettings = useCallback(() => setVisible(false), []);
+  const openSettings = useCallback((action?: string) => {
+    setInitialAction(action);
+    setVisible(true);
+  }, []);
+  const closeSettings = useCallback(() => {
+    setVisible(false);
+    setInitialAction(undefined);
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -45,7 +52,11 @@ export function SettingsMenuProvider({ children }: { children: ReactNode }) {
   return (
     <SettingsMenuContext.Provider value={value}>
       {children}
-      <SettingsBottomSheetModal visible={visible} onClose={closeSettings} />
+      <SettingsBottomSheetModal 
+        visible={visible} 
+        onClose={closeSettings} 
+        initialAction={initialAction}
+      />
     </SettingsMenuContext.Provider>
   );
 }

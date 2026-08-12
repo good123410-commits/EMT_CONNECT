@@ -9,7 +9,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { BRAND_ON_SUBTITLE, BRAND_ON_TITLE } from '@/constants/branding';
-import { APP_COLORS, APP_FONT } from '@/constants/appTheme';
+import { APP_FONT } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 const APP_LOGO = require('../../../assets/ic_launcher.png');
 
@@ -36,6 +37,7 @@ export function BrandSplashView({
   onLogoAnimationComplete,
   animateLogo = true,
 }: BrandSplashViewProps) {
+  const { colors } = useThemedColors();
   const logoScale = useRef(new Animated.Value(LOGO_START_SCALE)).current;
   const logoTranslateY = useRef(new Animated.Value(14)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
@@ -102,7 +104,7 @@ export function BrandSplashView({
   ]);
 
   return (
-    <View style={[styles.root, style]}>
+    <View style={[styles.root, { backgroundColor: colors.background }, style]}>
       <View style={styles.centerBlock}>
         <Animated.Image
           source={APP_LOGO}
@@ -122,12 +124,12 @@ export function BrandSplashView({
             transform: [{ translateY: textTranslateY }],
           }}
         >
-          <Text style={styles.title}>{BRAND_ON_TITLE}</Text>
-          <Text style={styles.subtitle}>{BRAND_ON_SUBTITLE}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{BRAND_ON_TITLE}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{BRAND_ON_SUBTITLE}</Text>
         </Animated.View>
 
         {showLoadingHint ? (
-          <Text style={styles.loadingHint}>초기화 중…</Text>
+          <Text style={[styles.loadingHint, { color: colors.textMuted }]}>초기화 중…</Text>
         ) : null}
       </View>
     </View>
@@ -137,7 +139,6 @@ export function BrandSplashView({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: APP_COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
@@ -156,7 +157,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 40,
     letterSpacing: 1.2,
-    color: APP_COLORS.textPrimary,
     textAlign: 'center',
   },
   subtitle: {
@@ -165,7 +165,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     letterSpacing: 0.3,
-    color: APP_COLORS.textSecondary,
     textAlign: 'center',
   },
   loadingHint: {
@@ -173,7 +172,6 @@ const styles = StyleSheet.create({
     fontFamily: APP_FONT.medium,
     fontSize: 12,
     lineHeight: 16,
-    color: APP_COLORS.textMuted,
     textAlign: 'center',
   },
 });

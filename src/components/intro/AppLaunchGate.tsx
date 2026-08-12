@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrandSplashView } from '@/components/intro/BrandSplashView';
-import { APP_COLORS } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 /** 로고 애니메이션 완료 후 메인 전환 전 추가 유지 시간 */
 const POST_READY_HOLD_MS = 700;
@@ -17,6 +17,7 @@ type AppLaunchGateProps = {
  */
 export function AppLaunchGate({ children }: AppLaunchGateProps) {
   const { loading } = useAuth();
+  const { colors } = useThemedColors();
   const [overlayVisible, setOverlayVisible] = useState(true);
   const [logoAnimDone, setLogoAnimDone] = useState(false);
   const opacity = useRef(new Animated.Value(1)).current;
@@ -39,12 +40,16 @@ export function AppLaunchGate({ children }: AppLaunchGateProps) {
   }, [loading, logoAnimDone, opacity]);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       {children}
       {overlayVisible ? (
         <Animated.View
           pointerEvents="none"
-          style={[StyleSheet.absoluteFill, styles.overlay, { opacity }]}
+          style={[
+            StyleSheet.absoluteFill,
+            styles.overlay,
+            { opacity, backgroundColor: colors.background },
+          ]}
         >
           <BrandSplashView
             showLoadingHint={loading}
@@ -59,10 +64,8 @@ export function AppLaunchGate({ children }: AppLaunchGateProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: APP_COLORS.background,
   },
   overlay: {
-    backgroundColor: APP_COLORS.background,
     zIndex: 9999,
   },
 });

@@ -28,6 +28,9 @@ const expoConfig: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.anonymous.kon',
+    infoPlist: {
+      LSApplicationQueriesSchemes: ['kakaoMap', 'kakaomap', 'kakaonavi-sdk', 'kakaonavi', 'tmap'],
+    },
   },
   android: {
     package: 'com.anonymous.kon',
@@ -73,6 +76,7 @@ const expoConfig: ExpoConfig = {
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     portalApiKey: process.env.EXPO_PUBLIC_PORTAL_API_KEY,
     kemixWebUrl: process.env.EXPO_PUBLIC_KEMIX_WEB_URL,
+    kakaoJsKey: process.env.EXPO_PUBLIC_KAKAO_JS_KEY,
   },
 };
 

@@ -4,8 +4,8 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import {
   APP_HEADER_BRAND_NAME,
   APP_NAV_HEADER_BODY_HEIGHT,
-  APP_NAV_HEADER_COLORS,
 } from '@/constants/navigationHeader';
+import { useAppTheme } from '@/contexts/AppThemeContext';
 import { useAppNavigationHeaderState } from '@/hooks/useAppNavigationHeader';
 import { navigationRef } from '@/navigation/navigationRef';
 
@@ -13,6 +13,7 @@ const SIDE_CLUSTER_WIDTH = 96;
 
 export function AppNavigationHeader() {
   const insets = useSafeAreaInsets();
+  const { navHeader } = useAppTheme();
   const { visible, title, showBack, onBack } = useAppNavigationHeaderState();
 
   if (!visible) {
@@ -35,7 +36,8 @@ export function AppNavigationHeader() {
         styles.wrapper,
         {
           paddingTop: insets.top,
-          backgroundColor: APP_NAV_HEADER_COLORS.background,
+          backgroundColor: navHeader.background,
+          borderBottomColor: navHeader.border,
         },
       ]}
     >
@@ -46,24 +48,27 @@ export function AppNavigationHeader() {
               accessibilityRole="button"
               accessibilityLabel="뒤로 가기"
               onPress={handleBack}
-              style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed]}
+              style={({ pressed }) => [
+                styles.iconButton,
+                pressed && { backgroundColor: navHeader.pressed },
+              ]}
               hitSlop={8}
             >
-              <AppIcon name="chevron-left" size={24} color={APP_NAV_HEADER_COLORS.icon} />
+              <AppIcon name="chevron-left" size={24} color={navHeader.icon} />
             </Pressable>
           ) : (
             <View style={styles.brandCluster}>
-              <View style={styles.logoMark}>
+              <View style={[styles.logoMark, { backgroundColor: navHeader.brand }]}>
                 <AppIcon name="medical-bag" size={16} color="#FFFFFF" />
               </View>
-              <Text style={styles.brandText} numberOfLines={1}>
+              <Text style={[styles.brandText, { color: navHeader.brandText }]} numberOfLines={1}>
                 {APP_HEADER_BRAND_NAME}
               </Text>
             </View>
           )}
         </View>
 
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, { color: navHeader.title }]} numberOfLines={1}>
           {title}
         </Text>
 
@@ -81,7 +86,6 @@ export function useAppNavigationHeaderHeight(): number {
 const styles = StyleSheet.create({
   wrapper: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: APP_NAV_HEADER_COLORS.border,
     zIndex: 900,
   },
   row: {
@@ -105,14 +109,12 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: APP_NAV_HEADER_COLORS.brand,
     alignItems: 'center',
     justifyContent: 'center',
   },
   brandText: {
     fontFamily: 'Pretendard-Bold',
     fontSize: 13,
-    color: APP_NAV_HEADER_COLORS.brandText,
     letterSpacing: 0.3,
   },
   title: {
@@ -120,7 +122,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: 'Pretendard-SemiBold',
     fontSize: 16,
-    color: APP_NAV_HEADER_COLORS.title,
     paddingHorizontal: 4,
   },
   rightCluster: {
@@ -132,8 +133,5 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  iconPressed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
 });

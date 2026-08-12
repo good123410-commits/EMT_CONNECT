@@ -1,6 +1,15 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  Text,
+  UIManager,
+  View,
+} from 'react-native';
 import { UtilitySelectField } from '@/components/utilities/UtilitySelectField';
 import type { KoreanSigunguUnit } from '@/constants/koreanRegions';
 import { getLocationWithRegion } from '@/services/locationService';
@@ -10,6 +19,10 @@ import {
   getSidoOptions,
   resolveRegionCodeFromLocation,
 } from '@/utils/koreanRegionResolver';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type KoreanRegionSelectorProps = {
   selectedCode: string | null;
@@ -28,6 +41,7 @@ export function KoreanRegionSelector({
 }: KoreanRegionSelectorProps) {
   const selected = getRegionUnitByCode(selectedCode);
   const [sido, setSido] = useState(selected?.sido ?? getSidoOptions()[0] ?? '');
+  const [expanded, setExpanded] = useState(false);
 
   const sigunguUnits = useMemo(() => getSigunguUnitsForSido(sido), [sido]);
 
@@ -65,6 +79,11 @@ export function KoreanRegionSelector({
     if (first) onSelect(first.code);
   };
 
+  const toggleExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((prev) => !prev);
+  };
+
   const handleDetectGps = async () => {
     onDetectStart?.();
     try {
@@ -90,10 +109,9 @@ export function KoreanRegionSelector({
 
   return (
     <View className="mb-4">
-      <View className="mb-3 flex-row items-center justify-between">
-        <Text className="text-sm font-semibold text-kemix-text">상세 지역 선택</Text>
+      <View className="flex-row items-center justify-end gap-2">
         <Pressable
-          className="flex-row items-center rounded-full bg-sky-50 px-3 py-1.5 active:bg-sky-100"
+          className="flex-row items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 active:bg-sky-100"
           onPress={() => void handleDetectGps()}
           disabled={detecting}
         >
@@ -104,23 +122,42 @@ export function KoreanRegionSelector({
           )}
           <Text className="ml-1.5 text-xs font-semibold text-sky-700">GPS 자동 감지</Text>
         </Pressable>
+        <Pressable
+          className="flex-row items-center rounded-full border border-kemix-border bg-kemix-surface px-3 py-1.5 active:bg-kemix-bg"
+          onPress={toggleExpanded}
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+        >
+          <Ionicons name="map-outline" size={16} color="#475569" />
+          <Text className="ml-1.5 text-xs font-semibold text-kemix-text">지역 변경</Text>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={14}
+            color="#64748b"
+            style={{ marginLeft: 4 }}
+          />
+        </Pressable>
       </View>
 
-      <UtilitySelectField
-        label="시·도"
-        options={sidoOptions}
-        value={sido}
-        onChange={handleSidoChange}
-        hint="17개 시·도 중 선택"
-      />
-
-      <UtilitySelectField
-        label="시·군·구"
-        options={sigunguOptions}
-        value={sigunguValue}
-        onChange={onSelect}
-        hint={`${sigunguUnits.length}개 시·군·구`}
-      />
+      {expanded ? (
+        <View className="mt-3 overflow-hidden rounded-2xl border border-kemix-border bg-kemix-surface p-4">
+          <Text className="mb-3 text-sm font-semibold text-kemix-text">상세 지역 선택</Text>
+          <UtilitySelectField
+            label="시·도"
+            options={sidoOptions}
+            value={sido}
+            onChange={handleSidoChange}
+            hint="17개 시·도 중 선택"
+          />
+          <UtilitySelectField
+            label="시·군·구"
+            options={sigunguOptions}
+            value={sigunguValue}
+            onChange={onSelect}
+            hint={`${sigunguUnits.length}개 시·군·구`}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

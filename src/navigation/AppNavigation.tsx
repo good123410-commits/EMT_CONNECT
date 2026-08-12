@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppTheme } from '@/contexts/AppThemeContext';
 import { MoreMenuProvider } from '@/contexts/MoreMenuContext';
 import { OpeningIntroProvider } from '@/contexts/OpeningIntroContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
@@ -8,7 +9,7 @@ import { navigationRef } from '@/navigation/navigationRef';
 import { applyRootRouteTransition, getCurrentRootRoute } from '@/navigation/rootNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import type { UserRole } from '@/lib/supabaseClient';
-import { kemixNavigationTheme } from '@/theme/navigationTheme';
+import { createNavigationTheme } from '@/theme/navigationTheme';
 import { isExpertRole } from '@/utils/roleAccess';
 
 type RootRoute = keyof RootStackParamList;
@@ -31,6 +32,8 @@ function resolveRoute(
 export function AppNavigation() {
   const { session, loading } = useAuth();
   const { role, isExpertMode, exitExpertMode } = useUserRole();
+  const { colors, isDark } = useAppTheme();
+  const navigationTheme = useMemo(() => createNavigationTheme(colors, isDark), [colors, isDark]);
   const isContainerReady = useRef(false);
   const prevTarget = useRef<RootRoute | null>(null);
   const RootNavigator = useMemo(
@@ -90,7 +93,7 @@ export function AppNavigation() {
   return (
     <NavigationContainer
       ref={navigationRef}
-      theme={kemixNavigationTheme}
+      theme={navigationTheme}
       onReady={handleContainerReady}
       onStateChange={handleStateChange}
     >

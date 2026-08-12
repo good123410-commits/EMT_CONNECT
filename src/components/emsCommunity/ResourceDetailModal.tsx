@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { ResourceEmailModal } from '@/components/emsCommunity/ResourceEmailModal';
 import { getResourceCategoryLabel } from '@/constants/resourceCategories';
-import { EMS_LOUNGE } from '@/constants/emsLoungeTheme';
+import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { formatResourceFileSize } from '@/services/kemixResourceService';
 import type { KemixResource } from '@/types/kemixResource';
 import { shareResourceOnKakao } from '@/utils/resourceShare';
@@ -41,6 +41,7 @@ async function openDownloadUrl(url: string) {
 }
 
 export function ResourceDetailModal({ resource, visible, onClose }: ResourceDetailModalProps) {
+  const { lounge } = useEmsLoungeTheme();
   const [emailOpen, setEmailOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
 
@@ -63,19 +64,19 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
   return (
     <>
       <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-        <View className="flex-1" style={{ backgroundColor: EMS_LOUNGE.background }}>
+        <View className="flex-1" style={{ backgroundColor: lounge.background }}>
           <View
             className="flex-row items-center justify-between px-4 py-3"
-            style={{ borderBottomWidth: 1, borderBottomColor: EMS_LOUNGE.border }}
+            style={{ borderBottomWidth: 1, borderBottomColor: lounge.border }}
           >
             <Pressable onPress={onClose} hitSlop={12} className="active:opacity-70">
-              <Ionicons name="close" size={26} color={EMS_LOUNGE.textMuted} />
+              <Ionicons name="close" size={26} color={lounge.textMuted} />
             </Pressable>
             <Text
               style={{
                 fontFamily: 'Pretendard-SemiBold',
                 fontSize: 15,
-                color: EMS_LOUNGE.textSecondary,
+                color: lounge.textSecondary,
               }}
             >
               자료 상세
@@ -88,7 +89,7 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
               style={{
                 fontFamily: 'Pretendard-SemiBold',
                 fontSize: 12,
-                color: EMS_LOUNGE.accentSoft,
+                color: lounge.accentSoft,
               }}
             >
               {getResourceCategoryLabel(resource.category)}
@@ -99,7 +100,7 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
                 fontFamily: 'Pretendard-Bold',
                 fontSize: 20,
                 lineHeight: 28,
-                color: EMS_LOUNGE.text,
+                color: lounge.text,
               }}
             >
               {resource.title}
@@ -109,7 +110,7 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
                 marginTop: 8,
                 fontFamily: 'Pretendard',
                 fontSize: 13,
-                color: EMS_LOUNGE.textMuted,
+                color: lounge.textMuted,
               }}
             >
               {formatDate(resource.created_at)} · {resource.file_name} ·{' '}
@@ -123,7 +124,7 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
                   fontFamily: 'Pretendard',
                   fontSize: 15,
                   lineHeight: 24,
-                  color: EMS_LOUNGE.textSecondary,
+                  color: lounge.textSecondary,
                 }}
               >
                 {resource.description}
@@ -134,7 +135,7 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
               <Pressable
                 className="flex-row items-center justify-center active:opacity-90"
                 style={{
-                  backgroundColor: EMS_LOUNGE.accent,
+                  backgroundColor: lounge.accent,
                   borderRadius: 12,
                   paddingVertical: 14,
                 }}
@@ -187,21 +188,21 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
               <Pressable
                 className="flex-row items-center justify-center active:opacity-90"
                 style={{
-                  backgroundColor: EMS_LOUNGE.surfaceElevated,
+                  backgroundColor: lounge.surfaceElevated,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: EMS_LOUNGE.border,
+                  borderColor: lounge.border,
                   paddingVertical: 14,
                 }}
                 onPress={() => setEmailOpen(true)}
               >
-                <Ionicons name="mail-outline" size={20} color={EMS_LOUNGE.text} />
+                <Ionicons name="mail-outline" size={20} color={lounge.text} />
                 <Text
                   style={{
                     marginLeft: 8,
                     fontFamily: 'Pretendard-SemiBold',
                     fontSize: 15,
-                    color: EMS_LOUNGE.text,
+                    color: lounge.text,
                   }}
                 >
                   이메일로 전송

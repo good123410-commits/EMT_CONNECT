@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { APP_COLORS, APP_FONT } from '@/constants/appTheme';
+import { APP_FONT } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import type { MedicalMapTab } from '@/types/medicalMap';
 
 const MAP_CATEGORY_OPTIONS: { value: MedicalMapTab; label: string }[] = [
@@ -16,6 +17,8 @@ type MedicalMapCategoryBarProps = {
 };
 
 export function MedicalMapCategoryBar({ value, onChange }: MedicalMapCategoryBarProps) {
+  const { colors } = useThemedColors();
+
   return (
     <View className="bg-kemix-surface pb-2 pt-2">
       <ScrollView
@@ -35,16 +38,16 @@ export function MedicalMapCategoryBar({ value, onChange }: MedicalMapCategoryBar
                 paddingHorizontal: 14,
                 paddingVertical: 9,
                 borderRadius: 999,
-                backgroundColor: active ? APP_COLORS.blue : APP_COLORS.surfaceElevated,
+                backgroundColor: active ? colors.blue : colors.surfaceElevated,
                 borderWidth: active ? 0 : 1,
-                borderColor: APP_COLORS.border,
+                borderColor: colors.border,
               }}
             >
               <Text
                 style={{
                   fontFamily: active ? APP_FONT.semibold : APP_FONT.medium,
                   fontSize: 13,
-                  color: active ? '#FFFFFF' : APP_COLORS.textSecondary,
+                  color: active ? '#FFFFFF' : colors.textSecondary,
                 }}
               >
                 {option.label}

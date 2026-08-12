@@ -2,8 +2,9 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, Text, View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { APP_BORDER, APP_COLORS, APP_RADIUS } from '@/constants/appTheme';
+import { APP_RADIUS } from '@/constants/appTheme';
 import { KEMIX_WEB_URL } from '@/constants/env';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { fetchActiveHomeEventBanners } from '@/services/homeBannerService';
 import type { HomeBanner } from '@/types/homeDashboard';
 
@@ -40,6 +41,7 @@ async function openBannerLink(url: string): Promise<void> {
 }
 
 export function ShortcodeAdBanner({ bannerId }: ShortcodeAdBannerProps) {
+  const { colors } = useThemedColors();
   const [banner, setBanner] = useState<HomeBanner | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -72,9 +74,9 @@ export function ShortcodeAdBanner({ bannerId }: ShortcodeAdBannerProps) {
     return (
       <View
         className="my-4 items-center justify-center rounded-2xl border border-kemix-border bg-kemix-surface"
-        style={{ minHeight: 120, ...APP_BORDER.card }}
+        style={{ minHeight: 120 }}
       >
-        <ActivityIndicator color={APP_COLORS.blue} />
+        <ActivityIndicator color={colors.blue} />
       </View>
     );
   }
@@ -94,11 +96,11 @@ export function ShortcodeAdBanner({ bannerId }: ShortcodeAdBannerProps) {
       accessibilityRole="button"
       accessibilityLabel={`광고 배너: ${banner.title}`}
       onPress={handlePress}
-      className="my-4 overflow-hidden rounded-2xl active:opacity-95"
+      className="my-4 overflow-hidden rounded-2xl bg-kemix-surface active:opacity-95"
       style={{
         borderRadius: APP_RADIUS.card,
-        ...APP_BORDER.card,
-        backgroundColor: APP_COLORS.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
       }}
     >
       {banner.imageUrl ? (
@@ -109,10 +111,10 @@ export function ShortcodeAdBanner({ bannerId }: ShortcodeAdBannerProps) {
         />
       ) : (
         <View
-          className="items-center justify-center"
-          style={{ height: 120, backgroundColor: APP_COLORS.surfaceElevated }}
+          className="items-center justify-center bg-kemix-surface-elevated"
+          style={{ height: 120 }}
         >
-          <AppIcon name="image-outline" size={28} color={APP_COLORS.textMuted} />
+          <AppIcon name="image-outline" size={28} color={colors.textMuted} />
         </View>
       )}
       <View className="px-4 py-3">
@@ -126,7 +128,7 @@ export function ShortcodeAdBanner({ bannerId }: ShortcodeAdBannerProps) {
         {banner.linkUrl?.trim() ? (
           <View className="mt-2 flex-row items-center">
             <Text className="text-xs font-semibold text-blue-600">자세히 보기</Text>
-            <AppIcon name="chevron-right" size={16} color={APP_COLORS.blue} />
+            <AppIcon name="chevron-right" size={16} color={colors.blue} />
           </View>
         ) : null}
       </View>

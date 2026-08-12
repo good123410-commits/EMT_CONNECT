@@ -1,8 +1,8 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { PrivateEmsDispatchProvider } from '@/contexts/PrivateEmsDispatchContext';
-import { APP_COLORS } from '@/constants/appTheme';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { PrivateEmsCallboardScreen } from '@/screens/expert/privateEms/PrivateEmsCallboardScreen';
 import { PrivateEmsEmptyVehicleScreen } from '@/screens/expert/privateEms/PrivateEmsEmptyVehicleScreen';
 import { PrivateEmsMyControlScreen } from '@/screens/expert/privateEms/PrivateEmsMyControlScreen';
@@ -23,11 +23,12 @@ function TabBarIcon({ name, color }: { name: AppIconName; color: string }) {
  * 사설 구급차 전용 Root Tab Navigator.
  */
 export function PrivateEmsTabNavigator() {
+  const { colors } = useThemedColors();
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
     activeTintColor: '#F97316',
-    inactiveTintColor: APP_COLORS.tabInactive,
-    backgroundColor: APP_COLORS.surface,
-    borderTopColor: APP_COLORS.border,
+    inactiveTintColor: colors.tabInactive,
+    backgroundColor: colors.surface,
+    borderTopColor: colors.border,
     labelFontSize: 11,
   });
 

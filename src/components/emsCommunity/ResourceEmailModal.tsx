@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { LoungePrimaryButton } from '@/components/emsCommunity/loungeUi';
-import { EMS_LOUNGE } from '@/constants/emsLoungeTheme';
+import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { sendResourceByEmail } from '@/services/resourceEmailService';
 import { formatResourceFileSize } from '@/services/kemixResourceService';
 import type { KemixResource } from '@/types/kemixResource';
@@ -25,6 +25,7 @@ type ResourceEmailModalProps = {
 
 export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmailModalProps) {
   const { user } = useAuth();
+  const { lounge } = useEmsLoungeTheme();
   const [email, setEmail] = useState(user?.email ?? '');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,13 +73,13 @@ export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmail
       >
         <Pressable
           style={{
-            backgroundColor: EMS_LOUNGE.surface,
+            backgroundColor: lounge.surface,
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             padding: 24,
             paddingBottom: 32,
             borderWidth: 1,
-            borderColor: EMS_LOUNGE.border,
+            borderColor: lounge.border,
           }}
           onPress={(e) => e.stopPropagation()}
         >
@@ -86,7 +87,7 @@ export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmail
             style={{
               fontFamily: 'Pretendard-Bold',
               fontSize: 18,
-              color: EMS_LOUNGE.text,
+              color: lounge.text,
             }}
           >
             이메일로 자료 전송
@@ -97,10 +98,10 @@ export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmail
               fontFamily: 'Pretendard',
               fontSize: 14,
               lineHeight: 20,
-              color: EMS_LOUNGE.textSecondary,
+              color: lounge.textSecondary,
             }}
           >
-            <Text style={{ fontFamily: 'Pretendard-SemiBold', color: EMS_LOUNGE.text }}>
+            <Text style={{ fontFamily: 'Pretendard-SemiBold', color: lounge.text }}>
               {resource.title}
             </Text>
             {' '}다운로드 링크를 입력한 이메일로 보내드립니다.
@@ -112,7 +113,7 @@ export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmail
                 marginTop: 20,
                 fontFamily: 'Pretendard-SemiBold',
                 fontSize: 14,
-                color: EMS_LOUNGE.green,
+                color: lounge.green,
               }}
             >
               이메일이 전송되었습니다.
@@ -125,7 +126,7 @@ export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmail
                   marginBottom: 6,
                   fontFamily: 'Pretendard-SemiBold',
                   fontSize: 12,
-                  color: EMS_LOUNGE.textMuted,
+                  color: lounge.textMuted,
                 }}
               >
                 받는 이메일
@@ -134,18 +135,18 @@ export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmail
                 style={{
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: EMS_LOUNGE.border,
-                  backgroundColor: EMS_LOUNGE.surfaceElevated,
+                  borderColor: lounge.border,
+                  backgroundColor: lounge.surfaceElevated,
                   paddingHorizontal: 14,
                   paddingVertical: 12,
                   fontFamily: 'Pretendard',
                   fontSize: 14,
-                  color: EMS_LOUNGE.text,
+                  color: lounge.text,
                 }}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="example@email.com"
-                placeholderTextColor={EMS_LOUNGE.textMuted}
+                placeholderTextColor={lounge.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 editable={!sending}
@@ -156,7 +157,7 @@ export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmail
                     marginTop: 8,
                     fontFamily: 'Pretendard',
                     fontSize: 13,
-                    color: EMS_LOUNGE.error,
+                    color: lounge.error,
                   }}
                 >
                   {error}
@@ -173,7 +174,7 @@ export function ResourceEmailModal({ resource, visible, onClose }: ResourceEmail
                     style={{
                       fontFamily: 'Pretendard-SemiBold',
                       fontSize: 14,
-                      color: EMS_LOUNGE.textMuted,
+                      color: lounge.textMuted,
                     }}
                   >
                     취소

@@ -12,7 +12,8 @@ type Props = {
 function formatDayHours(day: HospitalDutyDay): string {
   if (day.closed || (!day.start && !day.end)) return '휴무';
   if (day.start && day.end) return `${day.start} ~ ${day.end}`;
-  return day.start || day.end || '시간 미상';
+  if (day.start) return day.start;
+  return day.end || '시간 미상';
 }
 
 export function HospitalWeeklyHours({ schedule, compact = false, appearance = 'default' }: Props) {

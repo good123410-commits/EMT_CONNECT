@@ -10,7 +10,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { APP_COLORS, APP_RADIUS } from '@/constants/appTheme';
+import { APP_RADIUS } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import {
   addMedicationTimerShortcut,
   openMedicationWidgetGuide,
@@ -23,6 +24,7 @@ type MedicationShortcutGuideModalProps = {
 
 export function MedicationShortcutGuideModal({ visible, onClose }: MedicationShortcutGuideModalProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useThemedColors();
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -31,10 +33,11 @@ export function MedicationShortcutGuideModal({ visible, onClose }: MedicationSho
       </Pressable>
 
       <View
+        className="bg-kemix-surface"
         style={{
           borderTopLeftRadius: APP_RADIUS.cardLg,
           borderTopRightRadius: APP_RADIUS.cardLg,
-          backgroundColor: APP_COLORS.surface,
+          backgroundColor: colors.surface,
           paddingBottom: Math.max(insets.bottom, 16),
           maxHeight: '80%',
         }}
@@ -42,7 +45,7 @@ export function MedicationShortcutGuideModal({ visible, onClose }: MedicationSho
         <View className="flex-row items-center justify-between border-b border-kemix-border-light px-5 py-4">
           <Text className="text-base font-bold text-kemix-text">홈 화면 위젯 · 바로가기</Text>
           <Pressable onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={22} color="#64748b" />
+            <Ionicons name="close" size={22} color={colors.textMuted} />
           </Pressable>
         </View>
 

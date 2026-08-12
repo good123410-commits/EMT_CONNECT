@@ -111,3 +111,34 @@ export function getPharmacyOpenStatus(
     hoursLabel: `${hours.start}~${hours.end}`,
   };
 }
+
+export const PHARMACY_WEEKDAY_ORDER = [
+  '월요일',
+  '화요일',
+  '수요일',
+  '목요일',
+  '금요일',
+  '토요일',
+  '일요일',
+  '공휴일',
+] as const;
+
+/** 오늘 심야약국 지정 여부 — 오늘 요일에 운영시간 데이터가 있으면 true */
+export function isTodayNightPharmacy(record: Pick<LocalPharmacyRecord, 'wh'>, now = new Date()): boolean {
+  const dayCode = getTreatmentDayCode(now);
+  const hours = getPharmacyHoursForDay(record.wh, dayCode);
+  return Boolean(hours?.start || hours?.end);
+}
+
+export function buildPharmacyWeeklyRows(
+  weeklyHours: string[] | undefined,
+): Array<{ dayLabel: string; hours: string; isToday: boolean }> {
+  const todayCode = getTreatmentDayCode();
+  return PHARMACY_WEEKDAY_ORDER.map((dayLabel, index) => {
+    const dayCode = index < 7 ? index + 1 : 8;
+    const isToday = dayCode === todayCode;
+    const raw = weeklyHours?.[index]?.trim() ?? '';
+    const hours = !raw || raw.includes('휴무') ? '휴무' : raw;
+    return { dayLabel, hours, isToday };
+  });
+}

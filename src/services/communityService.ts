@@ -145,14 +145,23 @@ export async function createQaPost(input: {
   authorLabel?: string;
   categoryId?: string | null;
 }): Promise<CommunityPost> {
+  let categoryId = input.categoryId ?? null;
+  if (!categoryId) {
+    const categories = await fetchQaCategories();
+    categoryId = categories.find((item) => item.slug === QA_CATEGORY_SLUG)?.id ?? null;
+  }
+
   const { data, error } = await supabase.rpc('create_community_bamboo_post', {
     p_title: input.title.trim(),
     p_content: input.content.trim(),
-    p_category_id: input.categoryId ?? null,
+    p_category_id: categoryId,
     p_category_slug: QA_CATEGORY_SLUG,
     p_anonymous_label: input.authorLabel ?? '회원',
   });
   if (error) throw error;
+  if (!data) {
+    throw new Error('create_failed');
+  }
   return mapPost(data as PostRow);
 }
 
@@ -216,6 +225,9 @@ export function parseCommunityError(message: string): string {
   }
   if (message.includes('content_too_short')) {
     return '내용을 5자 이상 입력해 주세요.';
+  }
+  if (message.includes('create_failed')) {
+    return '글 등록에 실패했습니다. 다시 시도해 주세요.';
   }
   return message;
 }

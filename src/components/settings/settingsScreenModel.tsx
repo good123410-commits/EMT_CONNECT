@@ -29,6 +29,7 @@ import {
 } from '@/constants/legalContent';
 import { ServicePolicyModal } from '@/components/legal/ServicePolicyModal';
 import { ProfileEditSheet } from '@/components/settings/ProfileEditSheet';
+import { ThemePickerSection } from '@/components/settings/ThemePickerSection';
 import { SettingsDonationModal } from '@/components/settings/SettingsDonationModal';
 import { SettingsAdminPortalModal } from '@/components/settings/SettingsAdminPortalModal';
 import { SettingsParamedicPortalModal } from '@/components/settings/SettingsParamedicPortalModal';
@@ -186,8 +187,21 @@ function useSettingsScreenState(): SettingsScreenState {
   );
 }
 
-export function SettingsScreenProvider({ children }: { children: ReactNode }) {
+export function SettingsScreenProvider({
+  children,
+  initialAction,
+}: {
+  children: ReactNode;
+  initialAction?: string;
+}) {
   const value = useSettingsScreenState();
+
+  useEffect(() => {
+    if (initialAction === 'editProfile') {
+      value.setProfileEditVisible(true);
+    }
+  }, [initialAction]);
+
   return <SettingsScreenContext.Provider value={value}>{children}</SettingsScreenContext.Provider>;
 }
 
@@ -286,6 +300,8 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
           </>
         )}
       </SettingsSection>
+
+      <ThemePickerSection />
 
       <SettingsSection title="법적 고지">
         <SettingsRow

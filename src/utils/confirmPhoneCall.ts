@@ -1,4 +1,5 @@
 import { Alert, Linking, Platform } from 'react-native';
+import { interceptEmergencyCall, isEmergencyHotline } from '@/utils/emergencySms';
 
 function normalizeTelUri(phone: string): string | null {
   const digits = phone.replace(/[^\d+]/g, '');
@@ -11,6 +12,11 @@ export function confirmPhoneCall(facilityName: string, phone: string | undefined
 
   const tel = normalizeTelUri(trimmed);
   if (!tel) return;
+
+  if (isEmergencyHotline(tel)) {
+    void interceptEmergencyCall({ phone: tel });
+    return;
+  }
 
   const displayName = facilityName.trim() || '해당 시설';
   const message = `${displayName}에 통화하시겠습니까?`;

@@ -1,6 +1,7 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
+import { useAppTheme } from '@/contexts/AppThemeContext';
 import {
   LOCAL_COMMUNITY_CATEGORY_LABELS,
   type LocalCommunityPost,
@@ -13,6 +14,8 @@ type LocalCommunityPostCardProps = {
 };
 
 export function LocalCommunityPostCard({ post, onReport }: LocalCommunityPostCardProps) {
+  const { colors } = useAppTheme();
+
   const handleReport = () => {
     Alert.alert(
       '신고하기',
@@ -48,28 +51,45 @@ export function LocalCommunityPostCard({ post, onReport }: LocalCommunityPostCar
   });
 
   return (
-    <View className="rounded-xl border border-kemix-border-light bg-kemix-surface p-3">
+    <View
+      className="rounded-xl border p-3"
+      style={{
+        backgroundColor: colors.surface,
+        borderColor: colors.borderLight,
+      }}
+    >
       <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1">
-          <Text className="text-xs font-bold text-kemix-text">{post.anonymousLabel}</Text>
-          <View className="mx-2 h-3 w-px bg-kemix-elevated" />
-          <Text className="text-[10px] font-semibold text-teal-700">
+        <View className="flex-row flex-1 items-center">
+          <Text className="text-xs font-bold" style={{ color: colors.textPrimary }}>
+            {post.anonymousLabel}
+          </Text>
+          <View
+            className="mx-2 h-3 w-px"
+            style={{ backgroundColor: colors.border }}
+          />
+          <Text className="text-[10px] font-semibold" style={{ color: colors.categoryAccent }}>
             {LOCAL_COMMUNITY_CATEGORY_LABELS[post.category]}
           </Text>
         </View>
         <Pressable className="flex-row items-center px-1 py-0.5" onPress={handleReport} hitSlop={8}>
-          <Ionicons name="flag-outline" size={14} color="#94a3b8" />
-          <Text className="ml-1 text-[10px] text-kemix-muted">신고</Text>
+          <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
+          <Text className="ml-1 text-[10px]" style={{ color: colors.metaText }}>
+            신고
+          </Text>
         </Pressable>
       </View>
       <View className="mt-2">
-        <RichContentRenderer content={post.content} />
+        <RichContentRenderer content={post.content} tone="community" />
       </View>
       <View className="mt-2 flex-row items-center justify-between">
-        <Text className="text-[10px] text-kemix-muted">{createdLabel}</Text>
+        <Text className="text-[10px]" style={{ color: colors.metaText }}>
+          {createdLabel}
+        </Text>
         <View className="flex-row items-center">
-          <Ionicons name="time-outline" size={12} color="#94a3b8" />
-          <Text className="ml-1 text-[10px] text-kemix-muted">{formatRemainingTtl(post.expiresAt)}</Text>
+          <Ionicons name="time-outline" size={12} color={colors.textMuted} />
+          <Text className="ml-1 text-[10px]" style={{ color: colors.metaText }}>
+            {formatRemainingTtl(post.expiresAt)}
+          </Text>
         </View>
       </View>
     </View>

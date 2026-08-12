@@ -138,8 +138,17 @@ function mapResourceToUpsertInput(input: UpsertResourceDocumentInput): UpsertCom
 }
 
 function parseServiceError(message: string): string {
+  if (message.includes('not_authenticated')) {
+    return '로그인 후 글을 작성할 수 있습니다.';
+  }
   if (message.includes('not_authorized_community')) {
     return '승인된 구급대원 또는 관리자만 글을 작성할 수 있습니다.';
+  }
+  if (message.includes('title_too_short')) {
+    return '제목을 4자 이상 입력해 주세요.';
+  }
+  if (message.includes('content_too_short')) {
+    return '본문을 10자 이상 입력해 주세요.';
   }
   if (message.includes('not_authorized_admin')) {
     return '승인된 DB 관리자만 이 작업을 수행할 수 있습니다.';
@@ -189,6 +198,7 @@ export function mapRowToChat(row: EmsCommunityPostRow): ChatMessage {
     anonymousLabel: row.anonymous_label,
     content: row.content,
     postedAt: formatRelativeTimeKo(row.created_at),
+    createdAt: row.created_at,
   };
 }
 
@@ -273,12 +283,35 @@ export async function adminDeleteResourceDocument(id: string): Promise<void> {
 }
 
 function normalizeTags(tags: string[] | null | undefined): string[] {
-  return (tags ?? []).filter(Boolean);
+  return (tags ?? [])
+    .map((tag) => tag?.trim().replace(/^#+/, ''))
+    .filter((tag): tag is string => {
+      if (!tag) return false;
+      if (/^0+$/.test(tag)) return false;
+      return true;
+    });
 }
 
 export async function fetchChatMessages(roomId: string): Promise<ChatMessage[]> {
   const rows = await fetchPostsByType('chat', roomId);
   return rows.map(mapRowToChat);
+}
+
+export async function fetchChatMessagesForRoom(roomId: string): Promise<ChatMessage[]> {
+  const { data, error } = await supabase
+    .from(EMS_COMMUNITY_POSTS_TABLE)
+    .select('*')
+    .eq('post_type', 'chat')
+    .eq('room_id', roomId)
+    .eq('is_hidden', false)
+    .order('created_at', { ascending: true })
+    .limit(200);
+
+  if (error) {
+    throw new EmsCommunityServiceError(parseServiceError(error.message));
+  }
+
+  return ((data ?? []) as EmsCommunityPostRow[]).map(mapRowToChat);
 }
 
 export async function fetchJobPosts(): Promise<JobPost[]> {
@@ -397,14 +430,31 @@ export async function createCaseStudyPost(
   title: string,
   summary: string,
   body: string,
-  tags: string[],
 ): Promise<CaseStudyPost> {
+  const { data, error } = await supabase.rpc('create_ems_case_study_post', {
+    p_title: title.trim(),
+    p_summary: summary.trim() || null,
+    p_content: body.trim(),
+  });
+
+  if (!error && data) {
+    return mapRowToCaseStudy(data as EmsCommunityPostRow);
+  }
+
+  const rpcMissing =
+    error?.message?.toLowerCase().includes('could not find the function') ||
+    error?.message?.toLowerCase().includes('function public.create_ems_case_study_post');
+
+  if (error && !rpcMissing) {
+    throw new EmsCommunityServiceError(parseServiceError(error.message));
+  }
+
   const row = await insertPost({
     postType: 'case_study',
-    title,
-    summary,
-    content: body,
-    tags,
+    title: title.trim(),
+    summary: summary.trim() || body.trim().slice(0, 80),
+    content: body.trim(),
+    tags: [],
   });
   return mapRowToCaseStudy(row);
 }

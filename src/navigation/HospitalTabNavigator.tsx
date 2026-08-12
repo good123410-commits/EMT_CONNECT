@@ -1,8 +1,8 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { APP_COLORS } from '@/constants/appTheme';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 export type HospitalTabParamList = {
   Dashboard: undefined;
@@ -23,11 +23,12 @@ const MapScreen = createDeferredScreen(() => require('@/screens/MapScreen').MapS
 const RewardsScreen = createDeferredScreen(() => require('@/screens/RewardsScreen').RewardsScreen);
 
 export function HospitalTabNavigator() {
+  const { colors } = useThemedColors();
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
-    activeTintColor: APP_COLORS.blue,
-    inactiveTintColor: APP_COLORS.tabInactive,
-    backgroundColor: APP_COLORS.surface,
-    borderTopColor: APP_COLORS.border,
+    activeTintColor: colors.blue,
+    inactiveTintColor: colors.tabInactive,
+    backgroundColor: colors.surface,
+    borderTopColor: colors.border,
     labelFontSize: 11,
   });
 

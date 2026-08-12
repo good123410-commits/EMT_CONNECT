@@ -66,7 +66,7 @@ const AllServicesScreen = createDeferredScreen(
 );
 
 export function MainTabNavigator() {
-  const { screenOptions, safeAreaInsets } = useMainTabBarConfig();
+  const { screenOptions, safeAreaInsets, sceneBackgroundColor } = useMainTabBarConfig();
 
   return (
     <Tab.Navigator
@@ -75,6 +75,7 @@ export function MainTabNavigator() {
       screenOptions={{
         ...screenOptions,
         lazy: true,
+        sceneStyle: { backgroundColor: sceneBackgroundColor },
       }}
     >
       <Tab.Screen

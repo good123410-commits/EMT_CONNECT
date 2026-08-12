@@ -1,8 +1,9 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { APP_COLORS, APP_RADIUS } from '@/constants/appTheme';
+import { APP_RADIUS } from '@/constants/appTheme';
 import { UTILITY_TOOL_ITEMS } from '@/constants/utilityTools';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import type { UtilityToolRoute } from '@/constants/utilityTools';
 
 type MoreMenuModalProps = {
@@ -28,6 +29,7 @@ export function MoreMenuModal({
   onOpenChemicalInfo,
 }: MoreMenuModalProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useThemedColors();
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -39,19 +41,20 @@ export function MoreMenuModal({
             styles.sheet,
             {
               paddingBottom: Math.max(insets.bottom, 16),
+              backgroundColor: colors.surface,
             },
           ]}
         >
         <View style={styles.handleWrap}>
-          <View style={styles.handle} />
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>
         <View
           className="flex-row items-center justify-between px-5 py-4"
-          style={{ borderBottomWidth: 1, borderBottomColor: APP_COLORS.borderLight }}
+          style={{ borderBottomWidth: 1, borderBottomColor: colors.borderLight }}
         >
           <Text
-            className="text-[17px] leading-6"
-            style={{ fontFamily: 'Pretendard-Bold', color: APP_COLORS.navy }}
+            className="text-[17px] leading-6 text-kemix-text"
+            style={{ fontFamily: 'Pretendard-Bold' }}
           >
             더보기 · 응급 유틸
           </Text>
@@ -59,11 +62,11 @@ export function MoreMenuModal({
             accessibilityRole="button"
             accessibilityLabel="닫기"
             className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
-            style={{ backgroundColor: APP_COLORS.blueLight }}
+            style={{ backgroundColor: colors.blueLight }}
             onPress={onClose}
             hitSlop={8}
           >
-            <AppIcon name="close" size={18} color={APP_COLORS.textSecondary} />
+            <AppIcon name="close" size={18} color={colors.textSecondary} />
           </Pressable>
         </View>
 
@@ -77,7 +80,7 @@ export function MoreMenuModal({
             style={{
               borderRadius: APP_RADIUS.card,
               borderWidth: 1,
-              borderColor: APP_COLORS.borderLight,
+              borderColor: colors.borderLight,
             }}
           >
             <Pressable
@@ -86,7 +89,7 @@ export function MoreMenuModal({
                 paddingVertical: 13,
                 paddingHorizontal: 14,
                 borderBottomWidth: 1,
-                borderBottomColor: APP_COLORS.borderLight,
+                borderBottomColor: colors.borderLight,
               }}
               onPress={onOpenChemicalInfo}
             >
@@ -101,12 +104,12 @@ export function MoreMenuModal({
                 <AppIcon name={CHEMICAL_INFO_ITEM.icon} size={20} color={CHEMICAL_INFO_ITEM.accent} />
               </View>
               <Text
-                className="ml-3 flex-1 text-[15px] leading-5"
-                style={{ fontFamily: 'Pretendard-SemiBold', color: APP_COLORS.navy }}
+                className="ml-3 flex-1 text-[15px] leading-5 text-kemix-text"
+                style={{ fontFamily: 'Pretendard-SemiBold' }}
               >
                 {CHEMICAL_INFO_ITEM.title}
               </Text>
-              <AppIcon name="chevron-right" size={18} color={APP_COLORS.textMuted} />
+              <AppIcon name="chevron-right" size={18} color={colors.textMuted} />
             </Pressable>
 
             {UTILITY_TOOL_ITEMS.map((item, index) => (
@@ -117,7 +120,7 @@ export function MoreMenuModal({
                   paddingVertical: 13,
                   paddingHorizontal: 14,
                   borderBottomWidth: index < UTILITY_TOOL_ITEMS.length - 1 ? 1 : 0,
-                  borderBottomColor: APP_COLORS.borderLight,
+                  borderBottomColor: colors.borderLight,
                 }}
                 onPress={() => onSelectTool(item.route)}
               >
@@ -132,19 +135,19 @@ export function MoreMenuModal({
                   <AppIcon name={item.icon} size={20} color={item.accent} />
                 </View>
                 <Text
-                  className="ml-3 flex-1 text-[15px] leading-5"
-                  style={{ fontFamily: 'Pretendard-SemiBold', color: APP_COLORS.navy }}
+                  className="ml-3 flex-1 text-[15px] leading-5 text-kemix-text"
+                  style={{ fontFamily: 'Pretendard-SemiBold' }}
                 >
                   {item.title}
                 </Text>
-                <AppIcon name="chevron-right" size={18} color={APP_COLORS.textMuted} />
+                <AppIcon name="chevron-right" size={18} color={colors.textMuted} />
               </Pressable>
             ))}
           </View>
 
           <Text
-            className="mt-4 text-center text-[11px] leading-5"
-            style={{ fontFamily: 'Pretendard', color: APP_COLORS.textMuted }}
+            className="mt-4 text-center text-[11px] leading-5 text-kemix-text-muted"
+            style={{ fontFamily: 'Pretendard' }}
           >
             의료 행위·처방을 대체하지 않는 참고용 도구입니다.
           </Text>
@@ -178,6 +181,5 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 999,
-    backgroundColor: APP_COLORS.border,
   },
 });

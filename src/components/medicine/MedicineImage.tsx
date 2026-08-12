@@ -1,5 +1,4 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Image, View } from 'react-native';
 
 type MedicineImageProps = {
@@ -25,7 +24,16 @@ export function MedicineImage({ uri, size = 72 }: MedicineImageProps) {
           onError={() => setFailed(true)}
         />
       ) : (
-        <Ionicons name="medical" size={size * 0.42} color="#94a3b8" />
+        <View
+          style={{
+            width: size * 0.42,
+            height: size * 0.2,
+            borderRadius: size * 0.1,
+            backgroundColor: '#cbd5e1',
+            borderWidth: 1,
+            borderColor: '#94a3b8',
+          }}
+        />
       )}
     </View>
   );

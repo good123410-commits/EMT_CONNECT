@@ -26,21 +26,27 @@ export type ExpertTabBarTheme = {
   tabBarItemPaddingHorizontal?: number;
   /** 상단 구분선 숨김 (토스 스타일) */
   hideTopBorder?: boolean;
+  /** 하단 구분선 표시 (상단 탭용) */
+  showBottomBorder?: boolean;
   /** 메인 6탭 — 균등 분할·촘촘한 아이콘/라벨 */
   compactLayout?: boolean;
   /** 메인 하단 탭 위 EMS 서브 탭 — 하단 safe area 패딩 생략 */
   nestedAboveMainTabBar?: boolean;
+  /** 탭바 위치 */
+  position?: 'top' | 'bottom';
 };
 
 export type ExpertTabBarMetricsOptions = {
   compact?: boolean;
   nestedAboveMainTabBar?: boolean;
+  position?: 'top' | 'bottom';
 };
 
 export type ExpertTabBarMetrics = {
   tabContentHeight: number;
   tabTopPadding: number;
   paddingBottom: number;
+  paddingTop: number;
   marginBottom: number;
   tabBarHeight: number;
   /** 리스트 하단 inset — 탭바 높이 + 메인 탭과의 간격 */
@@ -53,6 +59,24 @@ export function getExpertTabBarMetrics(
 ): ExpertTabBarMetrics {
   const compact = options.compact ?? false;
   const nested = options.nestedAboveMainTabBar ?? false;
+  const position = options.position ?? 'bottom';
+
+  if (position === 'top') {
+    const tabContentHeight = compact ? TAB_CONTENT_HEIGHT_COMPACT : TAB_CONTENT_HEIGHT_DEFAULT;
+    const tabTopPadding = 0;
+    const paddingTop = 4;
+    const paddingBottom = 8;
+    const tabBarHeight = tabContentHeight + paddingTop + paddingBottom;
+    return {
+      tabContentHeight,
+      tabTopPadding,
+      paddingTop,
+      paddingBottom,
+      marginBottom: 0,
+      tabBarHeight,
+      occupiedBottomSpace: 0, // 상단 탭은 하단 공간을 차지하지 않음
+    };
+  }
 
   if (nested) {
     const tabContentHeight = compact ? TAB_CONTENT_HEIGHT_COMPACT : TAB_CONTENT_HEIGHT_DEFAULT;
@@ -100,7 +124,8 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
   const insets = useSafeAreaInsets();
   const compact = theme.compactLayout ?? false;
   const nestedAboveMainTabBar = theme.nestedAboveMainTabBar ?? false;
-  const metrics = getExpertTabBarMetrics(insets.bottom, { compact, nestedAboveMainTabBar });
+  const position = theme.position ?? 'bottom';
+  const metrics = getExpertTabBarMetrics(insets.bottom, { compact, nestedAboveMainTabBar, position });
 
   return useMemo(
     () => ({
@@ -110,17 +135,22 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
         headerShown: false,
         tabBarActiveTintColor: theme.activeTintColor,
         tabBarInactiveTintColor: theme.inactiveTintColor,
+        tabBarPosition: position,
         tabBarStyle: {
-          borderTopWidth: theme.hideTopBorder ? 0 : 1,
+          borderTopWidth: position === 'bottom' ? (theme.hideTopBorder ? 0 : 1) : 0,
           borderTopColor: theme.borderTopColor,
+          borderBottomWidth: position === 'top' ? (theme.showBottomBorder ? 1 : 0) : 0,
+          borderBottomColor: theme.borderTopColor,
           backgroundColor: theme.backgroundColor,
           height: metrics.tabBarHeight,
-          paddingTop: metrics.tabTopPadding,
+          paddingTop: metrics.paddingTop ?? metrics.tabTopPadding,
           paddingBottom: metrics.paddingBottom,
           paddingHorizontal: 0,
           marginBottom: metrics.marginBottom,
           width: '100%',
           alignSelf: 'stretch',
+          elevation: position === 'top' ? 0 : 4,
+          shadowOpacity: position === 'top' ? 0 : 0.1,
         },
         tabBarItemStyle: {
           flex: 1,
@@ -137,32 +167,28 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
           paddingHorizontal: compact ? 0 : (theme.tabBarItemPaddingHorizontal ?? 0),
           marginHorizontal: 0,
         },
-        tabBarLabelStyle: compact
-          ? {
-              fontSize: theme.labelFontSize ?? 11,
-              fontFamily: 'Pretendard-SemiBold',
-              marginTop: 2,
-              marginBottom: 0,
-            }
-          : {
-              fontSize: theme.labelFontSize ?? 11,
-              fontFamily: 'Pretendard-SemiBold',
-              marginTop: 2,
-              marginBottom: 0,
-            },
+        tabBarLabelStyle: {
+          fontSize: theme.labelFontSize ?? (position === 'top' ? 13 : 11),
+          fontFamily: 'Pretendard-SemiBold',
+          marginTop: position === 'top' ? 0 : 2,
+          marginBottom: 0,
+        },
         tabBarAllowFontScaling: false,
         tabBarIconStyle: {
           marginTop: 0,
           marginBottom: 0,
+          display: position === 'top' ? 'none' : 'flex',
         },
       },
     }),
     [
       compact,
+      position,
       metrics.marginBottom,
       metrics.paddingBottom,
-      metrics.tabBarHeight,
+      metrics.paddingTop,
       metrics.tabTopPadding,
+      metrics.tabBarHeight,
       theme.activeTintColor,
       theme.backgroundColor,
       theme.borderTopColor,
@@ -170,6 +196,7 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
       theme.labelFontSize,
       theme.tabBarItemPaddingHorizontal,
       theme.hideTopBorder,
+      theme.showBottomBorder,
     ],
   );
 }

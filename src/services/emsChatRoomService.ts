@@ -2,10 +2,11 @@ import { supabase } from '@/lib/supabaseClient';
 import type { ChatMessage } from '@/data/paramedicMockData';
 import {
   EmsCommunityServiceError,
-  fetchChatMessages,
+  fetchChatMessagesForRoom,
   mapRowToChat,
   type EmsCommunityPostRow,
 } from '@/services/emsCommunityService';
+import { generateAnonymousLabel } from '@/utils/localCommunityModeration';
 
 export const EMS_CHAT_ROOMS_TABLE = 'ems_chat_rooms';
 
@@ -15,6 +16,11 @@ export type EmsChatRoom = {
   region: string | null;
   category: string | null;
   description: string | null;
+  creatorLabel: string | null;
+  messageCount: number;
+  participantCount: number;
+  lastMessagePreview: string | null;
+  lastMessageAt: string | null;
   isActive: boolean;
   createdBy: string | null;
   createdAt: string;
@@ -28,12 +34,20 @@ export type EmsChatRoomRow = {
   region: string | null;
   category: string | null;
   description: string | null;
+  creator_label: string | null;
+  message_count: number;
+  participant_count: number;
+  last_message_preview: string | null;
+  last_message_at: string | null;
   is_active: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;
 };
+
+export const EMS_CHAT_CATEGORIES = ['지역', '주제', '통합', '행사', '야간', '기타'] as const;
+export type EmsChatCategory = (typeof EMS_CHAT_CATEGORIES)[number];
 
 export type CreateChatRoomInput = {
   roomName: string;
@@ -65,6 +79,11 @@ export function mapRowToChatRoom(row: EmsChatRoomRow): EmsChatRoom {
     region: row.region,
     category: row.category,
     description: row.description,
+    creatorLabel: row.creator_label,
+    messageCount: row.message_count ?? 0,
+    participantCount: row.participant_count ?? 0,
+    lastMessagePreview: row.last_message_preview,
+    lastMessageAt: row.last_message_at,
     isActive: row.is_active,
     createdBy: row.created_by,
     createdAt: row.created_at,
@@ -73,12 +92,38 @@ export function mapRowToChatRoom(row: EmsChatRoomRow): EmsChatRoom {
   };
 }
 
+export function formatEmsChatTimestamp(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  if (isToday) {
+    return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  return date.toLocaleString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function formatEmsRoomListTimestamp(iso: string | null): string {
+  if (!iso) return '';
+  return formatEmsChatTimestamp(iso);
+}
+
 export async function fetchActiveChatRooms(): Promise<EmsChatRoom[]> {
   const { data, error } = await supabase
     .from(EMS_CHAT_ROOMS_TABLE)
     .select('*')
     .eq('is_active', true)
-    .order('created_at', { ascending: true });
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
 
   if (error) {
     throw new EmsCommunityServiceError(parseChatRoomError(error.message));
@@ -100,10 +145,10 @@ export async function fetchAllChatRooms(): Promise<EmsChatRoom[]> {
   return ((data ?? []) as EmsChatRoomRow[]).map(mapRowToChatRoom);
 }
 
-export async function adminCreateChatRoom(input: CreateChatRoomInput): Promise<EmsChatRoom> {
+export async function createCommunityChatRoom(input: CreateChatRoomInput): Promise<EmsChatRoom> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user?.id) {
-    throw new EmsCommunityServiceError('로그인 후 채팅방을 생성할 수 있습니다.');
+    throw new EmsCommunityServiceError('로그인 후 채팅방을 개설할 수 있습니다.');
   }
 
   const payload = {
@@ -111,6 +156,7 @@ export async function adminCreateChatRoom(input: CreateChatRoomInput): Promise<E
     region: input.region?.trim() || null,
     category: input.category?.trim() || null,
     description: input.description?.trim() || null,
+    creator_label: generateAnonymousLabel(),
     is_active: true,
     created_by: auth.user.id,
     updated_at: new Date().toISOString(),
@@ -127,6 +173,11 @@ export async function adminCreateChatRoom(input: CreateChatRoomInput): Promise<E
   }
 
   return mapRowToChatRoom(data as EmsChatRoomRow);
+}
+
+/** @deprecated createCommunityChatRoom 사용 */
+export async function adminCreateChatRoom(input: CreateChatRoomInput): Promise<EmsChatRoom> {
+  return createCommunityChatRoom(input);
 }
 
 export async function adminDeactivateChatRoom(roomId: string): Promise<EmsChatRoom> {
@@ -196,7 +247,7 @@ export async function adminDeactivateChatRoom(roomId: string): Promise<EmsChatRo
 }
 
 export async function fetchChatRoomMessages(roomId: string): Promise<ChatMessage[]> {
-  return fetchChatMessages(roomId);
+  return fetchChatMessagesForRoom(roomId);
 }
 
 export async function adminFetchChatRoomMessages(roomId: string): Promise<ChatMessage[]> {

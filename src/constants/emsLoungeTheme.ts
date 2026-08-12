@@ -1,7 +1,33 @@
-/** EMS 커뮤니티(히든 라운지) — 앱 다크 테마와 정렬 */
+/** EMS 커뮤니티(히든 라운지) — 앱 전역 테마와 연동 */
 
-export const EMS_LOUNGE = {
-  /** 제목·강조 텍스트 (레거시 alias: navy) */
+import { useMemo } from 'react';
+import type { AppColorPalette } from '@/constants/appThemes';
+import { useThemedColors } from '@/hooks/useThemedColors';
+
+export type EmsLoungePalette = {
+  navy: string;
+  text: string;
+  navyMid: string;
+  accent: string;
+  accentSoft: string;
+  accentMuted: string;
+  green: string;
+  greenSoft: string;
+  background: string;
+  surface: string;
+  surfaceElevated: string;
+  textSecondary: string;
+  textMuted: string;
+  border: string;
+  borderLight: string;
+  error: string;
+  errorBg: string;
+  amberBg: string;
+  amberText: string;
+};
+
+/** @deprecated use useEmsLoungeTheme() — 레거시 정적 다크 팔레트 */
+export const EMS_LOUNGE: EmsLoungePalette = {
   navy: '#FFFFFF',
   text: '#FFFFFF',
   navyMid: '#242424',
@@ -21,7 +47,50 @@ export const EMS_LOUNGE = {
   errorBg: '#2A1A1A',
   amberBg: '#2A2218',
   amberText: '#FBBF24',
-} as const;
+};
+
+export function mapAppPaletteToEmsLounge(colors: AppColorPalette, isDark: boolean): EmsLoungePalette {
+  return {
+    navy: colors.navy,
+    text: colors.textPrimary,
+    navyMid: colors.surfaceElevated,
+    accent: colors.blue,
+    accentSoft: colors.blueSoft,
+    accentMuted: colors.blueMuted,
+    green: '#34D399',
+    greenSoft: isDark ? '#1A2E28' : '#D1FAE5',
+    background: colors.background,
+    surface: colors.surface,
+    surfaceElevated: colors.surfaceElevated,
+    textSecondary: colors.textSecondary,
+    textMuted: colors.textMuted,
+    border: colors.border,
+    borderLight: colors.borderLight,
+    error: '#F87171',
+    errorBg: isDark ? '#2A1A1A' : '#FEF2F2',
+    amberBg: isDark ? '#2A2218' : '#FEF3C7',
+    amberText: '#FBBF24',
+  };
+}
+
+export function useEmsLoungeTheme() {
+  const { colors, isDark } = useThemedColors();
+
+  return useMemo(() => {
+    const lounge = mapAppPaletteToEmsLounge(colors, isDark);
+    const chip = {
+      activeBg: lounge.accent,
+      activeText: '#FFFFFF',
+      inactiveBg: lounge.surfaceElevated,
+      inactiveText: lounge.textSecondary,
+      inactiveBorder: lounge.border,
+      radius: 999,
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+    };
+    return { lounge, chip };
+  }, [colors, isDark]);
+}
 
 export const EMS_LOUNGE_SHADOW = {
   card: {
@@ -48,7 +117,7 @@ export const EMS_LOUNGE_SPACING = {
   headerBottom: 12,
 } as const;
 
-/** 필터 칩 공통 스타일 토큰 */
+/** @deprecated use useEmsLoungeTheme().chip */
 export const EMS_LOUNGE_CHIP = {
   activeBg: EMS_LOUNGE.accent,
   activeText: '#FFFFFF',

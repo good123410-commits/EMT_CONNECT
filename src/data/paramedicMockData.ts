@@ -26,6 +26,7 @@ export type ChatMessage = {
   anonymousLabel: string;
   content: string;
   postedAt: string;
+  createdAt: string;
 };
 
 export type ResourceDocument = {
@@ -141,6 +142,7 @@ export const CHAT_MESSAGES: ChatMessage[] = [
     anonymousLabel: '익명 · 서울',
     content: '오늘 밤 통합방 — 전국 ER 혼잡도 공유해요. 개인정보·병원 실명은 올리지 말아주세요.',
     postedAt: '10분 전',
+    createdAt: '2026-08-12T13:40:00.000Z',
   },
   {
     id: 'cm-2',
@@ -148,6 +150,7 @@ export const CHAT_MESSAGES: ChatMessage[] = [
     anonymousLabel: '익명 · 강남',
     content: '서울권 ○○권역 야간 2인1조 미확보 센터 있다는 제보 있음. 면접 때 확인 권장.',
     postedAt: '25분 전',
+    createdAt: '2026-08-12T13:25:00.000Z',
   },
   {
     id: 'cm-3',
@@ -155,6 +158,7 @@ export const CHAT_MESSAGES: ChatMessage[] = [
     anonymousLabel: '익명 · 수원',
     content: '경기 서부권 장거리 이송 많은 날입니다. 교대 조 확인하세요.',
     postedAt: '40분 전',
+    createdAt: '2026-08-12T13:10:00.000Z',
   },
   {
     id: 'cm-4',
@@ -162,6 +166,7 @@ export const CHAT_MESSAGES: ChatMessage[] = [
     anonymousLabel: '익명 · 해운대',
     content: '부산 ER 대기시간 양호. 전원 문의 시 triage 레벨 먼저 공유 부탁.',
     postedAt: '1시간 전',
+    createdAt: '2026-08-12T12:50:00.000Z',
   },
   {
     id: 'cm-5',
@@ -169,6 +174,7 @@ export const CHAT_MESSAGES: ChatMessage[] = [
     anonymousLabel: '익명 · 광주',
     content: '영남·호남권 소속 대원들 환영합니다. 지역별 장비 입고 정보도 공유해요.',
     postedAt: '2시간 전',
+    createdAt: '2026-08-12T11:50:00.000Z',
   },
 ];
 

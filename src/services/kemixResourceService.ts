@@ -31,3 +31,47 @@ export function formatResourceFileSize(bytes: number | null | undefined): string
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+function parseResourceServiceError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('not authorized') || lower.includes('not_authorized')) {
+    return 'DB 관리자 승인 계정만 자료를 등록할 수 있습니다.';
+  }
+  if (lower.includes('title is required')) {
+    return '제목을 입력해 주세요.';
+  }
+  if (lower.includes('file_url is required')) {
+    return '파일 URL을 입력해 주세요.';
+  }
+  if (lower.includes('resource not found')) {
+    return '자료를 찾을 수 없습니다.';
+  }
+  return message || '자료 등록에 실패했습니다.';
+}
+
+export type UpsertKemixResourceInput = {
+  title: string;
+  description?: string;
+  category?: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize?: number | null;
+  isPublished?: boolean;
+};
+
+export async function adminUpsertKemixResource(
+  input: UpsertKemixResourceInput,
+): Promise<KemixResource> {
+  const { data, error } = await supabase.rpc('admin_upsert_resource', {
+    p_title: input.title.trim(),
+    p_description: input.description?.trim() ?? '',
+    p_category: input.category?.trim() || 'general',
+    p_file_url: input.fileUrl.trim(),
+    p_file_name: input.fileName.trim(),
+    p_file_size: input.fileSize ?? null,
+    p_is_published: input.isPublished ?? true,
+  });
+  if (error) throw new Error(parseResourceServiceError(error.message));
+  if (!data) throw new Error('자료가 저장되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+  return data as KemixResource;
+}

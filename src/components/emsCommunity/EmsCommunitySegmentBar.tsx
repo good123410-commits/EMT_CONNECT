@@ -1,19 +1,16 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EMS_COMMUNITY_SEGMENT_OPTIONS, type EmsCommunitySegment } from '@/constants/emsCommunity';
-import { APP_COLORS, APP_FONT, APP_RADIUS, APP_SHADOW, APP_SPACING } from '@/constants/appTheme';
+import { APP_FONT, APP_RADIUS, APP_SHADOW, APP_SPACING } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 type EmsCommunitySegmentBarProps = {
   value: EmsCommunitySegment;
   onChange: (value: EmsCommunitySegment) => void;
 };
 
-const activeShadow = StyleSheet.create({
-  segment: {
-    ...APP_SHADOW.cardSoft,
-  },
-});
-
 export function EmsCommunitySegmentBar({ value, onChange }: EmsCommunitySegmentBarProps) {
+  const { colors } = useThemedColors();
+
   return (
     <View
       className="bg-kemix-surface"
@@ -22,16 +19,16 @@ export function EmsCommunitySegmentBar({ value, onChange }: EmsCommunitySegmentB
         paddingTop: 8,
         paddingBottom: 10,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: APP_COLORS.border,
+        borderBottomColor: colors.border,
       }}
     >
       <View
         className="flex-row p-1"
         style={{
           borderRadius: APP_RADIUS.sm,
-          backgroundColor: APP_COLORS.surfaceElevated,
+          backgroundColor: colors.surfaceElevated,
           borderWidth: 1,
-          borderColor: APP_COLORS.border,
+          borderColor: colors.border,
         }}
       >
         {EMS_COMMUNITY_SEGMENT_OPTIONS.map((option) => {
@@ -47,9 +44,9 @@ export function EmsCommunitySegmentBar({ value, onChange }: EmsCommunitySegmentB
                   borderRadius: APP_RADIUS.sm - 2,
                   paddingVertical: 11,
                   paddingHorizontal: 6,
-                  backgroundColor: active ? APP_COLORS.surface : 'transparent',
+                  backgroundColor: active ? colors.surface : 'transparent',
                 },
-                active ? activeShadow.segment : undefined,
+                active ? APP_SHADOW.cardSoft : undefined,
               ]}
               onPress={() => onChange(option.value)}
             >
@@ -62,7 +59,7 @@ export function EmsCommunitySegmentBar({ value, onChange }: EmsCommunitySegmentB
                   fontFamily: active ? APP_FONT.semibold : APP_FONT.medium,
                   fontSize: 13,
                   lineHeight: 18,
-                  color: active ? APP_COLORS.textPrimary : APP_COLORS.textSecondary,
+                  color: active ? colors.textPrimary : colors.textSecondary,
                 }}
               >
                 {option.label}

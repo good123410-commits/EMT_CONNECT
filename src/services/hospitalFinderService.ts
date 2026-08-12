@@ -18,6 +18,7 @@ import {
   buildFacilityMatchKey,
   normalizeFacilityName,
 } from '@/services/localFacilityStore';
+import type { MoonlightOperatingHours } from '@/types/moonlightHospital';
 import {
   parseWeeklyDutySchedule,
   resolveHospitalOpenStatus,
@@ -65,6 +66,9 @@ export type HospitalFinderItem = {
   isPartner?: boolean;
   customMemo?: string;
   isCustomRecord?: boolean;
+  /** 로컬 JSON 내장 달빛어린이병원 운영시간 (월별 진료일 포함 원문) */
+  localOperatingHours?: MoonlightOperatingHours;
+  isLocalBundled?: boolean;
 };
 
 export type PediatricHospitalSearchOptions = {
@@ -86,6 +90,10 @@ export type PediatricHospitalSearchResult = {
   /** API 응답 시간 초과가 연속 발생해 조회를 중단한 경우 */
   timedOut?: boolean;
   timeoutCount?: number;
+  /** 로컬 JSON 기반 데이터가 포함됨 */
+  localSource?: boolean;
+  /** 공공 API 보강 성공 여부 */
+  apiEnriched?: boolean;
 };
 
 class PediatricFetchBudget {

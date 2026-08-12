@@ -1,16 +1,17 @@
-import { APP_COLORS } from '@/constants/appTheme';
 import { MainTabBarLabel } from '@/components/navigation/MainTabBarLabel';
+import { useAppTheme } from '@/contexts/AppThemeContext';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
 import { PlatformPressable } from '@react-navigation/elements';
 import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 
 /** 메인 하단 탭 — 토스 스타일 미니멀 5탭 */
 export function useMainTabBarConfig() {
+  const { colors } = useAppTheme();
   const base = useExpertTabBarConfig({
-    activeTintColor: APP_COLORS.tabActive,
-    inactiveTintColor: APP_COLORS.tabInactive,
-    backgroundColor: APP_COLORS.surface,
-    borderTopColor: APP_COLORS.border,
+    activeTintColor: colors.tabActive,
+    inactiveTintColor: colors.tabInactive,
+    backgroundColor: colors.surface,
+    borderTopColor: colors.border,
     compactLayout: true,
     tabBarItemPaddingHorizontal: 0,
     labelFontSize: 11,
@@ -39,6 +40,7 @@ export function useMainTabBarConfig() {
 
   return {
     ...base,
+    sceneBackgroundColor: colors.background,
     screenOptions: {
       ...base.screenOptions,
       tabBarLabel: MainTabBarLabel,

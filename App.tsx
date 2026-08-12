@@ -5,7 +5,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import { ThemeRoot } from '@/components/theme/ThemeRoot';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { AppThemeProvider, useAppTheme } from '@/contexts/AppThemeContext';
 import { UserRoleProvider } from '@/contexts/UserRoleContext';
 import { WalletProvider } from '@/contexts/WalletContext';
 // DISABLED: 비상연락망 & 응급카드 (ICE)
@@ -33,6 +35,7 @@ import { V1_STORE_BUILD } from '@/constants/releaseFlags';
 
 function AppProviders() {
   const { ready: fontsReady, loaded: fontsLoaded } = useAppFonts();
+  const { statusBarStyle } = useAppTheme();
   const AppNavigation = require('@/navigation/AppNavigation').AppNavigation;
 
   const DevRoleCheatMenu =
@@ -56,13 +59,11 @@ function AppProviders() {
         <AppLaunchGate>
           <UserRoleProvider>
             <WalletProvider>
-              <View style={styles.root}>
-                {/* DISABLED: 비상연락망 & 응급카드 (ICE) */}
-                {/* <EmergencyOverlayBootstrap /> */}
-                {/* <EmergencyQuickViewBootstrap /> */}
+              <ThemeRoot style={styles.root}>
+                <StatusBar style={statusBarStyle} />
                 <AppNavigation />
                 {DevRoleCheatMenu ? <DevRoleCheatMenu /> : null}
-              </View>
+              </ThemeRoot>
             </WalletProvider>
           </UserRoleProvider>
         </AppLaunchGate>
@@ -86,7 +87,9 @@ export default function App() {
     <AppErrorBoundary>
       <GestureHandlerRootView style={styles.root}>
         <SafeAreaProvider>
-          {booted ? <AppProviders /> : <AppShell />}
+          <AppThemeProvider>
+            {booted ? <AppProviders /> : <AppShell />}
+          </AppThemeProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </AppErrorBoundary>

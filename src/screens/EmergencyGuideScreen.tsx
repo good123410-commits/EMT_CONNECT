@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { GuideAdminCodeModal } from '@/components/guides/GuideAdminCodeModal';
 import { KemiGuideSection } from '@/components/guides/KemiGuideSection';
 import { useAppNavigationHeaderHeight } from '@/components/navigation/AppNavigationHeader';
-import { APP_COLORS } from '@/constants/appTheme';
+import { ThemedScreen } from '@/components/theme/ThemedScreen';
 
 const ADMIN_CODE_TAP_WINDOW_MS = 900;
 
@@ -29,7 +29,7 @@ export function EmergencyGuideScreen() {
   };
 
   return (
-    <View className="flex-1" style={{ backgroundColor: APP_COLORS.background }}>
+    <ThemedScreen>
       <Pressable
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
@@ -51,6 +51,6 @@ export function EmergencyGuideScreen() {
         visible={adminCodeModalVisible}
         onClose={() => setAdminCodeModalVisible(false)}
       />
-    </View>
+    </ThemedScreen>
   );
 }

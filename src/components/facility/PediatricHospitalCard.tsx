@@ -1,6 +1,7 @@
 ﻿import { Text, View } from 'react-native';
 import { HospitalSpecialtyTags } from '@/components/facility/HospitalSpecialtyTags';
 import { HospitalWeeklyHours } from '@/components/facility/HospitalWeeklyHours';
+import { MoonlightHoursTable } from '@/components/facility/MoonlightHoursTable';
 import {
   MedicalFacilityListCard,
   MedicalFacilityListDistanceRow,
@@ -11,7 +12,7 @@ import { MoonlightHospitalBadge } from '@/components/facility/MoonlightHospitalB
 import { PartnerHospitalBadge } from '@/components/facility/PartnerHospitalBadge';
 import type { HospitalFinderItem } from '@/services/hospitalFinderService';
 import type { DistanceUnitMode } from '@/utils/formatDistance';
-import { getTreatmentDayCode } from '@/utils/hospitalHours';
+import { DUTY_DAY_FULL_LABELS, getTreatmentDayCode } from '@/utils/hospitalHours';
 
 type Props = {
   hospital: HospitalFinderItem;
@@ -31,7 +32,9 @@ export function PediatricHospitalCard({
   onPress,
 }: Props) {
   const todayCode = getTreatmentDayCode();
+  const todayLabel = DUTY_DAY_FULL_LABELS[todayCode] ?? '오늘';
   const todaySchedule = hospital.weeklySchedule.find((day) => day.dayCode === todayCode) ?? null;
+  const todayLocalHours = hospital.localOperatingHours?.[todayLabel as keyof typeof hospital.localOperatingHours];
   const variant = hospital.isMoonlightHospital
     ? 'moonlight'
     : hospital.isPediatricCenter
@@ -80,8 +83,16 @@ export function PediatricHospitalCard({
       {expanded ? (
         <View className="mt-3">
           <Text className="mb-2 text-xs font-bold text-kemix-text">요일별 진료시간</Text>
-          <HospitalWeeklyHours schedule={hospital.weeklySchedule} />
+          {hospital.localOperatingHours ? (
+            <MoonlightHoursTable operatingHours={hospital.localOperatingHours} />
+          ) : (
+            <HospitalWeeklyHours schedule={hospital.weeklySchedule} />
+          )}
         </View>
+      ) : todayLocalHours?.trim() ? (
+        <Text className="mt-2 text-xs text-kemix-text-secondary">
+          오늘: {todayLocalHours.trim()}
+        </Text>
       ) : todaySchedule ? (
         <Text className="mt-2 text-xs text-kemix-text-secondary">
           오늘:{' '}

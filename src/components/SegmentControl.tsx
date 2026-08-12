@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { APP_COLORS, APP_RADIUS, APP_SHADOW } from '@/constants/appTheme';
+import { Pressable, View, Text } from 'react-native';
+import { APP_RADIUS, APP_SHADOW } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 type SegmentOption<T extends string> = {
   value: T;
@@ -12,25 +13,21 @@ type SegmentControlProps<T extends string> = {
   onChange: (value: T) => void;
 };
 
-const activeShadow = StyleSheet.create({
-  segment: {
-    ...APP_SHADOW.cardSoft,
-  },
-});
-
 export function SegmentControl<T extends string>({
   options,
   value,
   onChange,
 }: SegmentControlProps<T>) {
+  const { colors } = useThemedColors();
+
   return (
     <View
       className="flex-row p-1.5"
       style={{
         borderRadius: APP_RADIUS.sm,
-        backgroundColor: APP_COLORS.surfaceElevated,
+        backgroundColor: colors.surfaceElevated,
         borderWidth: 1,
-        borderColor: APP_COLORS.border,
+        borderColor: colors.border,
       }}
     >
       {options.map((option) => {
@@ -44,9 +41,9 @@ export function SegmentControl<T extends string>({
                 borderRadius: APP_RADIUS.sm - 2,
                 paddingVertical: 12,
                 paddingHorizontal: 8,
-                backgroundColor: active ? APP_COLORS.surface : 'transparent',
+                backgroundColor: active ? colors.surface : 'transparent',
               },
-              active ? activeShadow.segment : undefined,
+              active ? APP_SHADOW.cardSoft : undefined,
             ]}
             onPress={() => onChange(option.value)}
           >
@@ -54,7 +51,7 @@ export function SegmentControl<T extends string>({
               className="text-center text-sm"
               style={{
                 fontFamily: active ? 'Pretendard-SemiBold' : 'Pretendard-Medium',
-                color: active ? APP_COLORS.textPrimary : APP_COLORS.textSecondary,
+                color: active ? colors.textPrimary : colors.textSecondary,
               }}
             >
               {option.label}

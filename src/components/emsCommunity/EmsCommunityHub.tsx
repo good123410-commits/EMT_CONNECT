@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { LayoutAnimation, Platform, UIManager, View } from 'react-native';
 import { EmsCommunityContent } from '@/components/emsCommunity/EmsCommunityContent';
 import { EmsCommunitySegmentBar } from '@/components/emsCommunity/EmsCommunitySegmentBar';
-import { APP_COLORS } from '@/constants/appTheme';
+import { ThemedScreen } from '@/components/theme/ThemedScreen';
 import type { EmsCommunitySegment } from '@/constants/emsCommunity';
 import { LocalCommunityTalkScreen } from '@/screens/utilities/LocalCommunityTalkScreen';
 
@@ -20,7 +20,7 @@ export function EmsCommunityHub() {
   }, [segment]);
 
   return (
-    <View className="flex-1" style={{ backgroundColor: APP_COLORS.background }}>
+    <ThemedScreen>
       <EmsCommunitySegmentBar value={segment} onChange={handleSegmentChange} />
       <View className="flex-1">
         {segment === 'localTalk' ? (
@@ -29,6 +29,6 @@ export function EmsCommunityHub() {
           <EmsCommunityContent key="ems-community" />
         )}
       </View>
-    </View>
+    </ThemedScreen>
   );
 }

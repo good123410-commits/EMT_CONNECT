@@ -5,6 +5,8 @@ import type { UtilitiesStackParamList } from '@/navigation/UtilitiesStackNavigat
 import { UTILITY_TOOL_ITEMS } from '@/constants/utilityTools';
 import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
+import { getNavHeaderColors } from '@/theme/theme';
+import type { AppColorPalette } from '@/constants/appThemes';
 
 /** 헤더 본문 높이 (safe area 제외) */
 export const APP_NAV_HEADER_BODY_HEIGHT = 56;
@@ -12,31 +14,27 @@ export const APP_NAV_HEADER_BODY_HEIGHT = 56;
 /** 상단 헤더 로고 옆 브랜드 텍스트 */
 export const APP_HEADER_BRAND_NAME = 'KON';
 
-/** 글로벌 상단 헤더 — 다크 테마 토큰 */
-export const APP_NAV_HEADER_COLORS = {
-  background: APP_COLORS.surface,
-  border: APP_COLORS.border,
-  title: APP_COLORS.textPrimary,
-  subtitle: APP_COLORS.textSecondary,
-  icon: APP_COLORS.textPrimary,
-  iconMuted: APP_COLORS.textMuted,
-  brand: '#DC2626',
-  brandText: APP_COLORS.textPrimary,
-} as const;
+/** @deprecated useAppTheme().navHeader 또는 getNavHeaderColors() 사용 */
+export const APP_NAV_HEADER_COLORS = getNavHeaderColors(APP_COLORS);
+
+export function createStackHeaderOptions(
+  palette: AppColorPalette,
+): NativeStackNavigationOptions {
+  const header = getNavHeaderColors(palette);
+  return {
+    headerStyle: { backgroundColor: header.background },
+    headerTintColor: header.icon,
+    headerTitleStyle: {
+      color: header.title,
+      fontFamily: 'Pretendard-SemiBold',
+      fontSize: 16,
+    },
+    headerShadowVisible: false,
+  };
+}
 
 /** React Navigation 스택/탭 헤더 일괄 옵션 (headerShown: true 인 화면용) */
-export const APP_STACK_HEADER_OPTIONS = {
-  headerStyle: {
-    backgroundColor: APP_NAV_HEADER_COLORS.background,
-  },
-  headerTintColor: APP_NAV_HEADER_COLORS.icon,
-  headerTitleStyle: {
-    color: APP_NAV_HEADER_COLORS.title,
-    fontFamily: 'Pretendard-SemiBold',
-    fontSize: 16,
-  },
-  headerShadowVisible: false,
-} as const satisfies NativeStackNavigationOptions;
+export const APP_STACK_HEADER_OPTIONS = createStackHeaderOptions(APP_COLORS);
 
 export const APP_TAB_HEADER_OPTIONS = {
   ...APP_STACK_HEADER_OPTIONS,
@@ -58,6 +56,7 @@ const utilityTitleByRoute = Object.fromEntries(
 
 export const UTILITY_SCREEN_TITLES: Record<keyof UtilitiesStackParamList, string> = {
   ...utilityTitleByRoute,
+  LocalCommunityTalk: '우리동네 토크',
   SymptomOtcGuide: '증상별 OTC 가이드',
 };
 

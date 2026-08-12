@@ -1,9 +1,8 @@
 import { ScrollView, View } from 'react-native';
 import { HomeCommerceCuration } from '@/components/home/HomeCommerceCuration';
 import { HomeEventBannerList } from '@/components/home/HomeEventBannerList';
-// DISABLED: 비상연락망 & 응급카드 (ICE)
-// import { EmergencyOverlayToggleCard } from '@/components/utilities/EmergencyOverlayToggleCard';
-import { APP_COLORS, APP_SPACING } from '@/constants/appTheme';
+import { ThemedScreen } from '@/components/theme/ThemedScreen';
+import { APP_SPACING } from '@/constants/appTheme';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHomeDashboard } from '@/hooks/useHomeDashboard';
 
@@ -15,7 +14,7 @@ export function HomeScreen() {
   const fabBottomInset = useGlobalFabBottomInset();
 
   return (
-    <View className="flex-1" style={{ backgroundColor: APP_COLORS.background }}>
+    <ThemedScreen>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
@@ -39,6 +38,6 @@ export function HomeScreen() {
 
         <HomeCommerceCuration items={commerceItems} />
       </ScrollView>
-    </View>
+    </ThemedScreen>
   );
 }

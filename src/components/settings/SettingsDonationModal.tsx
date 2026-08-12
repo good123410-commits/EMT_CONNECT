@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { APP_COLORS } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { fetchActiveDonationAccounts, type DonationAccount } from '@/services/donationService';
 import { fetchDonationNotice } from '@/services/siteSettingsService';
 
@@ -20,10 +20,7 @@ type SettingsDonationModalProps = {
 
 function DonationAccountCard({ account }: { account: DonationAccount }) {
   return (
-    <View
-      className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4"
-      style={{ borderColor: APP_COLORS.border }}
-    >
+    <View className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4">
       <View className="flex-row items-center justify-between">
         <Text className="text-sm font-bold text-kemix-text">{account.bank_name}</Text>
         {account.purpose ? (
@@ -40,6 +37,7 @@ function DonationAccountCard({ account }: { account: DonationAccount }) {
 }
 
 export function SettingsDonationModal({ visible, onClose }: SettingsDonationModalProps) {
+  const { colors } = useThemedColors();
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
   const [accounts, setAccounts] = useState<DonationAccount[]>([]);
@@ -73,14 +71,14 @@ export function SettingsDonationModal({ visible, onClose }: SettingsDonationModa
         <View className="flex-row items-center justify-between border-b border-kemix-border bg-kemix-surface px-4 py-3">
           <Text className="text-lg font-bold text-kemix-text">후원하기</Text>
           <Pressable onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={24} color="#64748b" />
+            <Ionicons name="close" size={24} color={colors.textMuted} />
           </Pressable>
         </View>
 
         <ScrollView className="flex-1 px-4 py-4" contentContainerClassName="pb-8">
           {loading ? (
             <View className="items-center py-12">
-              <ActivityIndicator color={APP_COLORS.blue} />
+              <ActivityIndicator color={colors.blue} />
             </View>
           ) : null}
 
@@ -107,7 +105,7 @@ export function SettingsDonationModal({ visible, onClose }: SettingsDonationModa
 
           {!loading && !error && accounts.length === 0 ? (
             <View className="items-center rounded-2xl border border-dashed border-kemix-border bg-kemix-surface py-12">
-              <Ionicons name="heart-outline" size={32} color="#cbd5e1" />
+              <Ionicons name="heart-outline" size={32} color={colors.border} />
               <Text className="mt-3 text-sm text-kemix-text-secondary">등록된 후원 계좌가 없습니다.</Text>
             </View>
           ) : null}

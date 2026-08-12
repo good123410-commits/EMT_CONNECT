@@ -158,6 +158,36 @@ export function subscribeLocalCommunityPosts(
   return subscribe(onChange);
 }
 
+export function subscribeLocalCommunityRooms(
+  regionCode: string,
+  onChange: ChangeListener,
+): () => void {
+  const subscribe = createPostgresChangeSubscription(`local_community_rooms_${regionCode}`, [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'local_community_rooms',
+      filter: `region_code=eq.${regionCode}`,
+    },
+  ]);
+  return subscribe(onChange);
+}
+
+export function subscribeLocalCommunityMessages(
+  roomId: string,
+  onChange: ChangeListener,
+): () => void {
+  const subscribe = createPostgresChangeSubscription(`local_community_messages_${roomId}`, [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'local_community_messages',
+      filter: `room_id=eq.${roomId}`,
+    },
+  ]);
+  return subscribe(onChange);
+}
+
 export function subscribeUserQuestionsChanges(
   userId: string,
   onChange: ChangeListener,
@@ -179,6 +209,21 @@ export function subscribePendingQuestionsChanges(onChange: ChangeListener): () =
       event: '*',
       schema: 'public',
       table: QUESTIONS_TABLE,
+    },
+  ]);
+  return subscribe(onChange);
+}
+
+export function subscribeEmsChatRoomMessages(
+  roomId: string,
+  onChange: ChangeListener,
+): () => void {
+  const subscribe = createPostgresChangeSubscription(`ems_chat_room_messages_${roomId}`, [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'ems_community_posts',
+      filter: `room_id=eq.${roomId}`,
     },
   ]);
   return subscribe(onChange);

@@ -12,7 +12,7 @@ import type { FacilitySearchMode } from '@/hooks/useFacilitySearchMode';
 import { getSidoOptions, getSigunguOptionsForSido } from '@/utils/regionOptions';
 
 export type FacilitySearchBarComponentProps = {
-  facilityLabel: 'AED' | '병원' | '약국';
+  facilityLabel: 'AED' | '병원' | '약국' | '소아';
   mode: FacilitySearchMode;
   sido: string;
   sigungu: string;

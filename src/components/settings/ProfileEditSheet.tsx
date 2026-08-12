@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/ui/AppIcon';
-import { APP_COLORS, APP_RADIUS } from '@/constants/appTheme';
+import { APP_RADIUS } from '@/constants/appTheme';
+import { useThemedColors } from '@/hooks/useThemedColors';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   changeAccountPassword,
@@ -29,6 +30,7 @@ type Props = {
 
 export function ProfileEditSheet({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const { colors } = useThemedColors();
   const { user, profile, refreshProfile } = useAuth();
 
   const [nickname, setNickname] = useState('');
@@ -122,7 +124,7 @@ export function ProfileEditSheet({ visible, onClose }: Props) {
           style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
         >
           <View style={styles.handleWrap}>
-            <View style={styles.handle} />
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
           </View>
 
           <View className="flex-row items-center justify-between border-b border-kemix-border px-5 py-4">
@@ -131,11 +133,11 @@ export function ProfileEditSheet({ visible, onClose }: Props) {
               accessibilityRole="button"
               accessibilityLabel="닫기"
               className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
-              style={{ backgroundColor: APP_COLORS.blueLight }}
+              style={{ backgroundColor: colors.blueLight }}
               onPress={onClose}
               hitSlop={8}
             >
-              <AppIcon name="close" size={18} color={APP_COLORS.textSecondary} />
+              <AppIcon name="close" size={18} color={colors.textSecondary} />
             </Pressable>
           </View>
 
@@ -296,6 +298,5 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 999,
-    backgroundColor: APP_COLORS.border,
   },
 });
