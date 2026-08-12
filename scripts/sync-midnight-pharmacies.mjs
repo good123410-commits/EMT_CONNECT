@@ -10,6 +10,7 @@
  * GitHub Actions: .github/workflows/sync-pharmacies.yml
  */
 import { createClient } from '@supabase/supabase-js';
+import { Agent } from 'undici';
 import ws from 'ws';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -36,9 +37,38 @@ const LOCAL_FALLBACK_PATH =
   join(ROOT, 'assets', 'data', 'midnight_pharmacy.csv');
 
 const UPSERT_BATCH_SIZE = 200;
-const DOWNLOAD_TIMEOUT_MS = 60_000;
+const DOWNLOAD_TIMEOUT_MS = 90_000;
+const EGEN_CONNECT_TIMEOUT_MS = 45_000;
 const DOWNLOAD_MAX_RETRIES = 3;
 const MIN_EXPECTED_ROWS = 50;
+
+/** true 시 E-Gen HTTPS 인증서를 엄격 검증 (기본: 공공기관 불완전 체인 허용) */
+const EGEN_STRICT_TLS =
+  process.env.EGEN_STRICT_TLS === '1' || process.env.EGEN_STRICT_TLS === 'true';
+
+/**
+ * E-Gen(www.e-gen.or.kr) 전용 HTTP 클라이언트.
+ * GitHub Actions 등에서 "unable to verify the first certificate" 발생 시
+ * E-Gen 요청에만 rejectUnauthorized: false 적용 (Supabase TLS는 영향 없음).
+ */
+const egenHttpDispatcher = new Agent({
+  connect: {
+    rejectUnauthorized: EGEN_STRICT_TLS,
+    timeout: EGEN_CONNECT_TIMEOUT_MS,
+    servername: 'www.e-gen.or.kr',
+  },
+  bodyTimeout: DOWNLOAD_TIMEOUT_MS,
+  headersTimeout: EGEN_CONNECT_TIMEOUT_MS,
+  keepAliveTimeout: 15_000,
+  keepAliveMaxTimeout: 60_000,
+});
+
+async function egenFetch(url, init = {}) {
+  return fetch(url, {
+    ...init,
+    dispatcher: egenHttpDispatcher,
+  });
+}
 
 const ALLOW_LOCAL_FALLBACK =
   process.env.ALLOW_LOCAL_CSV_FALLBACK === '1' ||
@@ -100,7 +130,7 @@ function extractSetCookieHeader(response) {
 async function warmupEgenSession() {
   logInfo(`E-Gen 세션 워밍업: ${EGEN_REFERER}`);
 
-  const response = await fetch(EGEN_REFERER, {
+  const response = await egenFetch(EGEN_REFERER, {
     method: 'GET',
     headers: buildBrowserDownloadHeaders(),
     redirect: 'follow',
@@ -226,6 +256,12 @@ function parseMidnightPharmacyCsv(csvText, sourceLabel) {
 }
 
 async function downloadEgenMidnightCsv() {
+  if (!EGEN_STRICT_TLS) {
+    logInfo(
+      'E-Gen HTTPS: 인증서 체인 검증 완화 (undici Agent, E-Gen 요청만 적용 · Supabase TLS는 기본 유지)',
+    );
+  }
+
   let lastError = null;
   let sessionCookie = '';
 
@@ -239,7 +275,7 @@ async function downloadEgenMidnightCsv() {
     try {
       logInfo(`E-Gen CSV 다운로드 시도 ${attempt}/${DOWNLOAD_MAX_RETRIES}: ${EGEN_CSV_URL}`);
 
-      const response = await fetch(EGEN_CSV_URL, {
+      const response = await egenFetch(EGEN_CSV_URL, {
         method: 'GET',
         headers: buildBrowserDownloadHeaders(sessionCookie),
         redirect: 'follow',
