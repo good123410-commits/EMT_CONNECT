@@ -102,7 +102,7 @@ export function MainTabNavigator() {
         name="Map"
         component={MapScreen}
         options={{
-          tabBarLabel: '의료정보',
+          tabBarLabel: '안전지도',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon config={TAB_ICONS.Map} color={color} focused={focused} />
           ),

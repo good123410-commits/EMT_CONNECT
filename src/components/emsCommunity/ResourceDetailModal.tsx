@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import { ResourceEmailModal } from '@/components/emsCommunity/ResourceEmailModal';
+import { CommunityCommentSection } from '@/components/emsCommunity/CommunityCommentSection';
+import { LoungeBackBar } from '@/components/emsCommunity/loungeUi';
 import { getResourceCategoryLabel } from '@/constants/resourceCategories';
 import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { formatResourceFileSize } from '@/services/kemixResourceService';
@@ -65,26 +67,10 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
     <>
       <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
         <View className="flex-1" style={{ backgroundColor: lounge.background }}>
-          <View
-            className="flex-row items-center justify-between px-4 py-3"
-            style={{ borderBottomWidth: 1, borderBottomColor: lounge.border }}
-          >
-            <Pressable onPress={onClose} hitSlop={12} className="active:opacity-70">
-              <Ionicons name="close" size={26} color={lounge.textMuted} />
-            </Pressable>
-            <Text
-              style={{
-                fontFamily: 'Pretendard-SemiBold',
-                fontSize: 15,
-                color: lounge.textSecondary,
-              }}
-            >
-              자료 상세
-            </Text>
-            <View style={{ width: 26 }} />
-          </View>
+          <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+            <LoungeBackBar label="목록" onPress={onClose} />
 
-          <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }}>
+            <View style={{ paddingHorizontal: 24 }}>
             <Text
               style={{
                 fontFamily: 'Pretendard-SemiBold',
@@ -208,6 +194,13 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
                   이메일로 전송
                 </Text>
               </Pressable>
+            </View>
+
+            <CommunityCommentSection
+              enabled={false}
+              postId={null}
+              disabledMessage="자료실 항목은 파일 공유·다운로드 중심입니다. 문의는 질문함을 이용해 주세요."
+            />
             </View>
           </ScrollView>
         </View>

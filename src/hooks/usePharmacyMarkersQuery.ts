@@ -23,8 +23,15 @@ export function usePharmacyMarkersQuery(params: FacilitySearchParams, enabled = 
   });
 
   const data = useMemo((): LocalPharmacyMarker[] => {
-    const base = markersQuery.data ?? [];
-    return mergeNightHoursIntoPharmacyMarkers(base, nightHoursQuery.data);
+    try {
+      const base = Array.isArray(markersQuery.data) ? markersQuery.data : [];
+      return mergeNightHoursIntoPharmacyMarkers(base, nightHoursQuery.data);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[pharmacy-markers] merge failed', error);
+      }
+      return [];
+    }
   }, [markersQuery.data, nightHoursQuery.data]);
 
   return {

@@ -10,6 +10,9 @@ import { getMergedBundledHospitalRecords } from '@/services/customHospitalServic
 import { buildFacilityMatchKey, normalizeFacilityName } from '@/services/localFacilityStore';
 import type { GeoCoordinate, LocationRegion } from '@/services/locationService';
 import {
+  matchesFacilityAddressRegion,
+} from '@/utils/facilityAddressRegion';
+import {
   MOONLIGHT_DAY_ORDER,
   type MoonlightHospitalRecord,
   type MoonlightOperatingHours,
@@ -22,35 +25,9 @@ import {
 
 const SOURCE = rawMoonlightHospitals as MoonlightHospitalRecord[];
 
-/** JSON 주소의 비표준 시도 접두 — 전라남도·광주 통합 표기 */
-const LEGACY_JEONNAM_GWANGJU_PREFIX = '전남광주통합특별시';
-
-const JEONNAM_SIGUNGU = new Set([
-  '목포시',
-  '여수시',
-  '순천시',
-  '나주시',
-  '광양시',
-  '담양군',
-  '곡성군',
-  '구례군',
-  '고흥군',
-  '보성군',
-  '화순군',
-  '장흥군',
-  '강진군',
-  '해남군',
-  '영암군',
-  '무안군',
-  '함평군',
-  '영광군',
-  '장성군',
-  '완도군',
-  '진도군',
-  '신안군',
-]);
-
-const GWANGJU_DISTRICTS = new Set(['동구', '서구', '남구', '북구', '광산구']);
+function cleanHospitalName(name: string): string {
+  return name.replace(/\s*진료중\s*$/u, '').trim();
+}
 
 const DAY_LABEL_TO_CODE: Record<string, number> = {
   월요일: 1,
@@ -62,44 +39,6 @@ const DAY_LABEL_TO_CODE: Record<string, number> = {
   일요일: 7,
   공휴일: 8,
 };
-
-function cleanHospitalName(name: string): string {
-  return name.replace(/\s*진료중\s*$/u, '').trim();
-}
-
-function normalizeAddressForRegion(address: string): string {
-  return address
-    .replace(LEGACY_JEONNAM_GWANGJU_PREFIX, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function resolveRegionFromLegacyAddress(address: string): { stage1: string; stage2: string } | null {
-  if (!address.includes(LEGACY_JEONNAM_GWANGJU_PREFIX)) return null;
-
-  const remainder = address
-    .slice(address.indexOf(LEGACY_JEONNAM_GWANGJU_PREFIX) + LEGACY_JEONNAM_GWANGJU_PREFIX.length)
-    .trim();
-  const firstToken = remainder.split(/\s+/)[0] ?? '';
-
-  if (JEONNAM_SIGUNGU.has(firstToken)) {
-    return { stage1: '전라남도', stage2: firstToken };
-  }
-  if (GWANGJU_DISTRICTS.has(firstToken)) {
-    return { stage1: '광주광역시', stage2: firstToken };
-  }
-  return null;
-}
-
-function resolveSidoShort(stage1: string): string {
-  return stage1
-    .replace('특별자치도', '')
-    .replace('특별자치시', '')
-    .replace('특별시', '')
-    .replace('광역시', '')
-    .replace('자치시', '')
-    .replace('도', '');
-}
 
 function matchesPediatricLocalRegion(
   address: string,
@@ -113,33 +52,10 @@ function matchesPediatricLocalRegion(
     label: filter.stage2 ? `${filter.stage1} ${filter.stage2}` : filter.stage1,
   });
 
-  const legacyRegion = resolveRegionFromLegacyAddress(address);
-  if (legacyRegion) {
-    if (legacyRegion.stage1 !== normalized.stage1) return false;
-    if (normalized.stage2?.trim()) {
-      return legacyRegion.stage2 === normalized.stage2;
-    }
-    return true;
-  }
-
-  const addr = normalizeFacilityName(address);
-  const stage1 = normalized.stage1;
-  const stage2 = normalized.stage2?.trim() ?? '';
-  const shortSido = resolveSidoShort(stage1);
-
-  const matchesSido =
-    address.includes(stage1) ||
-    addr.includes(normalizeFacilityName(stage1)) ||
-    addr.includes(normalizeFacilityName(shortSido));
-
-  if (!matchesSido) return false;
-  if (!stage2) return true;
-
-  return (
-    address.includes(stage2) ||
-    addr.includes(normalizeFacilityName(stage2)) ||
-    normalizeAddressForRegion(address).includes(stage2)
-  );
+  return matchesFacilityAddressRegion(address, '', {
+    stage1: normalized.stage1,
+    stage2: normalized.stage2,
+  });
 }
 
 function moonlightHoursToWeeklySchedule(hours: MoonlightOperatingHours): HospitalDutyDay[] {

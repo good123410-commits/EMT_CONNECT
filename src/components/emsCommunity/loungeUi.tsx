@@ -368,11 +368,16 @@ export function LoungePrimaryButton({
   icon,
   onPress,
   compact,
+  disabled,
+  dimmed,
 }: {
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   compact?: boolean;
+  disabled?: boolean;
+  /** 비활성화는 아니지만 조건 미충족 시 흐리게 표시 */
+  dimmed?: boolean;
 }) {
   const { lounge } = useEmsLoungeTheme();
 
@@ -384,7 +389,9 @@ export function LoungePrimaryButton({
         borderRadius: 12,
         paddingVertical: compact ? 10 : 14,
         paddingHorizontal: compact ? 16 : 20,
+        opacity: disabled ? 0.55 : dimmed ? 0.5 : 1,
       }}
+      disabled={disabled}
       onPress={onPress}
     >
       {icon ? <Ionicons name={icon} size={18} color="#FFFFFF" style={{ marginRight: 8 }} /> : null}

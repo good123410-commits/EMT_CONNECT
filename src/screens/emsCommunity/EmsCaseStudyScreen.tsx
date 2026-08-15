@@ -12,8 +12,6 @@ import {
 
   Pressable,
 
-  ScrollView,
-
   Text,
 
   View,
@@ -23,6 +21,11 @@ import {
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
 
 import { CaseStudyWriteModal } from '@/components/emsCommunity/CaseStudyWriteModal';
+import { CommunityListPagination } from '@/components/emsCommunity/CommunityListPagination';
+import { CommunityBestSection } from '@/components/emsCommunity/CommunityBestSection';
+import { CommunityCommentSection } from '@/components/emsCommunity/CommunityCommentSection';
+import { CommunityListToolbar } from '@/components/emsCommunity/CommunityListToolbar';
+import { CommunityPostDetailLayout } from '@/components/emsCommunity/CommunityPostDetailLayout';
 
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 
@@ -31,8 +34,6 @@ import { ReportContentButton } from '@/components/community/ReportContentButton'
 import {
 
   LoungeAnonymousBadge,
-
-  LoungeBackBar,
 
   LoungeCard,
 
@@ -46,8 +47,6 @@ import {
 
   LoungeTitle,
 
-  LoungeTopSection,
-
   LoungeWriteBar,
 
   useLoungeListContentStyle,
@@ -56,7 +55,7 @@ import {
 
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 
-import { EMS_LOUNGE_SPACING, useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
+import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -64,9 +63,11 @@ import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 
 import { useUserRole } from '@/contexts/UserRoleContext';
 
+import { useCommunityListScrollToTop } from '@/hooks/useCommunityListScrollToTop';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
-
-import { useParamedicTabWrite } from '@/hooks/useParamedicTabWrite';
+import { usePaginatedEmsPosts } from '@/hooks/usePaginatedEmsPosts';
+import { mapRowToCaseStudy } from '@/services/emsCommunityService';
+import { CASE_STUDY_SORT_OPTIONS } from '@/types/communityList';
 
 import type { CaseStudyPost } from '@/data/paramedicMockData';
 
@@ -170,25 +171,53 @@ export function EmsCaseStudyScreen() {
 
   const loungeListContentStyle = useLoungeListContentStyle();
 
-  const loungeComposeContentStyle = useLoungeListContentStyle(24);
-
   const { user } = useAuth();
 
   const { canAccessParamedicChannel } = useUserRole();
 
   const {
 
-    caseStudies,
-
     postCaseStudy,
 
     likeCaseStudy,
 
-    loading,
-
-    error,
+    error: feedError,
 
   } = useParamedicCommunity();
+
+  const {
+    items: caseStudies,
+    bestItems,
+    sort,
+    setSort,
+    searchInput,
+    setSearchInput,
+    currentPage,
+    totalCount,
+    hasMultiplePages,
+    loading,
+    error: listError,
+    goToPage,
+    refresh: refreshList,
+    sortOptions,
+  } = usePaginatedEmsPosts({
+    postTypes: ['case_study'],
+    mapRow: mapRowToCaseStudy,
+    sortOptions: CASE_STUDY_SORT_OPTIONS,
+    enableBest: true,
+  });
+
+  const error = listError ?? feedError;
+
+  const { listRef, scrollToTop } = useCommunityListScrollToTop<CaseStudyPost>();
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      void goToPage(page);
+      scrollToTop();
+    },
+    [goToPage, scrollToTop],
+  );
 
   const [writeOpen, setWriteOpen] = useState(false);
 
@@ -240,12 +269,6 @@ export function EmsCaseStudyScreen() {
 
   }, [user, canAccessParamedicChannel]);
 
-
-
-  useParamedicTabWrite('CaseStudy', handleWritePress);
-
-
-
   useHardwareBackHandler(() => {
 
     if (permissionOpen) {
@@ -278,10 +301,11 @@ export function EmsCaseStudyScreen() {
 
 
 
-  const handleSubmitCase = async (input: { title: string; summary: string; body: string }) => {
-
+  const handleSaveCase = async (input: { title: string; summary: string; body: string }) => {
     await postCaseStudy(input.title, input.summary || input.body.slice(0, 80), input.body);
-
+    setSort('latest');
+    await refreshList();
+    scrollToTop();
   };
 
 
@@ -412,7 +436,7 @@ export function EmsCaseStudyScreen() {
 
         onClose={() => setWriteOpen(false)}
 
-        onSubmit={handleSubmitCase}
+        onSubmit={handleSaveCase}
 
       />
 
@@ -430,65 +454,77 @@ export function EmsCaseStudyScreen() {
 
         <ParamedicHeader />
 
-        <ScrollView contentContainerStyle={loungeComposeContentStyle}>
+        <CommunityPostDetailLayout backLabel="목록" onBack={() => setSelected(null)}>
 
-          <LoungeBackBar label="목록" onPress={() => setSelected(null)} />
+          <LoungeCard>
 
-          <View style={{ paddingHorizontal: EMS_LOUNGE_SPACING.screen }}>
+            <LoungeTitle>{selected.title}</LoungeTitle>
 
-            <LoungeCard>
+            {selected.summary ? (
 
-              <LoungeTitle>{selected.title}</LoungeTitle>
+              <Text
 
-              {selected.summary ? (
+                className="mt-2 text-sm leading-6"
 
-                <Text
+                style={{ color: lounge.textSecondary, fontFamily: 'Pretendard' }}
 
-                  className="mt-2 text-sm leading-6"
+              >
 
-                  style={{ color: lounge.textSecondary, fontFamily: 'Pretendard' }}
+                {selected.summary}
 
-                >
+              </Text>
 
-                  {selected.summary}
+            ) : null}
 
-                </Text>
+            <View className="mt-2 flex-row flex-wrap items-center gap-2">
 
-              ) : null}
+              <LoungeAnonymousBadge label={selected.anonymousLabel} />
 
-              <View className="mt-2 flex-row flex-wrap items-center gap-2">
+              <LoungeMetaText>{selected.postedAt}</LoungeMetaText>
 
-                <LoungeAnonymousBadge label={selected.anonymousLabel} />
+            </View>
 
-                <LoungeMetaText>{selected.postedAt}</LoungeMetaText>
+            <View className="mt-4">
 
-              </View>
+              <RichContentRenderer content={selected.body} />
 
-              <View className="mt-4">
+            </View>
 
-                <RichContentRenderer content={selected.body} />
+            <View className="mt-4 flex-row justify-end">
 
-              </View>
+              <ReportContentButton
 
-              <View className="mt-4 flex-row justify-end">
+                contentId={selected.id}
 
-                <ReportContentButton
+                contentType="post"
 
-                  contentId={selected.id}
+                preview={selected.title}
 
-                  contentType="post"
+              />
 
-                  preview={selected.title}
+            </View>
 
-                />
+          </LoungeCard>
 
-              </View>
+          <CommunityCommentSection
 
-            </LoungeCard>
+            postId={selected.id}
 
-          </View>
+            canWrite={Boolean(user)}
 
-        </ScrollView>
+            writeDeniedMessage="댓글을 작성하려면 로그인이 필요합니다."
+
+            authorLabel={(user?.user_metadata?.name as string | undefined) ?? '구급대원'}
+
+            sectionLabel="댓글"
+
+            placeholder="케이스에 대한 의견을 남겨 주세요"
+
+            submitLabel="댓글 등록"
+
+          />
+
+        </CommunityPostDetailLayout>
 
         {overlays}
 
@@ -506,15 +542,16 @@ export function EmsCaseStudyScreen() {
 
       <ParamedicHeader />
 
+      <LoungeWriteBar label="케이스 작성" onPress={handleWritePress} icon="document-text-outline" />
 
-
-      <LoungeTopSection>
-
-        <LoungeWriteBar label="케이스 작성" onPress={handleWritePress} icon="create-outline" />
-
-      </LoungeTopSection>
-
-
+      <CommunityListToolbar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        searchPlaceholder="케이스 제목·내용 검색"
+        sort={sort}
+        onSortChange={setSort}
+        sortOptions={sortOptions}
+      />
 
       {error ? <LoungeErrorBanner message={error} /> : null}
 
@@ -532,11 +569,24 @@ export function EmsCaseStudyScreen() {
 
         <FlatList
 
+          ref={listRef}
+
           data={caseStudies}
+
+          extraData={currentPage}
 
           keyExtractor={(item) => item.id}
 
           contentContainerStyle={loungeListContentStyle}
+
+          ListHeaderComponent={
+            <CommunityBestSection
+              items={bestItems}
+              renderItem={(post) => (
+                <CaseStudyCard post={post} onLike={likeCaseStudy} onOpen={setSelected} />
+              )}
+            />
+          }
 
           ListEmptyComponent={
 
@@ -544,12 +594,22 @@ export function EmsCaseStudyScreen() {
 
               <Text style={{ color: lounge.textSecondary, fontFamily: 'Pretendard' }}>
 
-                등록된 케이스가 없습니다.
+                {searchInput.trim() ? '검색 결과가 없습니다' : '등록된 케이스가 없습니다.'}
 
               </Text>
 
             </View>
 
+          }
+
+          ListFooterComponent={
+            <CommunityListPagination
+              currentPage={currentPage}
+              totalCount={totalCount}
+              hasMultiplePages={hasMultiplePages}
+              onPageChange={handlePageChange}
+              disabled={loading}
+            />
           }
 
           renderItem={({ item }) => (
@@ -565,7 +625,6 @@ export function EmsCaseStudyScreen() {
 
 
       {overlays}
-
     </LoungeScreen>
 
   );

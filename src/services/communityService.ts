@@ -40,7 +40,7 @@ function resolveCategory(row: PostRow) {
   return raw;
 }
 
-function mapPost(row: PostRow): CommunityPost {
+export function mapCommunityPostRow(row: PostRow): CommunityPost {
   const cat = resolveCategory(row);
   return {
     id: row.id,
@@ -102,7 +102,7 @@ export async function fetchQaPostsPage(page: number, pageSize = BOARD_PAGE_SIZE)
     const rows = (data ?? []) as PostRow[];
     const totalCount = rows.length > 0 ? Number(rows[0].total_count) || 0 : 0;
     return {
-      posts: rows.map((row) => mapPost(row)),
+      posts: rows.map((row) => mapCommunityPostRow(row)),
       totalCount,
       page,
       pageSize,
@@ -120,7 +120,7 @@ export async function fetchQaPostsPage(page: number, pageSize = BOARD_PAGE_SIZE)
 
     if (error) throw error;
     const all = ((data ?? []) as PostRow[])
-      .map((row) => mapPost(row))
+      .map((row) => mapCommunityPostRow(row))
       .filter((p) => p.category_slug === QA_CATEGORY_SLUG || !p.category_slug);
     const totalCount = all.length;
     const start = (page - 1) * pageSize;
@@ -162,7 +162,7 @@ export async function createQaPost(input: {
   if (!data) {
     throw new Error('create_failed');
   }
-  return mapPost(data as PostRow);
+  return mapCommunityPostRow(data as PostRow);
 }
 
 export async function createPostComment(

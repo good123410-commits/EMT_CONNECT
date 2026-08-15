@@ -3,8 +3,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { ResourceDetailModal } from '@/components/emsCommunity/ResourceDetailModal';
 import { ResourceWriteModal } from '@/components/emsCommunity/ResourceWriteModal';
+import type { ResourceWriteInput } from '@/components/emsCommunity/ResourceWriteModal';
+import { CommunityBestSection } from '@/components/emsCommunity/CommunityBestSection';
+import { CommunityListPagination } from '@/components/emsCommunity/CommunityListPagination';
+import { CommunityListToolbar } from '@/components/emsCommunity/CommunityListToolbar';
 import {
-  LoungeBody,
   LoungeCard,
   LoungeErrorBanner,
   LoungeFilterPill,
@@ -13,16 +16,19 @@ import {
   LoungeScreen,
   LoungeTitle,
   LoungeTopSection,
+  LoungeWriteBar,
   useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { getResourceCategoryLabel } from '@/constants/resourceCategories';
 import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import { useClientCommunityList } from '@/hooks/useClientCommunityList';
+import { useCommunityListScrollToTop } from '@/hooks/useCommunityListScrollToTop';
 import { useKemixResources } from '@/hooks/useKemixResources';
+import { RESOURCE_SORT_OPTIONS } from '@/types/communityList';
 import { useExpertSettingsAccess } from '@/hooks/useExpertSettingsAccess';
-import { useParamedicTabWrite } from '@/hooks/useParamedicTabWrite';
-import { formatResourceFileSize } from '@/services/kemixResourceService';
+import { adminUpsertKemixResource, formatResourceFileSize } from '@/services/kemixResourceService';
 import type { KemixResource } from '@/types/kemixResource';
 
 function formatDate(iso: string) {
@@ -80,7 +86,20 @@ export function EmsResourcesScreen() {
     );
   }, [isAdmin]);
 
-  useParamedicTabWrite('Resources', handleFabPress);
+  const handleSaveArchive = useCallback(
+    async (input: ResourceWriteInput) => {
+      await adminUpsertKemixResource({
+        title: input.title,
+        description: input.description,
+        category: input.category,
+        fileUrl: input.fileUrl,
+        fileName: input.fileName,
+        isPublished: true,
+      });
+      await reload();
+    },
+    [reload],
+  );
 
   useHardwareBackHandler(() => {
     if (writeOpen) {
@@ -99,14 +118,56 @@ export function EmsResourcesScreen() {
     return ['all', ...Array.from(set)];
   }, [resources]);
 
-  const filtered = useMemo(() => {
-    if (category === 'all') return resources;
-    return resources.filter((r) => r.category === category);
-  }, [resources, category]);
+  const categoryResources = useMemo(
+    () => resources.filter((r) => category === 'all' || r.category === category),
+    [category, resources],
+  );
+
+  const {
+    items: filtered,
+    bestItems,
+    sort,
+    setSort,
+    searchInput,
+    setSearchInput,
+    currentPage,
+    totalCount,
+    hasMultiplePages,
+    goToPage,
+    sortOptions,
+  } = useClientCommunityList({
+    data: categoryResources,
+    sortOptions: RESOURCE_SORT_OPTIONS,
+    searchText: (resource) => `${resource.title} ${resource.description}`,
+    sortCompare: (a, b, sortMode) => {
+      if (sortMode === 'popular') {
+        return a.display_order - b.display_order;
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    },
+    pickBest: (items) =>
+      [...items].sort((a, b) => a.display_order - b.display_order).slice(0, 3),
+  });
+
+  const { listRef, scrollToTop } = useCommunityListScrollToTop<KemixResource>();
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      goToPage(page);
+      scrollToTop();
+    },
+    [goToPage, scrollToTop],
+  );
 
   return (
     <LoungeScreen>
       <ParamedicHeader />
+
+      <LoungeWriteBar
+        label="자료 업로드"
+        onPress={handleFabPress}
+        icon="cloud-upload-outline"
+      />
 
       {categories.length > 1 ? (
         <LoungeTopSection>
@@ -123,6 +184,15 @@ export function EmsResourcesScreen() {
         </LoungeTopSection>
       ) : null}
 
+      <CommunityListToolbar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        searchPlaceholder="자료 제목·설명 검색"
+        sort={sort}
+        onSortChange={setSort}
+        sortOptions={sortOptions}
+      />
+
       {error ? <LoungeErrorBanner message={error} /> : null}
 
       {loading && resources.length === 0 ? (
@@ -131,9 +201,18 @@ export function EmsResourcesScreen() {
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={loungeListContentStyle}
+          ListHeaderComponent={
+            <CommunityBestSection
+              items={bestItems}
+              renderItem={(resource) => (
+                <ResourceCard resource={resource} onPress={() => setSelected(resource)} />
+              )}
+            />
+          }
           ListEmptyComponent={
             <View className="items-center py-12">
               <Ionicons name="folder-open-outline" size={40} color={lounge.textMuted} />
@@ -145,7 +224,7 @@ export function EmsResourcesScreen() {
                   color: lounge.textSecondary,
                 }}
               >
-                등록된 자료가 없습니다.
+                {searchInput.trim() ? '검색 결과가 없습니다' : '등록된 자료가 없습니다.'}
               </Text>
               <Text
                 style={{
@@ -159,6 +238,14 @@ export function EmsResourcesScreen() {
                 KEMIX 웹 자료실과 동일한 자료가 표시됩니다.
               </Text>
             </View>
+          }
+          ListFooterComponent={
+            <CommunityListPagination
+              currentPage={currentPage}
+              totalCount={totalCount}
+              hasMultiplePages={hasMultiplePages}
+              onPageChange={handlePageChange}
+            />
           }
           renderItem={({ item }) => (
             <ResourceCard resource={item} onPress={() => setSelected(item)} />
@@ -175,7 +262,7 @@ export function EmsResourcesScreen() {
       <ResourceWriteModal
         visible={writeOpen}
         onClose={() => setWriteOpen(false)}
-        onCreated={() => void reload()}
+        onSave={handleSaveArchive}
       />
     </LoungeScreen>
   );

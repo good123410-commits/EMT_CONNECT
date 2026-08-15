@@ -1,18 +1,18 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { FacilityGpsActivateButton } from '@/components/facility/FacilityGpsActivateButton';
+import { PharmacyViewModeToggle } from '@/components/facility/PharmacyViewModeToggle';
+import { RegionPickerModal } from '@/components/facility/RegionPickerModal';
+import { APP_FONT } from '@/constants/appTheme';
 import type { FacilitySearchMode } from '@/hooks/useFacilitySearchMode';
+import { useThemedColors } from '@/hooks/useThemedColors';
+import { KEMIX_TOUCH_MIN_HEIGHT } from '@/theme/kemixSemantic';
+import type { PharmacyListViewMode } from '@/utils/pharmacyListSort';
 import { getSidoOptions, getSigunguOptionsForSido } from '@/utils/regionOptions';
 
 export type FacilitySearchBarComponentProps = {
-  facilityLabel: 'AED' | '병원' | '약국' | '소아';
+  facilityLabel: 'AED' | '병원' | '약국' | '소아' | '쉼터';
   mode: FacilitySearchMode;
   sido: string;
   sigungu: string;
@@ -22,61 +22,60 @@ export type FacilitySearchBarComponentProps = {
   onActivateGps: () => void;
   onSidoChange: (value: string) => void;
   onSigunguChange: (value: string) => void;
+  /** 약국 탭 전용 — PharmacyViewModeToggle에 전달 */
+  pharmacyListViewMode?: PharmacyListViewMode;
+  onPharmacyListViewModeChange?: (mode: PharmacyListViewMode) => void;
 };
 
 type PickerTarget = 'sido' | 'sigungu' | null;
 
-function RegionPickerModal({
-  visible,
-  title,
-  options,
-  selected,
-  onSelect,
-  onClose,
-}: {
-  visible: boolean;
-  title: string;
-  options: string[];
-  selected: string;
-  onSelect: (value: string) => void;
-  onClose: () => void;
-}) {
+type RegionSelectFieldProps = {
+  label: string;
+  value: string;
+  placeholder: string;
+  disabled?: boolean;
+  onPress: () => void;
+};
+
+function RegionSelectField({
+  label,
+  value,
+  placeholder,
+  disabled = false,
+  onPress,
+}: RegionSelectFieldProps) {
+  const { semantic } = useThemedColors();
+  const display = value || placeholder;
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable className="flex-1 justify-end bg-black/40" onPress={onClose}>
-        <Pressable className="max-h-[60%] rounded-t-3xl bg-kemix-surface" onPress={(e) => e.stopPropagation()}>
-          <View className="border-b border-kemix-border-light px-4 py-3">
-            <Text className="text-base font-bold text-kemix-text">{title}</Text>
-          </View>
-          <ScrollView className="max-h-80">
-            {options.map((option) => {
-              const active = selected === option;
-              return (
-                <Pressable
-                  key={option}
-                  className={`border-b border-slate-50 px-4 py-3.5 ${active ? 'bg-blue-50' : ''}`}
-                  onPress={() => {
-                    onSelect(option);
-                    onClose();
-                  }}
-                >
-                  <Text className={`text-sm ${active ? 'font-bold text-blue-700' : 'text-kemix-text'}`}>
-                    {option}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label} 선택, 현재 ${display}`}
+      accessibilityState={{ disabled }}
+      className="flex-1 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3"
+      style={{ minHeight: KEMIX_TOUCH_MIN_HEIGHT, opacity: disabled ? 0.55 : 1 }}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Text
+        className="text-sm"
+        numberOfLines={1}
+        style={{
+          fontFamily: value ? APP_FONT.medium : APP_FONT.regular,
+          color: value ? semantic.text : semantic.mutedText,
+        }}
+      >
+        {display}
+      </Text>
+      <Ionicons name="chevron-down" size={16} color={semantic.mutedText} />
+    </Pressable>
   );
 }
 
 /**
- * AED · 병원 · 약국 공통 지역 선택 UI
+ * AED · 병원 · 약국 · 소아 공통 지역 선택 UI
  * - 시·도 / 시·군·구 드롭다운 즉시 조회
- * - GPS 버튼(선택)
+ * - GPS 버튼 또는 약국 전용 PharmacyViewModeToggle
  */
 export function FacilitySearchBarComponent({
   facilityLabel,
@@ -89,6 +88,8 @@ export function FacilitySearchBarComponent({
   onActivateGps,
   onSidoChange,
   onSigunguChange,
+  pharmacyListViewMode = 'distance',
+  onPharmacyListViewModeChange,
 }: FacilitySearchBarComponentProps) {
   const [picker, setPicker] = useState<PickerTarget>(null);
 
@@ -99,61 +100,59 @@ export function FacilitySearchBarComponent({
   );
 
   const gpsActive = mode === 'gps';
+  const showPharmacyViewToggle =
+    facilityLabel === '약국' && typeof onPharmacyListViewModeChange === 'function';
+  const nightPriorityActive =
+    showPharmacyViewToggle && pharmacyListViewMode === 'night-priority';
 
   return (
     <View className="gap-3">
       <View>
-        <Text className="mb-2 text-xs font-semibold text-kemix-text-secondary">지역 선택</Text>
+        <Text
+          className="mb-2 text-kemix-text-secondary"
+          style={{ fontFamily: APP_FONT.semibold, fontSize: 12 }}
+        >
+          지역 선택
+        </Text>
         <View className="flex-row gap-2">
-          <Pressable
-            className="flex-1 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3"
+          <RegionSelectField
+            label="시·도"
+            value={sido}
+            placeholder="시·도"
             onPress={() => setPicker('sido')}
-          >
-            <Text className={`text-sm ${sido ? 'text-kemix-text' : 'text-kemix-muted'}`}>
-              {sido || '시·도'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color="#94a3b8" />
-          </Pressable>
-          <Pressable
-            className="flex-1 flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3"
-            onPress={() => sido && setPicker('sigungu')}
+          />
+          <RegionSelectField
+            label="시·군·구"
+            value={sigungu}
+            placeholder="전체"
             disabled={!sido}
-          >
-            <Text className={`text-sm ${sigungu ? 'text-kemix-text' : 'text-kemix-muted'}`}>
-              {sigungu || '전체'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color="#94a3b8" />
-          </Pressable>
+            onPress={() => sido && setPicker('sigungu')}
+          />
         </View>
       </View>
 
-      <Pressable
-        className={`flex-row items-center justify-center rounded-xl border px-4 py-3 ${
-          gpsActive ? 'border-red-200 bg-red-50' : 'border-kemix-border bg-kemix-surface'
-        } ${gpsLoading ? 'opacity-80' : 'active:opacity-90'}`}
-        onPress={onActivateGps}
-        disabled={gpsLoading}
-      >
-        {gpsLoading ? (
-          <ActivityIndicator color={gpsActive ? '#dc2626' : '#0f172a'} />
-        ) : (
-          <Ionicons name="navigate" size={18} color={gpsActive ? '#dc2626' : '#475569'} />
-        )}
-        <Text
-          className={`ml-2 text-sm font-semibold ${gpsActive ? 'text-red-700' : 'text-kemix-text'}`}
-        >
-          {gpsLoading ? '위치 확인 중...' : '현재 위치 기준으로 보기'}
-        </Text>
-        {gpsActive ? (
-          <View className="ml-2 rounded-full bg-red-100 px-2 py-0.5">
-            <Text className="text-[10px] font-bold text-red-700">ON</Text>
-          </View>
-        ) : null}
-      </Pressable>
+      {showPharmacyViewToggle ? (
+        <PharmacyViewModeToggle
+          value={pharmacyListViewMode}
+          gpsLoading={gpsLoading}
+          onChange={onPharmacyListViewModeChange}
+          onActivateGps={onActivateGps}
+        />
+      ) : (
+        <FacilityGpsActivateButton
+          active={gpsActive}
+          loading={gpsLoading}
+          onPress={onActivateGps}
+        />
+      )}
 
       {statusLabel ? (
-        <Text className="text-xs text-kemix-muted">
+        <Text
+          className="text-kemix-muted"
+          style={{ fontFamily: APP_FONT.regular, fontSize: 13 }}
+        >
           {facilityLabel} · {statusLabel}
+          {nightPriorityActive ? ' · 심야약국 우선' : ''}
           {typeof resultCount === 'number' ? ` · ${resultCount}곳` : ''}
         </Text>
       ) : null}

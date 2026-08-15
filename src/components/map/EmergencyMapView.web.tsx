@@ -20,6 +20,7 @@ const KIND_LABELS = {
   er: '응급실',
   pharmacy: '약국',
   pediatric: '소아',
+  shelter: '쉼터',
 } as const;
 
 function buildGoogleEmbedUrl(latitude: number, longitude: number, zoom = 14) {
@@ -32,6 +33,7 @@ function buildGoogleMapsLink(latitude: number, longitude: number) {
 
 function WebMapFrame({ src, title }: { src: string; title: string }) {
   return createElement('iframe', {
+    key: src,
     title,
     src,
     style: {
@@ -39,8 +41,10 @@ function WebMapFrame({ src, title }: { src: string; title: string }) {
       width: '100%',
       height: '100%',
       display: 'block',
+      minHeight: 220,
+      backgroundColor: '#e2e8f0',
     },
-    loading: 'lazy',
+    loading: 'eager',
     referrerPolicy: 'no-referrer-when-downgrade',
   });
 }
@@ -51,6 +55,8 @@ export function EmergencyMapView<T>({
   selectedId,
   loading,
   center,
+  emphasizedIds: _emphasizedIds,
+  fitToPointIds: _fitToPointIds,
   onMarkerPress,
 }: EmergencyMapViewProps<T>) {
   const validPoints = useMemo(
@@ -66,19 +72,29 @@ export function EmergencyMapView<T>({
 
   useEffect(() => {
     if (center && isValidCoordinate(center)) {
-      setFrameCenter(center);
+      setFrameCenter((prev) =>
+        prev.latitude === center.latitude && prev.longitude === center.longitude ? prev : center,
+      );
     }
   }, [center?.latitude, center?.longitude]);
 
+  const firstPointLat = validPoints[0]?.latitude;
+  const firstPointLng = validPoints[0]?.longitude;
+
   useEffect(() => {
     if (center || validPoints.length === 0) return;
-    setFrameCenter({
-      latitude: validPoints[0].latitude,
-      longitude: validPoints[0].longitude,
-    });
-  }, [center, validPoints]);
+    if (firstPointLat == null || firstPointLng == null) return;
+    setFrameCenter((prev) =>
+      prev.latitude === firstPointLat && prev.longitude === firstPointLng
+        ? prev
+        : { latitude: firstPointLat, longitude: firstPointLng },
+    );
+  }, [center, firstPointLat, firstPointLng, validPoints.length]);
 
-  const embedUrl = buildGoogleEmbedUrl(frameCenter.latitude, frameCenter.longitude);
+  const embedUrl = useMemo(
+    () => buildGoogleEmbedUrl(frameCenter.latitude, frameCenter.longitude),
+    [frameCenter.latitude, frameCenter.longitude],
+  );
   const previewPoints = validPoints.slice(0, 12);
 
   return (
@@ -153,6 +169,7 @@ const styles = StyleSheet.create({
   mapLayer: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+    minHeight: 220,
   },
   webBadge: {
     position: 'absolute',

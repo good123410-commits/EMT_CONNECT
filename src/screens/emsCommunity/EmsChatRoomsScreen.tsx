@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, FlatList, Text, View } from 'react-native';
 import { EmsChatCreateRoomModal } from '@/components/emsCommunity/EmsChatCreateRoomModal';
 import { EmsChatRoomCard } from '@/components/emsCommunity/EmsChatRoomCard';
 import { EmsChatRoomView } from '@/components/emsCommunity/EmsChatRoomView';
+import { CommunityBestSection } from '@/components/emsCommunity/CommunityBestSection';
 import {
   LoungeErrorBanner,
   LoungePrimaryButton,
@@ -15,8 +16,23 @@ import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { EMS_LOUNGE_SPACING, useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
-import { useParamedicTabWrite } from '@/hooks/useParamedicTabWrite';
 import type { EmsChatRoom } from '@/services/emsChatRoomService';
+
+const BEST_ROOM_LIMIT = 3;
+
+function sortRoomsByLatest(rooms: EmsChatRoom[]): EmsChatRoom[] {
+  return [...rooms].sort((a, b) => {
+    const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+    const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
+function pickBestRooms(rooms: EmsChatRoom[]): EmsChatRoom[] {
+  return [...rooms]
+    .sort((a, b) => b.participantCount - a.participantCount || b.messageCount - a.messageCount)
+    .slice(0, BEST_ROOM_LIMIT);
+}
 
 export function EmsChatRoomsScreen() {
   const { lounge } = useEmsLoungeTheme();
@@ -33,11 +49,14 @@ export function EmsChatRoomsScreen() {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [creatingRoom, setCreatingRoom] = useState(false);
 
-  const handleFabPress = useCallback(() => {
-    setCreateModalVisible(true);
-  }, []);
+  const bestItems = useMemo(() => pickBestRooms(chatRooms), [chatRooms]);
 
-  useParamedicTabWrite('ChatRooms', handleFabPress);
+  const bestIdSet = useMemo(() => new Set(bestItems.map((room) => room.id)), [bestItems]);
+
+  const visibleRooms = useMemo(
+    () => sortRoomsByLatest(chatRooms.filter((room) => !bestIdSet.has(room.id))),
+    [bestIdSet, chatRooms],
+  );
 
   useHardwareBackHandler(() => {
     if (createModalVisible) {
@@ -152,6 +171,13 @@ export function EmsChatRoomsScreen() {
             {chatRooms.length}개 방
           </Text>
         </View>
+
+        <CommunityBestSection
+          items={bestItems}
+          renderItem={(room) => (
+            <EmsChatRoomCard room={room} onPress={() => setSelectedRoom(room)} />
+          )}
+        />
       </View>
     </View>
   );
@@ -207,11 +233,11 @@ export function EmsChatRoomsScreen() {
       <ParamedicHeader />
 
       <FlatList
-        data={chatRooms}
+        data={visibleRooms}
         keyExtractor={(item) => item.id}
         contentContainerStyle={loungeListContentStyle}
         ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmpty}
+        ListEmptyComponent={chatRooms.length === 0 ? listEmpty : null}
         ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item }) => (
           <EmsChatRoomCard room={item} onPress={() => setSelectedRoom(item)} />

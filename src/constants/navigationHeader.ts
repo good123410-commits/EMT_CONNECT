@@ -43,7 +43,7 @@ export const APP_TAB_HEADER_OPTIONS = {
 export const MAIN_TAB_TITLES: Record<keyof MainTabParamList, string> = {
   Home: '홈',
   Guide: '응급 가이드',
-  Map: '의료정보',
+  Map: '안전지도',
   Paramedic: EMS_COMMUNITY_TAB_LABEL,
   All: '전체',
 };

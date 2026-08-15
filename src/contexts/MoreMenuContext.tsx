@@ -9,10 +9,9 @@ import {
 import { View } from 'react-native';
 import { AppChrome } from '@/components/navigation/AppChrome';
 import { DraggableMoreFab } from '@/components/navigation/DraggableMoreFab';
+import { AppConfigProvider } from '@/contexts/AppConfigContext';
 import { AppHeaderProvider } from '@/contexts/AppHeaderContext';
 import { SettingsMenuProvider } from '@/contexts/SettingsMenuContext';
-import { MedicationInstantStartModal } from '@/components/utilities/MedicationInstantStartModal';
-import { MedicationDeepLinkHandler } from '@/components/utilities/MedicationDeepLinkHandler';
 import { MoreMenuModal } from '@/components/utilities/MoreMenuModal';
 import type { UtilityToolRoute } from '@/constants/utilityTools';
 import { navigateToChemicalScreen } from '@/navigation/mainTabNavigation';
@@ -22,7 +21,6 @@ type MoreMenuContextValue = {
   openMoreMenu: () => void;
   closeMoreMenu: () => void;
   openUtilityTool: (route: UtilityToolRoute) => void;
-  openMedicationInstant: () => void;
 };
 
 const MoreMenuContext = createContext<MoreMenuContextValue | null>(null);
@@ -37,7 +35,6 @@ export function useMoreMenu(): MoreMenuContextValue {
 
 export function MoreMenuProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
-  const [medicationInstantVisible, setMedicationInstantVisible] = useState(false);
 
   const openMoreMenu = useCallback(() => setVisible(true), []);
   const closeMoreMenu = useCallback(() => setVisible(false), []);
@@ -56,43 +53,34 @@ export function MoreMenuProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const openMedicationInstant = useCallback(() => {
-    setMedicationInstantVisible(true);
-  }, []);
-
   const value = useMemo(
     () => ({
       openMoreMenu,
       closeMoreMenu,
       openUtilityTool,
-      openMedicationInstant,
     }),
-    [openMoreMenu, closeMoreMenu, openUtilityTool, openMedicationInstant],
+    [openMoreMenu, closeMoreMenu, openUtilityTool],
   );
 
   return (
-    <AppHeaderProvider>
+    <AppConfigProvider>
+      <AppHeaderProvider>
       <SettingsMenuProvider>
       <MoreMenuContext.Provider value={value}>
         <View style={{ flex: 1 }}>
           <AppChrome />
           <View style={{ flex: 1 }}>{children}</View>
-          <MedicationDeepLinkHandler onOpenInstant={openMedicationInstant} />
           <MoreMenuModal
             visible={visible}
             onClose={closeMoreMenu}
             onSelectTool={openUtilityTool}
             onOpenChemicalInfo={openChemicalInfo}
           />
-          <MedicationInstantStartModal
-            visible={medicationInstantVisible}
-            onClose={() => setMedicationInstantVisible(false)}
-            onOpenFullScreen={() => openUtilityTool('MedicationLogTimer')}
-          />
           <DraggableMoreFab />
         </View>
       </MoreMenuContext.Provider>
       </SettingsMenuProvider>
-    </AppHeaderProvider>
+      </AppHeaderProvider>
+    </AppConfigProvider>
   );
 }

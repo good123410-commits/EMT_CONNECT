@@ -113,12 +113,13 @@ export function AllServicesScreen() {
     },
     {
       id: 'medical',
-      title: '의료정보',
+      title: '안전지도',
       items: [
         mapMedicalItem('aed', 'AED', 'heart-pulse', '#F87171', '#3A1F1F'),
         mapMedicalItem('er', '응급실', 'hospital-box', '#60A5FA', '#1A2A40'),
         mapMedicalItem('pediatric', '소아 의료기관', 'baby-face-outline', '#F472B6', '#3A1F2E'),
         mapMedicalItem('pharmacy', '약국', 'medical-bag', '#34D399', '#1A2E28'),
+        mapMedicalItem('shelter', '쉼터', 'home-thermometer-outline', '#38BDF8', '#14283A'),
         mapMedicalItem('privateEms', '민간 구급차', 'ambulance', '#FB923C', '#3A2618'),
       ],
     },

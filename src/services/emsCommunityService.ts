@@ -232,7 +232,7 @@ export function mapRowToJobHire(row: EmsCommunityPostRow): JobPost {
   };
 }
 
-function mapRowToJobPost(row: EmsCommunityPostRow): JobPost {
+export function mapRowToJobPost(row: EmsCommunityPostRow): JobPost {
   return row.post_type === 'job_hire' ? mapRowToJobHire(row) : mapRowToJobSeek(row);
 }
 

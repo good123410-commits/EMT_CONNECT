@@ -14,6 +14,11 @@ import {
   View,
 } from 'react-native';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
+import { CommunityListPagination } from '@/components/emsCommunity/CommunityListPagination';
+import { CommunityBestSection } from '@/components/emsCommunity/CommunityBestSection';
+import { CommunityCommentSection } from '@/components/emsCommunity/CommunityCommentSection';
+import { CommunityPostDetailLayout } from '@/components/emsCommunity/CommunityPostDetailLayout';
+import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import {
   LoungeActionRow,
   LoungeCard,
@@ -26,14 +31,18 @@ import {
   LoungeScreen,
   LoungeTitle,
   LoungeTopSection,
+  LoungeWriteBar,
   useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
+import { useAuth } from '@/contexts/AuthContext';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import type { JobPost } from '@/data/paramedicMockData';
+import { useCommunityListScrollToTop } from '@/hooks/useCommunityListScrollToTop';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
-import { useParamedicTabWrite } from '@/hooks/useParamedicTabWrite';
+import { usePaginatedEmsPosts } from '@/hooks/usePaginatedEmsPosts';
+import { mapRowToJobPost } from '@/services/emsCommunityService';
 
 type JobWriteMode = 'choose' | 'seek' | 'hire';
 
@@ -51,10 +60,10 @@ function JobTypeBadge({ post }: { post: JobPost }) {
   );
 }
 
-function JobCard({ post }: { post: JobPost }) {
+function JobCard({ post, onPress }: { post: JobPost; onPress: () => void }) {
   const { lounge } = useEmsLoungeTheme();
   return (
-    <LoungeCard>
+    <LoungeCard onPress={onPress}>
       <View className="flex-row items-center justify-between">
         <View className="flex-1 pr-3">
           <View className="flex-row items-center gap-2">
@@ -135,7 +144,36 @@ function FieldLabel({ children }: { children: string }) {
 export function ParamedicJobsScreen() {
   const { lounge } = useEmsLoungeTheme();
   const loungeListContentStyle = useLoungeListContentStyle();
-  const { jobPosts, postJobSeek, postJobHire, loading, error } = useParamedicCommunity();
+  const { user } = useAuth();
+  const { postJobSeek, postJobHire, error: feedError, reload } = useParamedicCommunity();
+  const {
+    items: jobPosts,
+    bestItems,
+    jobType: filter,
+    setJobType: setFilter,
+    currentPage,
+    totalCount,
+    hasMultiplePages,
+    loading,
+    error: listError,
+    goToPage,
+    refresh: refreshList,
+  } = usePaginatedEmsPosts({
+    postTypes: ['job_seek', 'job_hire'],
+    mapRow: mapRowToJobPost,
+    enableBest: true,
+  });
+  const error = listError ?? feedError;
+  const { listRef, scrollToTop } = useCommunityListScrollToTop<JobPost>();
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      void goToPage(page);
+      scrollToTop();
+    },
+    [goToPage, scrollToTop],
+  );
+  const [selected, setSelected] = useState<JobPost | null>(null);
   const [writeMode, setWriteMode] = useState<JobWriteMode | null>(null);
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -144,12 +182,9 @@ export function ParamedicJobsScreen() {
   const [salary, setSalary] = useState('');
   const [schedule, setSchedule] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'hire' | 'seek'>('all');
-
-  const filtered = jobPosts.filter((p) => filter === 'all' || p.type === filter);
+  const [submitting, setSubmitting] = useState(false);
 
   const openWriteChooser = useCallback(() => setWriteMode('choose'), []);
-  useParamedicTabWrite('Jobs', openWriteChooser);
 
   const closeWriteModal = () => {
     setWriteMode(null);
@@ -160,9 +195,14 @@ export function ParamedicJobsScreen() {
     setSalary('');
     setSchedule('');
     setIsUrgent(false);
+    setSubmitting(false);
   };
 
   useHardwareBackHandler(() => {
+    if (selected) {
+      setSelected(null);
+      return true;
+    }
     if (writeMode) {
       if (writeMode === 'choose') {
         closeWriteModal();
@@ -172,15 +212,19 @@ export function ParamedicJobsScreen() {
       return true;
     }
     return false;
-  }, Boolean(writeMode));
+  }, Boolean(writeMode || selected));
 
   const handleSubmitSeek = async () => {
+    if (submitting) return;
     if (!title.trim() || !content.trim()) {
       Alert.alert('입력 필요', '제목과 내용을 입력해 주세요.');
       return;
     }
+    setSubmitting(true);
     try {
       await postJobSeek(title.trim(), content.trim(), location.trim() || '전국');
+      await reload();
+      await refreshList();
       closeWriteModal();
       Alert.alert('등록 완료', '구직 글이 등록되었습니다.');
     } catch (err) {
@@ -188,14 +232,18 @@ export function ParamedicJobsScreen() {
         '등록 실패',
         err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleSubmitHire = async () => {
+    if (submitting) return;
     if (!title.trim() || !company.trim() || !content.trim()) {
       Alert.alert('입력 필요', '제목, 기관명, 채용 내용을 입력해 주세요.');
       return;
     }
+    setSubmitting(true);
     try {
       await postJobHire({
         title: title.trim(),
@@ -206,6 +254,8 @@ export function ParamedicJobsScreen() {
         requirements: content.trim(),
         isUrgent,
       });
+      await reload();
+      await refreshList();
       closeWriteModal();
       Alert.alert('등록 완료', '구인 글이 등록되었습니다.');
     } catch (err) {
@@ -213,15 +263,115 @@ export function ParamedicJobsScreen() {
         '등록 실패',
         err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const modalTitle =
     writeMode === 'hire' ? '구인 글쓰기' : writeMode === 'seek' ? '구직 글쓰기' : '글 유형 선택';
 
+  if (selected) {
+    return (
+      <LoungeScreen>
+        <ParamedicHeader />
+        <CommunityPostDetailLayout backLabel="목록" onBack={() => setSelected(null)}>
+          <LoungeCard>
+            <View className="flex-row items-center gap-2">
+              <JobTypeBadge post={selected} />
+              <LoungeMetaText>{selected.postedAt}</LoungeMetaText>
+            </View>
+            <View className="mt-3">
+              <LoungeTitle>{selected.title}</LoungeTitle>
+            </View>
+            <Text
+              style={{
+                marginTop: 6,
+                fontFamily: 'Pretendard-Medium',
+                fontSize: 14,
+                color: lounge.textSecondary,
+              }}
+            >
+              {selected.company}
+            </Text>
+            <View className="mt-4 flex-row flex-wrap gap-x-4 gap-y-2">
+              <View className="flex-row items-center">
+                <Ionicons name="location-outline" size={14} color={lounge.textMuted} />
+                <Text
+                  style={{
+                    marginLeft: 4,
+                    fontFamily: 'Pretendard',
+                    fontSize: 12,
+                    color: lounge.textSecondary,
+                  }}
+                >
+                  {selected.location}
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                <Ionicons name="cash-outline" size={14} color={lounge.textMuted} />
+                <Text
+                  style={{
+                    marginLeft: 4,
+                    fontFamily: 'Pretendard-SemiBold',
+                    fontSize: 12,
+                    color: lounge.green,
+                  }}
+                >
+                  {selected.salary}
+                </Text>
+              </View>
+              {selected.schedule ? (
+                <View className="flex-row items-center">
+                  <Ionicons name="time-outline" size={14} color={lounge.textMuted} />
+                  <Text
+                    style={{
+                      marginLeft: 4,
+                      fontFamily: 'Pretendard',
+                      fontSize: 12,
+                      color: lounge.textSecondary,
+                    }}
+                  >
+                    {selected.schedule}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <View className="mt-4">
+              <RichContentRenderer content={selected.requirements} />
+            </View>
+            <View className="mt-4">
+              <ReportContentButton
+                contentId={selected.id}
+                contentType="job"
+                preview={selected.title}
+              />
+            </View>
+          </LoungeCard>
+
+          <CommunityCommentSection
+            postId={selected.id}
+            canWrite={Boolean(user)}
+            writeDeniedMessage="댓글을 작성하려면 로그인이 필요합니다."
+            authorLabel={(user?.user_metadata?.name as string | undefined) ?? '구급대원'}
+            sectionLabel="댓글"
+            placeholder="공고에 대한 문의나 의견을 남겨 주세요"
+            submitLabel="댓글 등록"
+          />
+        </CommunityPostDetailLayout>
+      </LoungeScreen>
+    );
+  }
+
   return (
     <LoungeScreen>
       <ParamedicHeader />
+
+      <LoungeWriteBar
+        label="구인·구직 글쓰기"
+        onPress={openWriteChooser}
+        icon="briefcase-outline"
+      />
 
       <LoungeTopSection>
         <LoungeFilterRow>
@@ -237,12 +387,24 @@ export function ParamedicJobsScreen() {
       </LoungeTopSection>
 
       <FlatList
-        data={filtered}
+        ref={listRef}
+        data={jobPosts}
+        extraData={currentPage}
         keyExtractor={(item) => item.id}
         contentContainerStyle={loungeListContentStyle}
-        ListHeaderComponent={error ? <LoungeErrorBanner message={error} /> : null}
+        ListHeaderComponent={
+          <>
+            {error ? <LoungeErrorBanner message={error} /> : null}
+            <CommunityBestSection
+              items={bestItems}
+              renderItem={(post) => (
+                <JobCard post={post} onPress={() => setSelected(post)} />
+              )}
+            />
+          </>
+        }
         ListEmptyComponent={
-          loading ? (
+          loading && jobPosts.length === 0 ? (
             <View className="items-center py-16">
               <ActivityIndicator color={lounge.accent} />
             </View>
@@ -262,7 +424,16 @@ export function ParamedicJobsScreen() {
             </View>
           )
         }
-        renderItem={({ item }) => <JobCard post={item} />}
+        ListFooterComponent={
+          <CommunityListPagination
+            currentPage={currentPage}
+            totalCount={totalCount}
+            hasMultiplePages={hasMultiplePages}
+            onPageChange={handlePageChange}
+            disabled={loading}
+          />
+        }
+        renderItem={({ item }) => <JobCard post={item} onPress={() => setSelected(item)} />}
       />
 
       <Modal visible={writeMode !== null} animationType="slide" transparent>
@@ -318,7 +489,11 @@ export function ParamedicJobsScreen() {
                     multiline
                     minHeight={120}
                   />
-                  <LoungePrimaryButton label="구직 글 등록" onPress={() => void handleSubmitSeek()} />
+                  <LoungePrimaryButton
+                    label={submitting ? '등록 중…' : '구직 글 등록'}
+                    disabled={submitting}
+                    onPress={() => void handleSubmitSeek()}
+                  />
                 </>
               ) : (
                 <>
@@ -355,7 +530,11 @@ export function ParamedicJobsScreen() {
                       thumbColor={isUrgent ? lounge.accent : lounge.textMuted}
                     />
                   </View>
-                  <LoungePrimaryButton label="구인 글 등록" onPress={() => void handleSubmitHire()} />
+                  <LoungePrimaryButton
+                    label={submitting ? '등록 중…' : '구인 글 등록'}
+                    disabled={submitting}
+                    onPress={() => void handleSubmitHire()}
+                  />
                 </>
               )}
             </ScrollView>

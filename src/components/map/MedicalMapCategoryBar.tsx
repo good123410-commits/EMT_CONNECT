@@ -8,6 +8,7 @@ const MAP_CATEGORY_OPTIONS: { value: MedicalMapTab; label: string }[] = [
   { value: 'er', label: '응급실' },
   { value: 'pediatric', label: '소아' },
   { value: 'pharmacy', label: '약국' },
+  { value: 'shelter', label: '쉼터' },
   { value: 'privateEms', label: '민간구급차' },
 ];
 

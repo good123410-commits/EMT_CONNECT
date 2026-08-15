@@ -1,47 +1,18 @@
-import hospitalData from '@/data/generated/hospital_data.json';
-import pharmacyData from '@/data/generated/pharmacy_data.json';
+import sigunguBySido from '@/data/generated/sigungu_by_sido.json';
 import { SIDO_LIST } from '@/services/locationService';
-import { normalizeFacilityName } from '@/services/localFacilityStore';
-import type { LocalHospitalRecord, LocalPharmacyRecord } from '@/types/localFacility';
 
-const HOSPITALS = hospitalData as LocalHospitalRecord[];
-const PHARMACIES = pharmacyData as LocalPharmacyRecord[];
+const SIGUNGU_BY_SIDO = sigunguBySido as Record<string, string[]>;
 
 const sigunguCache = new Map<string, string[]>();
 
-function collectSigunguForSido(
-  items: Array<{ a?: string; sg?: string }>,
-  sido: string,
-  target: Set<string>,
-) {
-  const sidoKey = normalizeFacilityName(sido);
-
-  for (const item of items) {
-    const address = item.a ?? '';
-    if (!normalizeFacilityName(address).includes(sidoKey)) continue;
-
-    if (item.sg?.trim()) {
-      target.add(item.sg.trim());
-      continue;
-    }
-
-    const match = address.match(/(?:특별자치시|특별시|광역시|특별자치도|도)\s+([\S]+(?:시|군|구))/);
-    if (match?.[1]) target.add(match[1]);
-  }
-}
-
-/** 로컬 병원·약국 데이터에서 시도별 시군구 목록 추출 */
+/** 시도별 시군구 목록 (정적 데이터만 사용 — 대용량 JSON 전체 스캔 방지) */
 export function getSigunguOptionsForSido(sido: string): string[] {
   if (!sido) return [];
 
   const cached = sigunguCache.get(sido);
   if (cached) return cached;
 
-  const set = new Set<string>();
-  collectSigunguForSido(HOSPITALS, sido, set);
-  collectSigunguForSido(PHARMACIES, sido, set);
-
-  const list = [...set].sort((a, b) => a.localeCompare(b, 'ko'));
+  const list = [...(SIGUNGU_BY_SIDO[sido] ?? [])].sort((a, b) => a.localeCompare(b, 'ko'));
   sigunguCache.set(sido, list);
   return list;
 }

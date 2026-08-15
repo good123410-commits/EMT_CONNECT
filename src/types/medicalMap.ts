@@ -1,1 +1,1 @@
-export type MedicalMapTab = 'aed' | 'er' | 'pharmacy' | 'pediatric' | 'privateEms';
+export type MedicalMapTab = 'aed' | 'er' | 'pharmacy' | 'pediatric' | 'privateEms' | 'shelter';

@@ -15,7 +15,7 @@ export type FacilityMarkerResult =
   | { kind: 'pharmacy'; items: LocalPharmacyMarker[] };
 
 const DEFAULT_OPTIONS: Record<FacilityMarkerKind, UnifiedFacilitySearchOptions> = {
-  aed: { limit: 60, radiusMeters: 5_000 },
+  aed: { limit: 80, radiusMeters: 5_000 },
   hospital: { limit: 100, radiusMeters: 20_000, erOnly: false },
   pharmacy: { limit: 120, radiusMeters: 25_000 },
 };

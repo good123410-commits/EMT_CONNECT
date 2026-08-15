@@ -87,6 +87,18 @@ export const subscribeEmsCommunityPostsTable = createTableSubscription(
   'ems_community_posts_live',
 );
 
+export function subscribeEmsPostComments(postId: string, onChange: ChangeListener): () => void {
+  const subscribe = createPostgresChangeSubscription(`ems_community_comments_${postId}`, [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'ems_community_comments',
+      filter: `post_id=eq.${postId}`,
+    },
+  ]);
+  return subscribe(onChange);
+}
+
 export const subscribeEmsChatRoomsTable = createTableSubscription(
   'ems_chat_rooms',
   'ems_chat_rooms_live',

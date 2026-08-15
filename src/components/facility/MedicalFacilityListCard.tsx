@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { DistanceText } from '@/components/map/DistanceText';
+import { StatusPill, type StatusPillTone } from '@/components/ui/StatusPill';
 import {
   getMedicalListCardClass,
   MEDICAL_LIST_DISTANCE_ICON,
@@ -48,38 +49,14 @@ export function MedicalFacilityListTitleRow({ title, trailing }: MedicalFacility
 
 type MedicalFacilityStatusPillProps = {
   label: string;
-  tone?: 'er' | 'moonlight' | 'pediatric' | 'open' | 'closed' | 'neutral' | 'info';
-};
-
-const PILL_TONE_CLASS: Record<NonNullable<MedicalFacilityStatusPillProps['tone']>, string> = {
-  er: 'border border-red-900/60 bg-red-950/40',
-  moonlight: 'border border-indigo-900/60 bg-indigo-950/40',
-  pediatric: 'border border-pink-900/60 bg-pink-950/40',
-  open: 'border border-green-900/60 bg-green-950/40',
-  closed: 'border border-kemix-border bg-kemix-elevated',
-  neutral: 'border border-kemix-border bg-kemix-elevated',
-  info: 'border border-blue-900/60 bg-blue-950/40',
-};
-
-const PILL_TEXT_CLASS: Record<NonNullable<MedicalFacilityStatusPillProps['tone']>, string> = {
-  er: 'text-red-300',
-  moonlight: 'text-indigo-300',
-  pediatric: 'text-pink-300',
-  open: 'text-green-300',
-  closed: 'text-kemix-text-secondary',
-  neutral: 'text-kemix-text-secondary',
-  info: 'text-blue-300',
+  tone?: StatusPillTone;
 };
 
 export function MedicalFacilityStatusPill({
   label,
   tone = 'neutral',
 }: MedicalFacilityStatusPillProps) {
-  return (
-    <View className={`rounded-full px-2.5 py-1 ${PILL_TONE_CLASS[tone]}`}>
-      <Text className={`text-[10px] font-bold ${PILL_TEXT_CLASS[tone]}`}>{label}</Text>
-    </View>
-  );
+  return <StatusPill label={label} tone={tone} />;
 }
 
 type MedicalFacilityListDistanceRowProps = {

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type {
   BambooMessage,
   CaseStudyPost,
@@ -15,7 +15,6 @@ import {
   type CreateChatRoomInput,
   type EmsChatRoom,
 } from '@/services/emsChatRoomService';
-import type { ParamedicWriteTab } from '@/navigation/paramedicWriteTab';
 import {
   createCaseStudyPost,
   createChatPost,
@@ -54,16 +53,6 @@ type ParamedicCommunityContextValue = {
   }) => Promise<void>;
   likeCaseStudy: (id: string) => Promise<void>;
   likeMessage: (id: string) => Promise<void>;
-  /** 현재 포커스된 EMS 하위 탭 */
-  activeWriteTab: ParamedicWriteTab;
-  setActiveWriteTab: (tab: ParamedicWriteTab) => void;
-  /** 탭별 FAB 핸들러 등록 (포커스된 탭만 호출됨) */
-  registerTabWriteHandler: (tab: ParamedicWriteTab, handler: (() => void) | null) => void;
-  /** 현재 탭 이름으로 등록된 글쓰기 핸들러를 동기 호출 */
-  invokeTabWriteHandler: (tab?: ParamedicWriteTab) => void;
-  onGlobalWrite: () => void;
-  /** @deprecated registerTabWriteHandler + useParamedicTabWrite 사용 */
-  registerWriteHandler: (handler: (() => void) | null) => void;
 };
 
 const ParamedicCommunityContext = createContext<ParamedicCommunityContextValue | null>(null);
@@ -77,54 +66,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
   const [loading, setLoading] = useState(true);
   const [chatRoomsLoading, setChatRoomsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeWriteTab, setActiveWriteTab] = useState<ParamedicWriteTab>('QaBoard');
-  const tabWriteHandlersRef = useRef<Partial<Record<ParamedicWriteTab, () => void>>>({});
-  const activeWriteTabRef = useRef<ParamedicWriteTab>('QaBoard');
-
-  const setActiveWriteTabSync = useCallback((tab: ParamedicWriteTab) => {
-    activeWriteTabRef.current = tab;
-    setActiveWriteTab(tab);
-  }, []);
-
-  const registerTabWriteHandler = useCallback(
-    (tab: ParamedicWriteTab, handler: (() => void) | null) => {
-      if (handler) {
-        tabWriteHandlersRef.current[tab] = handler;
-      } else {
-        delete tabWriteHandlersRef.current[tab];
-      }
-    },
-    [],
-  );
-
-  const invokeTabWriteHandler = useCallback((tab?: ParamedicWriteTab) => {
-    const key = tab ?? activeWriteTabRef.current;
-    const handler = tabWriteHandlersRef.current[key];
-    if (handler) {
-      handler();
-      return;
-    }
-    Object.values(tabWriteHandlersRef.current).at(-1)?.();
-  }, []);
-
-  const onGlobalWrite = useCallback(() => {
-    const tab = activeWriteTabRef.current;
-    const handler = tabWriteHandlersRef.current[tab];
-    if (handler) {
-      handler();
-      return;
-    }
-    const fallback = Object.values(tabWriteHandlersRef.current).at(-1);
-    fallback?.();
-  }, []);
-
-  /** 레거시 단일 핸들러 — QaBoard 탭에 매핑 */
-  const registerWriteHandler = useCallback(
-    (handler: (() => void) | null) => {
-      registerTabWriteHandler('QaBoard', handler);
-    },
-    [registerTabWriteHandler],
-  );
 
   const reloadChatRooms = useCallback(async () => {
     try {
@@ -179,14 +120,10 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
     };
   }, [reload, reloadChatRooms]);
 
-  const postCaseStudy = useCallback(
-    async (title: string, summary: string, body: string) => {
-      const post = await createCaseStudyPost(title, summary, body);
-      setCaseStudies((prev) => [post, ...prev.filter((item) => item.id !== post.id)]);
-      void reload();
-    },
-    [reload],
-  );
+  const postCaseStudy = useCallback(async (title: string, summary: string, body: string) => {
+    const post = await createCaseStudyPost(title, summary, body);
+    setCaseStudies((prev) => [post, ...prev.filter((item) => item.id !== post.id)]);
+  }, []);
 
   const postBambooMessage = useCallback(async (content: string, tags: string[]) => {
     const post = await createBambooPost(content, tags);
@@ -260,12 +197,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
       postJobHire,
       likeCaseStudy,
       likeMessage,
-      activeWriteTab,
-      setActiveWriteTab: setActiveWriteTabSync,
-      registerTabWriteHandler,
-      invokeTabWriteHandler,
-      onGlobalWrite,
-      registerWriteHandler,
     }),
     [
       bambooMessages,
@@ -286,12 +217,6 @@ export function ParamedicCommunityProvider({ children }: { children: ReactNode }
       postJobHire,
       likeCaseStudy,
       likeMessage,
-      activeWriteTab,
-      setActiveWriteTabSync,
-      onGlobalWrite,
-      registerTabWriteHandler,
-      invokeTabWriteHandler,
-      registerWriteHandler,
     ],
   );
 

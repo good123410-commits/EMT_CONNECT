@@ -13,6 +13,7 @@ type MapPointMarkerProps = {
   kind: MapMarkerKind;
   selected?: boolean;
   moonlight?: boolean;
+  emphasized?: boolean;
   onPress: () => void;
 };
 
@@ -21,6 +22,7 @@ const KIND_COLORS: Record<MapMarkerKind, string> = {
   er: '#2563eb',
   pharmacy: '#16a34a',
   pediatric: '#db2777',
+  shelter: '#f97316',
 };
 
 const KIND_ICONS: Record<MapMarkerKind, keyof typeof Ionicons.glyphMap> = {
@@ -28,6 +30,7 @@ const KIND_ICONS: Record<MapMarkerKind, keyof typeof Ionicons.glyphMap> = {
   er: 'medkit',
   pharmacy: 'medical',
   pediatric: 'happy',
+  shelter: 'home',
 };
 
 function MapPointMarkerComponent({
@@ -37,15 +40,16 @@ function MapPointMarkerComponent({
   kind,
   selected,
   moonlight = false,
+  emphasized = false,
   onPress,
 }: MapPointMarkerProps) {
   const [tracksViewChanges, setTracksViewChanges] = useState(true);
-  const color = moonlight ? '#4f46e5' : KIND_COLORS[kind];
+  const color = moonlight ? '#4f46e5' : emphasized ? '#14B8A6' : KIND_COLORS[kind];
 
   useEffect(() => {
     const timer = setTimeout(() => setTracksViewChanges(false), 300);
     return () => clearTimeout(timer);
-  }, [selected, kind, moonlight]);
+  }, [selected, kind, moonlight, emphasized]);
 
   return (
     <Marker
@@ -53,13 +57,14 @@ function MapPointMarkerComponent({
       coordinate={{ latitude, longitude }}
       onPress={onPress}
       tracksViewChanges={tracksViewChanges}
-      zIndex={selected ? 3 : moonlight ? 2 : 1}
+      zIndex={selected ? 4 : emphasized ? 3 : moonlight ? 2 : 1}
     >
       <View
         style={[
           styles.pin,
           selected && styles.pinSelected,
           moonlight && styles.pinMoonlight,
+          emphasized && styles.pinEmphasized,
           { borderColor: color },
         ]}
       >
@@ -95,6 +100,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 4,
     elevation: 4,
+  },
+  pinEmphasized: {
+    borderWidth: 3,
+    shadowColor: '#14B8A6',
+    shadowOpacity: 0.28,
+    shadowRadius: 4,
+    elevation: 3,
+    transform: [{ scale: 1.04 }],
   },
   iconWrap: {
     width: 28,

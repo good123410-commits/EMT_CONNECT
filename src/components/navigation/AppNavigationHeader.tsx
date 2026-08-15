@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CoffeeSupportButton } from '@/components/support/CoffeeSupportButton';
 import { AppIcon } from '@/components/ui/AppIcon';
 import {
   APP_HEADER_BRAND_NAME,
@@ -72,7 +73,9 @@ export function AppNavigationHeader() {
           {title}
         </Text>
 
-        <View style={styles.rightCluster} />
+        <View style={styles.rightCluster}>
+          <CoffeeSupportButton />
+        </View>
       </View>
     </View>
   );

@@ -4,8 +4,8 @@ import { createDeferredScreen } from '@/navigation/deferredScreen';
 export type UtilitiesStackParamList = {
   MedicalTerminology: undefined;
   PediatricAntipyreticCalc: undefined;
-  MedicationLogTimer: undefined;
   EmergencyResponse: undefined;
+  LocationRescue: undefined;
   LocalCommunityTalk: undefined;
   SymptomOtcGuide: undefined;
 };
@@ -18,11 +18,11 @@ const MedicalTerminologyScreen = createDeferredScreen(
 const PediatricAntipyreticCalculatorScreen = createDeferredScreen(
   () => require('@/screens/utilities/PediatricAntipyreticCalculatorScreen').PediatricAntipyreticCalculatorScreen,
 );
-const MedicationLogTimerScreen = createDeferredScreen(
-  () => require('@/screens/utilities/MedicationLogTimerScreen').MedicationLogTimerScreen,
-);
 const EmergencyResponseScreen = createDeferredScreen(
   () => require('@/screens/utilities/EmergencyResponseScreen').EmergencyResponseScreen,
+);
+const LocationRescueScreen = createDeferredScreen(
+  () => require('@/screens/utilities/LocationRescueScreen').LocationRescueScreen,
 );
 const LocalCommunityTalkScreen = createDeferredScreen(
   () => require('@/screens/utilities/LocalCommunityTalkScreen').LocalCommunityTalkScreen,
@@ -41,8 +41,8 @@ export function UtilitiesStackNavigator() {
     >
       <Stack.Screen name="MedicalTerminology" component={MedicalTerminologyScreen} />
       <Stack.Screen name="PediatricAntipyreticCalc" component={PediatricAntipyreticCalculatorScreen} />
-      <Stack.Screen name="MedicationLogTimer" component={MedicationLogTimerScreen} />
       <Stack.Screen name="EmergencyResponse" component={EmergencyResponseScreen} />
+      <Stack.Screen name="LocationRescue" component={LocationRescueScreen} />
       <Stack.Screen name="LocalCommunityTalk" component={LocalCommunityTalkScreen} />
       <Stack.Screen name="SymptomOtcGuide" component={SymptomOtcGuideScreen} />
     </Stack.Navigator>

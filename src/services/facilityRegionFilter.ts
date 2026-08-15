@@ -1,6 +1,10 @@
-import { normalizeFacilityName } from '@/services/localFacilityStore';
 import { supabase } from '@/lib/supabaseClient';
 import type { LocationRegion } from '@/services/locationService';
+import {
+  canonicalizeStage1,
+  matchesFacilityAddressRegion,
+  parseFacilityAddressRegion,
+} from '@/utils/facilityAddressRegion';
 
 export type FacilityRegionFilter = {
   stage1: string;
@@ -17,35 +21,10 @@ export function matchesFacilityRegion(
   sigungu: string,
   filter: FacilityRegionFilter,
 ): boolean {
-  const addr = normalizeFacilityName(address);
-  const sg = normalizeFacilityName(sigungu);
-  const s1 = normalizeFacilityName(filter.stage1);
-  const s2 = filter.stage2 ? normalizeFacilityName(filter.stage2) : '';
-
-  const sidoShort = s1
-    .replace('특별자치도', '')
-    .replace('특별자치시', '')
-    .replace('특별시', '')
-    .replace('광역시', '')
-    .replace('자치시', '')
-    .replace('도', '');
-
-  const matchesSido =
-    addr.includes(s1) ||
-    addr.includes(sidoShort) ||
-    sg.includes(sidoShort) ||
-    (sidoShort.length >= 2 && (addr.includes(sidoShort) || sg.includes(sidoShort)));
-
-  if (!matchesSido) return false;
-  if (!s2) return true;
-
-  return (
-    addr.includes(s2) ||
-    sg.includes(s2) ||
-    sg.includes(s2.replace(/\s/g, '')) ||
-    normalizeFacilityName(sg).includes(s2)
-  );
+  return matchesFacilityAddressRegion(address, sigungu, filter);
 }
+
+export { canonicalizeStage1, parseFacilityAddressRegion };
 
 export function toLocationRegion(filter: FacilityRegionFilter): LocationRegion {
   const stage2 = filter.stage2?.trim() ?? '';
@@ -77,7 +56,7 @@ export async function queryFacilitiesByRegionSupabase(
 ): Promise<unknown[]> {
   const table = FACILITY_TABLE_BY_TYPE[query.facilityType];
   const limit = query.limit ?? 120;
-  const stage1 = query.region.stage1.trim();
+  const stage1 = canonicalizeStage1(query.region.stage1.trim());
   if (!stage1) return [];
 
   let request = supabase

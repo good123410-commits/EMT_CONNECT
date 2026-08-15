@@ -13,8 +13,16 @@ export type UtilityToolItem = {
   accentBg: string;
 };
 
-/** 더보기 응급 유틸 — 해열제 계산 · 복용 타이머 · 의학용어 사전 */
+/** 더보기 응급 유틸 — 해열제 계산 · 의학용어 사전 · 응급 정보 등 */
 export const UTILITY_TOOL_ITEMS: UtilityToolItem[] = [
+  {
+    id: 'location-rescue',
+    route: 'LocationRescue',
+    title: '내 위치 및 119 문자 신고',
+    icon: 'crosshairs-gps',
+    accent: '#FB7185',
+    accentBg: '#3A1A24',
+  },
   {
     id: 'emergency-response',
     route: 'EmergencyResponse',
@@ -38,14 +46,6 @@ export const UTILITY_TOOL_ITEMS: UtilityToolItem[] = [
     icon: 'thermometer',
     accent: '#60A5FA',
     accentBg: '#1A2A40',
-  },
-  {
-    id: 'medication-log-timer',
-    route: 'MedicationLogTimer',
-    title: '약물 복용 기록지 및 타이머',
-    icon: 'alarm',
-    accent: '#3B82F6',
-    accentBg: '#1A2332',
   },
   // DISABLED: 비상연락망 & 응급카드 (ICE)
   // {

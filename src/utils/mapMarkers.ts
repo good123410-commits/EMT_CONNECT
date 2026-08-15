@@ -4,21 +4,34 @@ import type {
   PharmacyMarkerShell,
 } from '@/services/emergencyApi';
 import type { LocalAedMarker } from '@/types/localAed';
+import type { LocalShelterMarker } from '@/types/shelter';
 import type { LocalHospitalMarker, LocalPharmacyMarker } from '@/types/localFacility';
-import { resolveFacilityLatLng } from '@/utils/facilityCoordinates';
+import { getDefaultCoordinate } from '@/services/locationService';
+import { limitMapMarkers } from '@/utils/mapMarkerDisplayLimit';
 import { isValidCoordinate } from '@/utils/mapViewport';
 
 export function toAedMapPoints(markers: LocalAedMarker[]): EmergencyMapPoint<LocalAedMarker>[] {
-  return markers
-    .filter((marker) => isValidCoordinate({ latitude: marker.latitude, longitude: marker.longitude }))
-    .map((marker) => ({
-      id: marker.id,
-      latitude: marker.latitude,
-      longitude: marker.longitude,
-      name: marker.name,
-      kind: 'aed' as const,
-      payload: marker,
-    }));
+  try {
+    const safeMarkers = Array.isArray(markers) ? markers : [];
+    const points = safeMarkers
+      .filter((marker) =>
+        isValidCoordinate({ latitude: marker.latitude, longitude: marker.longitude }),
+      )
+      .map((marker) => ({
+        id: marker.id,
+        latitude: marker.latitude,
+        longitude: marker.longitude,
+        name: marker.name ?? 'AED',
+        kind: 'aed' as const,
+        payload: marker,
+      }));
+    return limitMapMarkers(points);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[mapMarkers] AED map points failed', error);
+    }
+    return [];
+  }
 }
 
 export function toLocalHospitalMapPoints(
@@ -39,23 +52,31 @@ export function toLocalHospitalMapPoints(
 export function toLocalPharmacyMapPoints(
   markers: LocalPharmacyMarker[],
 ): EmergencyMapPoint<LocalPharmacyMarker>[] {
-  return markers
-    .map((marker) => {
-      const coords = resolveFacilityLatLng(marker);
-      if (!coords) return null;
-      return {
-        id: marker.i,
-        latitude: coords.lat,
-        longitude: coords.lng,
-        name: marker.n,
-        kind: 'pharmacy' as const,
-        payload: { ...marker, lat: coords.lat, lng: coords.lng },
-      };
-    })
-    .filter((point): point is EmergencyMapPoint<LocalPharmacyMarker> => {
-      if (!point) return false;
-      return isValidCoordinate(point);
-    });
+  try {
+    const safeMarkers = Array.isArray(markers) ? markers : [];
+    const points = safeMarkers
+      .map((marker) => {
+        const lat = marker.lat;
+        const lng = marker.lng;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        if (!isValidCoordinate({ latitude: lat, longitude: lng })) return null;
+        return {
+          id: marker.i ?? `${lat}-${lng}`,
+          latitude: lat,
+          longitude: lng,
+          name: marker.n ?? '약국',
+          kind: 'pharmacy' as const,
+          payload: marker,
+        };
+      })
+      .filter((point): point is EmergencyMapPoint<LocalPharmacyMarker> => point !== null);
+    return limitMapMarkers(points);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[mapMarkers] pharmacy map points failed', error);
+    }
+    return [];
+  }
 }
 
 export function toHospitalMapPoints(
@@ -103,10 +124,34 @@ export function toPediatricHospitalMapPoints(
     }));
 }
 
+export function toShelterMapPoints(
+  markers: LocalShelterMarker[],
+): EmergencyMapPoint<LocalShelterMarker>[] {
+  return markers
+    .filter((marker) => isValidCoordinate(marker))
+    .map((marker) => ({
+      id: marker.id,
+      latitude: marker.latitude,
+      longitude: marker.longitude,
+      name: marker.name,
+      kind: 'shelter' as const,
+      payload: marker,
+    }));
+}
+
 export function getMapCenterFromSnapshot(snapshot: {
   coordinate: { latitude: number; longitude: number };
   permissionGranted: boolean;
 }) {
-  if (!snapshot.permissionGranted) return undefined;
-  return snapshot.coordinate;
+  if (isValidCoordinate(snapshot.coordinate)) {
+    return snapshot.coordinate;
+  }
+  return getDefaultCoordinate();
+}
+
+export function buildMapViewKey(prefix: string, center: { latitude: number; longitude: number } | undefined) {
+  if (!center || !isValidCoordinate(center)) {
+    return `${prefix}-default`;
+  }
+  return `${prefix}-${center.latitude.toFixed(4)}-${center.longitude.toFixed(4)}`;
 }

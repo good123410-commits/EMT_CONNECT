@@ -40,7 +40,9 @@ import { EmergencyMapView } from '@/components/map/EmergencyMapView';
 import { PharmacyOpenBadge } from '@/components/map/PharmacyOpenBadge';
 import { MedicalMapCategoryBar } from '@/components/map/MedicalMapCategoryBar';
 import { useFacilitySearchMode } from '@/hooks/useFacilitySearchMode';
+import { useMapModuleCenter } from '@/hooks/useMapModuleCenter';
 import { usePediatricHospitalsQuery } from '@/hooks/usePediatricHospitalsQuery';
+import { useShelterMarkersQuery } from '@/hooks/useShelterMarkersQuery';
 import { usePharmacyMarkersQuery } from '@/hooks/usePharmacyMarkersQuery';
 import {
   useFacilityMarkersQuery,
@@ -59,10 +61,10 @@ import {
 
 import {
   fetchRegionalHospitalMetadataIndex,
+  type HospitalFinderItem,
   type HospitalMetadataEntry,
 } from '@/services/hospitalFinderService';
 import { ensureCustomHospitalDbHydrated } from '@/services/customHospitalService';
-import type { HospitalFinderItem } from '@/services/hospitalFinderService';
 import {
   applyErLiveOverlayToLocal,
   enrichErMarkersWithMetadata,
@@ -80,11 +82,12 @@ import {
 } from '@/services/locationService';
 import type { LocalPharmacyMarker } from '@/types/localFacility';
 import {
-  getMapCenterFromSnapshot,
+  buildMapViewKey,
   toAedMapPoints,
   toLocalHospitalMapPoints,
   toLocalPharmacyMapPoints,
   toPediatricHospitalMapPoints,
+  toShelterMapPoints,
 } from '@/utils/mapMarkers';
 import {
   MapMarkerDetailSheet,
@@ -97,10 +100,18 @@ import {
   formatDistanceMeters,
   type DistanceUnitMode,
 } from '@/utils/formatDistance';
-import { getPharmacyOpenStatus, isTodayNightPharmacy } from '@/utils/pharmacyHours';
+import { getPharmacyOpenStatus, isTodayNightPharmacy, type PharmacyOpenStatus } from '@/utils/pharmacyHours';
+import {
+  getPharmacyEmphasisMarkerIds,
+  getPharmacyListCardVariant,
+  sortPharmaciesForListView,
+  type PharmacyListViewMode,
+} from '@/utils/pharmacyListSort';
 import { getTreatmentDayCode } from '@/utils/hospitalHours';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 import type { LocalAedMarker } from '@/types/localAed';
+import type { LocalShelterMarker } from '@/types/shelter';
+import type { MapBounds } from '@/utils/mapViewport';
 import type { MedicalMapTab } from '@/types/medicalMap';
 
 const PrivateEmsCallScreen = createDeferredScreen(
@@ -125,9 +136,6 @@ export function MapScreen() {
   const [locationSnapshot, setLocationSnapshot] = useState<LocationSnapshot>(() =>
     getLocationWithRegionImmediate(),
   );
-
-  const facilitySearch = useFacilitySearchMode({ locationSnapshot });
-  usePrefetchFacilityMarkers(facilitySearch.searchParams, isFocused);
 
   useEffect(() => {
     if (routeParams?.initialTab) {
@@ -155,66 +163,48 @@ export function MapScreen() {
   return (
     <View className="flex-1 bg-kemix-bg">
       <MedicalMapCategoryBar value={tab} onChange={setTab} />
-      <View style={{ flex: 1, display: tab === 'aed' ? 'flex' : 'none' }}>
+      <View className="flex-1">
         {tab === 'aed' ? (
-          <AedModule
-            locationSnapshot={locationSnapshot}
-            facilitySearch={facilitySearch}
-            {...mapModuleShared}
-          />
+          <AedModule locationSnapshot={locationSnapshot} {...mapModuleShared} />
         ) : null}
-      </View>
-      <View style={{ flex: 1, display: tab === 'er' ? 'flex' : 'none' }}>
         {tab === 'er' ? (
-          <ErModule
-            active={isFocused}
-            locationSnapshot={locationSnapshot}
-            facilitySearch={facilitySearch}
-            {...mapModuleShared}
-          />
+          <ErModule active={isFocused} locationSnapshot={locationSnapshot} {...mapModuleShared} />
         ) : null}
-      </View>
-      <View style={{ flex: 1, display: tab === 'pharmacy' ? 'flex' : 'none' }}>
         {tab === 'pharmacy' ? (
-          <PharmacyModule
-            locationSnapshot={locationSnapshot}
-            facilitySearch={facilitySearch}
-            {...mapModuleShared}
-          />
+          <PharmacyModule locationSnapshot={locationSnapshot} {...mapModuleShared} />
         ) : null}
-      </View>
-      <View style={{ flex: 1, display: tab === 'pediatric' ? 'flex' : 'none' }}>
         {tab === 'pediatric' ? (
-          <PediatricModule
-            active={isFocused}
-            locationSnapshot={locationSnapshot}
-            facilitySearch={facilitySearch}
-            {...mapModuleShared}
-          />
+          <PediatricModule active={isFocused} locationSnapshot={locationSnapshot} {...mapModuleShared} />
         ) : null}
-      </View>
-      <View style={{ flex: 1, display: tab === 'privateEms' ? 'flex' : 'none' }}>
+        {tab === 'shelter' ? (
+          <ShelterModule locationSnapshot={locationSnapshot} {...mapModuleShared} />
+        ) : null}
         {tab === 'privateEms' ? <PrivateEmsCallScreen /> : null}
       </View>
     </View>
   );
 }
 
-type FacilitySearchState = ReturnType<typeof useFacilitySearchMode>;
+type MapModuleBaseProps = {
+  locationSnapshot: LocationSnapshot;
+} & MapModuleSharedProps;
 
 const LIST_ESTIMATED_ITEM_SIZE = 96;
 
 function AedModule({
   locationSnapshot,
-  facilitySearch,
   distanceUnitMode,
   onDistanceUnitModeChange,
-}: {
-  locationSnapshot: LocationSnapshot;
-  facilitySearch: FacilitySearchState;
-} & MapModuleSharedProps) {
+}: MapModuleBaseProps) {
+  const facilitySearch = useFacilitySearchMode({ locationSnapshot });
+  usePrefetchFacilityMarkers(facilitySearch.searchParams, 'aed');
+
   const [selectedAED, setSelectedAED] = useState<LocalAedMarker | null>(null);
-  const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
+  const [mapCenter, setMapCenter] = useMapModuleCenter(
+    locationSnapshot,
+    facilitySearch.searchParams,
+    selectedAED,
+  );
 
   const {
     mode,
@@ -232,12 +222,6 @@ function AedModule({
 
   const mapPoints = useMemo(() => toAedMapPoints(markers), [markers]);
 
-  useEffect(() => {
-    if (selectedAED) return;
-    const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
-    if (nextCenter) setMapCenter(nextCenter);
-  }, [locationSnapshot, selectedAED]);
-
   const handleMarkerPress = (marker: LocalAedMarker) => {
     setSelectedAED(marker);
     setMapCenter({ latitude: marker.latitude, longitude: marker.longitude });
@@ -249,9 +233,10 @@ function AedModule({
 
   return (
     <View className="flex-1">
-      <View className="h-[42%] min-h-[220px] border-b border-kemix-border">
+      <View className="h-[42%] min-h-[220px] border-b border-kemix-border" style={{ minHeight: 220 }}>
         <MapModuleErrorBoundary>
           <EmergencyMapView
+            key={buildMapViewKey('aed-map', mapCenter)}
             points={mapPoints}
             kind="aed"
             selectedId={selectedAED?.id}
@@ -388,6 +373,206 @@ function AedDetailContent({
   );
 }
 
+function ShelterModule({
+  locationSnapshot,
+  distanceUnitMode,
+  onDistanceUnitModeChange,
+}: MapModuleBaseProps) {
+  const facilitySearch = useFacilitySearchMode({ locationSnapshot });
+  const [selectedShelter, setSelectedShelter] = useState<LocalShelterMarker | null>(null);
+  const [mapCenter, setMapCenter] = useMapModuleCenter(
+    locationSnapshot,
+    facilitySearch.searchParams,
+    selectedShelter,
+  );
+  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
+
+  const {
+    mode,
+    sido,
+    sigungu,
+    gpsLoading,
+    searchParams,
+    statusLabel,
+    activateGpsSearch,
+    handleSidoChange,
+    handleSigunguChange,
+  } = facilitySearch;
+
+  const { data: listMarkers = [], isFetching } = useShelterMarkersQuery(searchParams);
+
+  const [boundsMarkers, setBoundsMarkers] = useState<LocalShelterMarker[]>([]);
+
+  useEffect(() => {
+    if (!mapBounds) {
+      setBoundsMarkers([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    void import('@/services/shelterStore').then(({ searchSheltersInBounds }) =>
+      searchSheltersInBounds(mapBounds, searchParams.coordinate, {
+        regionFilter: searchParams.regionFilter,
+        query: searchParams.textQuery,
+        limit: 200,
+      }),
+    ).then((items) => {
+      if (!cancelled) setBoundsMarkers(items);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapBounds, searchParams.coordinate, searchParams.regionFilter, searchParams.textQuery]);
+
+  const mapMarkers = mapBounds ? boundsMarkers : listMarkers.slice(0, 80);
+
+  const mapPoints = useMemo(() => toShelterMapPoints(mapMarkers), [mapMarkers]);
+
+  const handleMarkerPress = (shelter: LocalShelterMarker) => {
+    setSelectedShelter(shelter);
+    setMapCenter({ latitude: shelter.latitude, longitude: shelter.longitude });
+  };
+
+  const handleCloseSheet = () => {
+    setSelectedShelter(null);
+  };
+
+  return (
+    <View className="flex-1">
+      <View className="h-[42%] min-h-[220px] border-b border-kemix-border" style={{ minHeight: 220 }}>
+        <MapModuleErrorBoundary>
+          <EmergencyMapView
+            key={buildMapViewKey('shelter-map', mapCenter)}
+            points={mapPoints}
+            kind="shelter"
+            selectedId={selectedShelter?.id}
+            loading={false}
+            center={mapCenter}
+            onViewportChange={setMapBounds}
+            onMarkerPress={(point: { payload: LocalShelterMarker }) => handleMarkerPress(point.payload)}
+          />
+        </MapModuleErrorBoundary>
+      </View>
+
+      <View className="px-4 py-3">
+        <FacilitySearchBarComponent
+          facilityLabel="쉼터"
+          mode={mode}
+          sido={sido}
+          sigungu={sigungu}
+          gpsLoading={gpsLoading}
+          statusLabel={statusLabel}
+          resultCount={listMarkers.length}
+          onActivateGps={() => void activateGpsSearch()}
+          onSidoChange={handleSidoChange}
+          onSigunguChange={handleSigunguChange}
+        />
+        {isFetching ? (
+          <ActivityIndicator size="small" color="#64748b" className="mt-1" />
+        ) : null}
+      </View>
+
+      <FlashList
+        style={{ flex: 1 }}
+        data={listMarkers}
+        estimatedItemSize={LIST_ESTIMATED_ITEM_SIZE}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+        ListEmptyComponent={
+          <EmptyState
+            message={
+              searchParams.textQuery || searchParams.regionFilter
+                ? '해당 조건의 쉼터를 찾을 수 없습니다'
+                : '주변 쉼터를 찾을 수 없습니다'
+            }
+            hint="시·도 또는 시·군·구를 선택해 보세요"
+          />
+        }
+        renderItem={({ item, index }) => (
+          <MedicalFacilityListCard
+            variant={index === 0 && mode === 'gps' ? 'aed' : 'default'}
+            selected={selectedShelter?.id === item.id}
+            onPress={() => handleMarkerPress(item)}
+          >
+            {index === 0 && mode === 'gps' ? (
+              <View className="mb-2 self-start">
+                <MedicalFacilityStatusPill label="최단" tone="er" />
+              </View>
+            ) : null}
+            <MedicalFacilityListTitleRow title={item.name} />
+            {item.address?.trim() ? (
+              <Text className="mt-1 text-sm text-kemix-text-secondary" numberOfLines={2}>
+                {item.address.trim()}
+              </Text>
+            ) : null}
+            <MedicalFacilityListDistanceRow
+              distanceM={item.distanceM}
+              walkMin={item.walkMin}
+              distanceUnitMode={distanceUnitMode}
+              onDistanceUnitModeChange={onDistanceUnitModeChange}
+              hint="탭하여 상세 정보 보기"
+            />
+          </MedicalFacilityListCard>
+        )}
+      />
+
+      <MapMarkerDetailSheet
+        visible={selectedShelter !== null}
+        title={selectedShelter?.name || '쉼터'}
+        loading={false}
+        onClose={handleCloseSheet}
+      >
+        {selectedShelter ? (
+          <ShelterDetailContent
+            shelter={selectedShelter}
+            distanceUnitMode={distanceUnitMode}
+            onDistanceUnitToggle={() =>
+              onDistanceUnitModeChange(cycleDistanceUnitMode(distanceUnitMode))
+            }
+          />
+        ) : null}
+      </MapMarkerDetailSheet>
+    </View>
+  );
+}
+
+function ShelterDetailContent({
+  shelter,
+  distanceUnitMode,
+  onDistanceUnitToggle,
+}: {
+  shelter: LocalShelterMarker;
+  distanceUnitMode: DistanceUnitMode;
+  onDistanceUnitToggle: () => void;
+}) {
+  const distanceBlock = (
+    <View className="flex-row gap-3">
+      <MedicalDetailInfoTile
+        icon="navigate"
+        label="거리"
+        value={formatDistanceMeters(shelter.distanceM ?? 0, distanceUnitMode)}
+        onPress={onDistanceUnitToggle}
+      />
+      <MedicalDetailInfoTile icon="walk" label="도보" value={`${shelter.walkMin ?? 0}분`} />
+    </View>
+  );
+
+  return (
+    <MedicalDetailBody>
+      <MedicalDetailLocationHeader
+        name={shelter.name}
+        address={shelter.address}
+        latitude={shelter.latitude}
+        longitude={shelter.longitude}
+        mapKind="shelter"
+        distanceBlock={distanceBlock}
+      />
+      <MedicalDetailText variant="muted">무더위·한파 쉼터 · 오프라인 데이터</MedicalDetailText>
+    </MedicalDetailBody>
+  );
+}
+
 function filterPediatricHospitals(items: HospitalFinderItem[], query: string): HospitalFinderItem[] {
   const normalized = query.trim().replace(/\s+/g, '').toLowerCase();
   if (!normalized) return items;
@@ -401,17 +586,19 @@ function filterPediatricHospitals(items: HospitalFinderItem[], query: string): H
 function PediatricModule({
   active,
   locationSnapshot,
-  facilitySearch,
   distanceUnitMode,
   onDistanceUnitModeChange,
-}: {
-  active: boolean;
-  locationSnapshot: LocationSnapshot;
-  facilitySearch: FacilitySearchState;
-} & MapModuleSharedProps) {
+}: MapModuleBaseProps & { active: boolean }) {
+  const facilitySearch = useFacilitySearchMode({ locationSnapshot });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHospital, setSelectedHospital] = useState<HospitalFinderItem | null>(null);
-  const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
+  const [mapCenter, setMapCenter] = useMapModuleCenter(
+    locationSnapshot,
+    facilitySearch.searchParams,
+    selectedHospital?.latitude && selectedHospital?.longitude
+      ? { latitude: selectedHospital.latitude, longitude: selectedHospital.longitude }
+      : null,
+  );
 
   const {
     mode,
@@ -433,12 +620,6 @@ function PediatricModule({
   }, [data?.items, searchQuery]);
 
   const mapPoints = useMemo(() => toPediatricHospitalMapPoints(hospitals), [hospitals]);
-
-  useEffect(() => {
-    if (selectedHospital) return;
-    const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
-    if (nextCenter) setMapCenter(nextCenter);
-  }, [locationSnapshot, selectedHospital]);
 
   const handleMarkerPress = (hospital: HospitalFinderItem) => {
     setSelectedHospital(hospital);
@@ -560,15 +741,18 @@ function PediatricModule({
 
 function PharmacyModule({
   locationSnapshot,
-  facilitySearch,
   distanceUnitMode,
   onDistanceUnitModeChange,
-}: {
-  locationSnapshot: LocationSnapshot;
-  facilitySearch: FacilitySearchState;
-} & MapModuleSharedProps) {
+}: MapModuleBaseProps) {
+  const facilitySearch = useFacilitySearchMode({ locationSnapshot });
+
   const [selectedPlace, setSelectedPlace] = useState<LocalPharmacyMarker | null>(null);
-  const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
+  const [mapCenter, setMapCenter] = useMapModuleCenter(
+    locationSnapshot,
+    facilitySearch.searchParams,
+    selectedPlace ? { latitude: selectedPlace.lat, longitude: selectedPlace.lng } : null,
+  );
+  const [pharmacyListViewMode, setPharmacyListViewMode] = useState<PharmacyListViewMode>('distance');
 
   const {
     mode,
@@ -582,18 +766,46 @@ function PharmacyModule({
     handleSigunguChange,
   } = facilitySearch;
 
-  const { data: markers = [], isFetching, isNightHoursLoading } = usePharmacyMarkersQuery(
+  const { data: markers = [], isFetching, isNightHoursLoading, isError } = usePharmacyMarkersQuery(
     searchParams,
     true,
   );
 
-  const mapPoints = useMemo(() => toLocalPharmacyMapPoints(markers), [markers]);
+  const displayMarkers = useMemo(() => {
+    try {
+      const safeMarkers = Array.isArray(markers) ? markers : [];
+      return sortPharmaciesForListView(safeMarkers, pharmacyListViewMode);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[PharmacyModule] sort failed', error);
+      }
+      return [];
+    }
+  }, [markers, pharmacyListViewMode]);
 
-  useEffect(() => {
-    if (selectedPlace) return;
-    const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
-    if (nextCenter) setMapCenter(nextCenter);
-  }, [locationSnapshot, selectedPlace]);
+  const emphasisMarkerIds = useMemo(() => {
+    if (pharmacyListViewMode !== 'night-priority') return undefined;
+    try {
+      return getPharmacyEmphasisMarkerIds(Array.isArray(markers) ? markers : []);
+    } catch {
+      return undefined;
+    }
+  }, [markers, pharmacyListViewMode]);
+
+  const fitToPointIds = useMemo(() => {
+    if (pharmacyListViewMode !== 'night-priority' || !emphasisMarkerIds?.size) return undefined;
+    return [...emphasisMarkerIds];
+  }, [pharmacyListViewMode, emphasisMarkerIds]);
+
+  const mapPoints = useMemo(() => {
+    try {
+      return toLocalPharmacyMapPoints(displayMarkers);
+    } catch {
+      return [];
+    }
+  }, [displayMarkers]);
+
+  const isInitialLoading = (isFetching || isNightHoursLoading) && displayMarkers.length === 0;
 
   const handleMarkerPress = (place: LocalPharmacyMarker) => {
     setSelectedPlace(place);
@@ -606,14 +818,30 @@ function PharmacyModule({
 
   return (
     <View className="flex-1">
+      {isInitialLoading ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <ActivityIndicator size="large" color="#64748b" />
+          <Text className="mt-3 text-sm text-kemix-text-secondary">약국 정보를 불러오는 중…</Text>
+        </View>
+      ) : (
+        <>
       <View className="h-[42%] min-h-[220px] border-b border-kemix-border">
         <MapModuleErrorBoundary>
           <EmergencyMapView
+            key={buildMapViewKey('pharmacy-map', mapCenter)}
             points={mapPoints}
             kind="pharmacy"
             selectedId={selectedPlace?.i}
-            loading={false}
-            center={mapCenter}
+            loading={isFetching}
+            center={
+              selectedPlace
+                ? mapCenter
+                : pharmacyListViewMode === 'night-priority' && fitToPointIds?.length
+                  ? undefined
+                  : mapCenter
+            }
+            emphasizedIds={emphasisMarkerIds}
+            fitToPointIds={fitToPointIds}
             onMarkerPress={(point: { payload: LocalPharmacyMarker }) => handleMarkerPress(point.payload)}
           />
         </MapModuleErrorBoundary>
@@ -627,10 +855,12 @@ function PharmacyModule({
           sigungu={sigungu}
           gpsLoading={gpsLoading}
           statusLabel={statusLabel}
-          resultCount={markers.length}
+          resultCount={displayMarkers.length}
           onActivateGps={() => void activateGpsSearch()}
           onSidoChange={handleSidoChange}
           onSigunguChange={handleSigunguChange}
+          pharmacyListViewMode={pharmacyListViewMode}
+          onPharmacyListViewModeChange={setPharmacyListViewMode}
         />
         {isFetching || isNightHoursLoading ? (
           <ActivityIndicator size="small" color="#64748b" className="mt-1" />
@@ -639,26 +869,48 @@ function PharmacyModule({
 
       <FlashList
         style={{ flex: 1 }}
-        data={markers}
+        data={displayMarkers}
         estimatedItemSize={LIST_ESTIMATED_ITEM_SIZE}
         keyExtractor={(item) => item.i}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
         ListEmptyComponent={
           <EmptyState
             message={
-              searchParams.regionFilter
-                ? `${statusLabel} 약국을 찾을 수 없습니다`
-                : '주변 약국을 찾을 수 없습니다'
+              isError
+                ? '약국 데이터를 불러오지 못했습니다'
+                : searchParams.regionFilter
+                  ? `${statusLabel} 약국을 찾을 수 없습니다`
+                  : '주변 약국을 찾을 수 없습니다'
             }
-            hint="시·도 또는 시·군·구를 선택해 보세요"
+            hint={
+              isError
+                ? '잠시 후 다시 시도하거나 다른 지역을 선택해 보세요'
+                : '시·도 또는 시·군·구를 선택해 보세요'
+            }
           />
         }
         renderItem={({ item }) => {
-          const openStatus = getPharmacyOpenStatus(item);
-          const isNightPharmacyToday = isTodayNightPharmacy(item);
+          let openStatus: PharmacyOpenStatus;
+          let isNightPharmacyToday = false;
+          let cardVariant: 'default' | 'pharmacy-night' | 'pharmacy-open' = 'default';
+          try {
+            openStatus = getPharmacyOpenStatus(item);
+            isNightPharmacyToday = isTodayNightPharmacy(item);
+            cardVariant = getPharmacyListCardVariant(item, pharmacyListViewMode);
+          } catch {
+            openStatus = {
+              hasHours: false,
+              isOpenNow: false,
+              dayLabel: '',
+              hoursLabel: '',
+              start: '',
+              end: '',
+            };
+          }
           return (
             <MedicalFacilityListCard
               selected={selectedPlace?.i === item.i}
+              variant={cardVariant}
               onPress={() => handleMarkerPress(item)}
             >
               {isNightPharmacyToday ? (
@@ -714,6 +966,8 @@ function PharmacyModule({
           />
         ) : null}
       </MapMarkerDetailSheet>
+        </>
+      )}
     </View>
   );
 }
@@ -721,16 +975,18 @@ function PharmacyModule({
 function ErModule({
   active,
   locationSnapshot,
-  facilitySearch,
   distanceUnitMode,
   onDistanceUnitModeChange,
-}: {
-  active: boolean;
-  locationSnapshot: LocationSnapshot;
-  facilitySearch: FacilitySearchState;
-} & MapModuleSharedProps) {
+}: MapModuleBaseProps & { active: boolean }) {
+  const facilitySearch = useFacilitySearchMode({ locationSnapshot });
+  usePrefetchFacilityMarkers(facilitySearch.searchParams, 'hospital');
+
   const [selectedPlace, setSelectedPlace] = useState<LocalHospitalMarkerWithLive | null>(null);
-  const [mapCenter, setMapCenter] = useState(() => getMapCenterFromSnapshot(locationSnapshot));
+  const [mapCenter, setMapCenter] = useMapModuleCenter(
+    locationSnapshot,
+    facilitySearch.searchParams,
+    selectedPlace ? { latitude: selectedPlace.lat, longitude: selectedPlace.lng } : null,
+  );
   const [metadataIndex, setMetadataIndex] = useState<Map<string, HospitalMetadataEntry> | null>(null);
   const metadataSyncRef = useRef(0);
 
@@ -764,12 +1020,6 @@ function ErModule({
   }, [baseMarkers, metadataIndex]);
 
   const mapPoints = useMemo(() => toLocalHospitalMapPoints(allMarkers), [allMarkers]);
-
-  useEffect(() => {
-    if (selectedPlace) return;
-    const nextCenter = getMapCenterFromSnapshot(locationSnapshot);
-    if (nextCenter) setMapCenter(nextCenter);
-  }, [locationSnapshot, selectedPlace]);
 
   useEffect(() => {
     if (!active) return undefined;

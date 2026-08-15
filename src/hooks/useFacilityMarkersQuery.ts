@@ -33,9 +33,10 @@ export function useFacilityMarkersQuery(
   });
 }
 
-/** 탭·지역 전환 시 즉시 표시 — AED·응급실·약국 결과 선캐시 */
+/** 탭·지역 전환 시 즉시 표시 — 해당 시설 종류만 선캐시 */
 export function usePrefetchFacilityMarkers(
   params: FacilitySearchParams,
+  kind: FacilityMarkerKind,
   enabled = true,
 ) {
   const queryClient = useQueryClient();
@@ -43,17 +44,14 @@ export function usePrefetchFacilityMarkers(
   useEffect(() => {
     if (!enabled) return;
 
-    const kinds: FacilityMarkerKind[] = ['aed', 'hospital', 'pharmacy'];
-    for (const kind of kinds) {
-      const queryKey = buildFacilityMarkerQueryKey(kind, params);
-      const cached = queryClient.getQueryData(queryKey);
-      if (cached) continue;
+    const queryKey = buildFacilityMarkerQueryKey(kind, params);
+    const cached = queryClient.getQueryData(queryKey);
+    if (cached) return;
 
-      void queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () => searchFacilityMarkers(kind, params),
-        staleTime: FACILITY_STALE_MS,
-      });
-    }
-  }, [enabled, params, queryClient]);
+    void queryClient.prefetchQuery({
+      queryKey,
+      queryFn: () => searchFacilityMarkers(kind, params),
+      staleTime: FACILITY_STALE_MS,
+    });
+  }, [enabled, kind, params, queryClient]);
 }

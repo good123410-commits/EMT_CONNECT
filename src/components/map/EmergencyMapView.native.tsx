@@ -22,6 +22,8 @@ export function EmergencyMapView<T>({
   selectedId,
   loading,
   center,
+  emphasizedIds,
+  fitToPointIds,
   onMarkerPress,
   onViewportChange,
 }: EmergencyMapViewProps<T>) {
@@ -55,15 +57,49 @@ export function EmergencyMapView<T>({
   useEffect(() => {
     if (!center || !isValidCoordinate(center)) return;
     const nextRegion = coordinateToRegion(center);
-    setRegion(nextRegion);
+    setRegion((prev) =>
+      prev.latitude === nextRegion.latitude && prev.longitude === nextRegion.longitude
+        ? prev
+        : nextRegion,
+    );
     mapRef.current?.animateToRegion(nextRegion, 350);
   }, [center?.latitude, center?.longitude]);
 
+  const fitToKey = fitToPointIds?.join(',') ?? '';
+  useEffect(() => {
+    if (!fitToKey || !mapRef.current) return;
+    const idSet = new Set(fitToPointIds);
+    const coords = validPoints
+      .filter((point) => idSet.has(point.id))
+      .map((point) => ({ latitude: point.latitude, longitude: point.longitude }));
+    if (coords.length === 0) return;
+
+    if (coords.length === 1) {
+      const nextRegion = coordinateToRegion(coords[0], 0.02);
+      setRegion(nextRegion);
+      mapRef.current.animateToRegion(nextRegion, 350);
+      return;
+    }
+
+    mapRef.current.fitToCoordinates(coords, {
+      edgePadding: { top: 48, right: 48, bottom: 48, left: 48 },
+      animated: true,
+    });
+  }, [fitToKey, validPoints]);
+
+  const firstPointLat = validPoints[0]?.latitude;
+  const firstPointLng = validPoints[0]?.longitude;
+
   useEffect(() => {
     if (center || validPoints.length === 0) return;
-    const nextRegion = coordinateToRegion(validPoints[0]);
-    setRegion(nextRegion);
-  }, [center, validPoints]);
+    if (firstPointLat == null || firstPointLng == null) return;
+    const nextRegion = coordinateToRegion({ latitude: firstPointLat, longitude: firstPointLng });
+    setRegion((prev) =>
+      prev.latitude === nextRegion.latitude && prev.longitude === nextRegion.longitude
+        ? prev
+        : nextRegion,
+    );
+  }, [center, firstPointLat, firstPointLng, validPoints.length]);
 
   const handleRegionChangeComplete = useCallback(
     (nextRegion: Region) => {
@@ -136,6 +172,7 @@ export function EmergencyMapView<T>({
                   (feature.payload as { isMoonlightHospital?: boolean }).isMoonlightHospital,
                 )
               }
+              emphasized={emphasizedIds?.has(feature.id) ?? false}
               onPress={() => onMarkerPress(feature.payload)}
             />
           ),

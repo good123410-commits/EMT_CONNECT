@@ -11,6 +11,7 @@ import type {
   LocalAedRecord,
   LocalAedSearchOptions,
 } from '@/types/localAed';
+import { filterCoordinatesByFacilityRegion } from '@/utils/facilityCoordinateRegion';
 import { resolveFacilityLatLng } from '@/utils/facilityCoordinates';
 
 const AED_RECORDS = aedData as LocalAedRecord[];
@@ -100,9 +101,12 @@ export function searchLocalAeds(
 
   let items = getAedIndex();
   if (options.regionFilter?.stage1) {
-    items = items.filter((item) =>
-      matchesFacilityRegion(item.address ?? '', '', options.regionFilter!),
-    );
+    items = filterCoordinatesByFacilityRegion(items, options.regionFilter, coordinate);
+    items = items.filter((item) => {
+      const address = item.address?.trim() || item.location?.trim();
+      if (!address) return true;
+      return matchesFacilityRegion(address, '', options.regionFilter!);
+    });
   }
   items = filterByQuery(items, query);
 

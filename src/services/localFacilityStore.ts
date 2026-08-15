@@ -7,6 +7,7 @@ import {
   registerHospitalIndexInvalidator,
 } from '@/services/customHospitalService';
 import { SIDO_LIST } from '@/services/locationService';
+import { parseFacilityAddressRegion } from '@/utils/facilityAddressRegion';
 import type {
   LocalHospitalMarker,
   LocalHospitalRecord,
@@ -61,6 +62,9 @@ function buildSearchKey(name: string, address: string, sigungu: string): string 
 }
 
 function resolveSidoBucket(address: string): string {
+  const parsed = parseFacilityAddressRegion(address);
+  if (parsed?.stage1) return parsed.stage1;
+
   for (const sido of SIDO_LIST) {
     if (address.includes(sido)) return sido;
   }
@@ -117,7 +121,15 @@ export function invalidateHospitalFacilityIndex(): void {
 
 function getPharmacyIndex(): FacilityIndex<IndexedPharmacy> {
   if (!pharmacyIndex) {
-    pharmacyIndex = buildIndex(PHARMACIES);
+    try {
+      const records = Array.isArray(PHARMACIES) ? PHARMACIES : [];
+      pharmacyIndex = buildIndex(records);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[localFacilityStore] pharmacy index build failed', error);
+      }
+      pharmacyIndex = { all: [], bySido: new Map() };
+    }
   }
   return pharmacyIndex;
 }
@@ -259,22 +271,29 @@ export function searchLocalPharmacies(
   coordinate: GeoCoordinate,
   options: LocalSearchOptions = {},
 ): LocalPharmacyMarker[] {
-  const limit = options.limit ?? 80;
-  const radiusMeters = options.radiusMeters ?? 15_000;
-  const useGpsRadius = !options.regionFilter?.stage1 && !query.trim();
+  try {
+    const limit = options.limit ?? 80;
+    const radiusMeters = options.radiusMeters ?? 15_000;
+    const useGpsRadius = !options.regionFilter?.stage1 && !query.trim();
 
-  let items = pickCandidatePool(getPharmacyIndex(), options.regionFilter);
-  items = filterByRegion(items, options.regionFilter);
-  items = filterByQuery(items, query);
-  const ranked = withDistance(items, coordinate, useGpsRadius ? radiusMeters * 1.2 : undefined);
+    let items = pickCandidatePool(getPharmacyIndex(), options.regionFilter);
+    items = filterByRegion(items, options.regionFilter);
+    items = filterByQuery(items, query);
+    const ranked = withDistance(items, coordinate, useGpsRadius ? radiusMeters * 1.2 : undefined);
 
-  if (useGpsRadius) {
-    const inRadius = ranked.filter((item) => item.distanceM <= radiusMeters);
-    if (inRadius.length > 0) return inRadius.slice(0, limit);
+    if (useGpsRadius) {
+      const inRadius = ranked.filter((item) => item.distanceM <= radiusMeters);
+      if (inRadius.length > 0) return inRadius.slice(0, limit);
+      return ranked.slice(0, limit);
+    }
+
     return ranked.slice(0, limit);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[localFacilityStore] pharmacy search failed', error);
+    }
+    return [];
   }
-
-  return ranked.slice(0, limit);
 }
 
 export function findLocalHospitalById(id: string): LocalHospitalRecord | undefined {

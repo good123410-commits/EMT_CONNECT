@@ -1,17 +1,18 @@
-import { ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { HomeCommerceCuration } from '@/components/home/HomeCommerceCuration';
+import { HomeEmergencyHero } from '@/components/home/HomeEmergencyHero';
 import { HomeEventBannerList } from '@/components/home/HomeEventBannerList';
 import { ThemedScreen } from '@/components/theme/ThemedScreen';
 import { APP_SPACING } from '@/constants/appTheme';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHomeDashboard } from '@/hooks/useHomeDashboard';
-
-const BANNER_TO_CURATION_GAP = 24;
+import { useThemedColors } from '@/hooks/useThemedColors';
 
 export function HomeScreen() {
-  const { banners, commerceItems } = useHomeDashboard();
-  const hasBanners = banners.length > 0;
+  const { banners, commerceItems, loading } = useHomeDashboard();
   const fabBottomInset = useGlobalFabBottomInset();
+  const { colors } = useThemedColors();
+  const hasBanners = banners.length > 0;
 
   return (
     <ThemedScreen>
@@ -25,18 +26,17 @@ export function HomeScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {hasBanners ? (
-          <View style={{ marginBottom: BANNER_TO_CURATION_GAP }}>
-            <HomeEventBannerList banners={banners} />
+        {hasBanners ? <HomeEventBannerList banners={banners} /> : null}
+
+        <HomeEmergencyHero />
+
+        {loading ? (
+          <View className="items-center py-6">
+            <ActivityIndicator color={colors.blue} />
           </View>
-        ) : null}
-
-        {/* DISABLED: 비상연락망 & 응급카드 (ICE) */}
-        {/* <View className="mb-6">
-          <EmergencyOverlayToggleCard compact />
-        </View> */}
-
-        <HomeCommerceCuration items={commerceItems} />
+        ) : (
+          <HomeCommerceCuration items={commerceItems} />
+        )}
       </ScrollView>
     </ThemedScreen>
   );
