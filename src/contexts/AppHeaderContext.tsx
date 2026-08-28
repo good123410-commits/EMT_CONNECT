@@ -25,7 +25,19 @@ export function AppHeaderProvider({ children }: { children: ReactNode }) {
   const [override, setOverrideState] = useState<AppHeaderOverride | null>(null);
 
   const setOverride = useCallback((next: AppHeaderOverride | null) => {
-    setOverrideState(next);
+    setOverrideState((prev) => {
+      if (prev === next) return prev;
+      if (!prev || !next) return next;
+      if (
+        prev.title === next.title &&
+        prev.hidden === next.hidden &&
+        prev.showBack === next.showBack &&
+        prev.onBack === next.onBack
+      ) {
+        return prev;
+      }
+      return next;
+    });
   }, []);
 
   const value = useMemo(

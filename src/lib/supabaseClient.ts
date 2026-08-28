@@ -66,6 +66,7 @@ export type UserProfile = {
   email: string | null;
   role: UserRole;
   name: string | null;
+  nickname?: string | null;
   phone?: string | null;
   company_name: string | null;
   invitation_code: string | null;

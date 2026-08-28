@@ -1,15 +1,8 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, FlatList, Text, View } from 'react-native';
+import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import type { HiddenPost, HiddenPostTargetRole } from '@/lib/supabaseClient';
@@ -119,13 +112,13 @@ export function HiddenChannelPanel({ accentColor = '#0f172a' }: HiddenChannelPan
               </Pressable>
             ))}
           </View>
-          <TextInput
+          <ShortcodeTextInput
             className="mb-2 rounded-xl border border-kemix-border bg-kemix-bg px-3 py-2 text-base"
             placeholder="제목"
             value={title}
             onChangeText={setTitle}
           />
-          <TextInput
+          <ShortcodeTextInput
             className="mb-3 min-h-[80px] rounded-xl border border-kemix-border bg-kemix-bg px-3 py-2 text-base"
             placeholder="내용"
             value={content}

@@ -1,5 +1,5 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ServicePolicyContent } from '@/components/legal/ServicePolicyContent';
 import { SERVICE_POLICY_TITLE } from '@/constants/servicePolicyContent';

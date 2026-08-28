@@ -2,29 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-
-  ActivityIndicator,
-
-  FlatList,
-
-  Modal,
-
-  Pressable,
-
-  Text,
-
-  View,
-
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, FlatList, Modal, Text, View } from 'react-native';
 
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
 
 import { CaseStudyWriteModal } from '@/components/emsCommunity/CaseStudyWriteModal';
+import { CommunityAuthorActions } from '@/components/emsCommunity/CommunityAuthorActions';
 import { CommunityListPagination } from '@/components/emsCommunity/CommunityListPagination';
-import { CommunityBestSection } from '@/components/emsCommunity/CommunityBestSection';
 import { CommunityCommentSection } from '@/components/emsCommunity/CommunityCommentSection';
-import { CommunityListToolbar } from '@/components/emsCommunity/CommunityListToolbar';
+import { CommunityListScrollHeader } from '@/components/emsCommunity/CommunityListScrollHeader';
 import { CommunityPostDetailLayout } from '@/components/emsCommunity/CommunityPostDetailLayout';
 
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
@@ -37,17 +23,15 @@ import {
 
   LoungeCard,
 
-  LoungeErrorBanner,
-
   LoungeLikeButton,
 
   LoungeMetaText,
 
+  LoungeFab,
+
   LoungeScreen,
 
   LoungeTitle,
-
-  LoungeWriteBar,
 
   useLoungeListContentStyle,
 
@@ -65,13 +49,19 @@ import { useUserRole } from '@/contexts/UserRoleContext';
 
 import { useCommunityListScrollToTop } from '@/hooks/useCommunityListScrollToTop';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import { useCommunityPostLike } from '@/hooks/useCommunityPostLike';
 import { usePaginatedEmsPosts } from '@/hooks/usePaginatedEmsPosts';
 import { mapRowToCaseStudy } from '@/services/emsCommunityService';
-import { CASE_STUDY_SORT_OPTIONS } from '@/types/communityList';
-
+import {
+  deleteCommunityPostByAuthor,
+  updateCommunityPostByAuthor,
+} from '@/services/communityAuthorService';
 import type { CaseStudyPost } from '@/data/paramedicMockData';
+import { isPostLiked } from '@/utils/communityPostLike';
 
 import { consumeAuthIntent } from '@/utils/authIntent';
+import { confirmDestructiveAction } from '@/utils/confirmDestructiveAction';
+import { isPostAuthor } from '@/utils/communityPostAccess';
 
 import { PARAMEDIC_SPACE_GATE_MESSAGE } from '@/utils/membershipRbac';
 
@@ -89,13 +79,15 @@ function CaseStudyCard({
 
   post: CaseStudyPost;
 
-  onLike: (id: string) => void;
+  onLike: (post: CaseStudyPost) => void;
 
   onOpen: (post: CaseStudyPost) => void;
 
 }) {
 
   const { lounge } = useEmsLoungeTheme();
+
+  const liked = isPostLiked(post);
 
 
 
@@ -153,7 +145,11 @@ function CaseStudyCard({
 
       >
 
-        <LoungeLikeButton count={post.likes} onPress={() => void onLike(post.id)} />
+        <LoungeLikeButton
+          count={post.likes}
+          liked={liked}
+          onPress={() => onLike(post)}
+        />
 
       </View>
 
@@ -169,7 +165,7 @@ export function EmsCaseStudyScreen() {
 
   const { lounge } = useEmsLoungeTheme();
 
-  const loungeListContentStyle = useLoungeListContentStyle();
+  const loungeListContentStyle = useLoungeListContentStyle(12, true);
 
   const { user } = useAuth();
 
@@ -179,17 +175,16 @@ export function EmsCaseStudyScreen() {
 
     postCaseStudy,
 
-    likeCaseStudy,
-
     error: feedError,
 
   } = useParamedicCommunity();
 
+  const [writeOpen, setWriteOpen] = useState(false);
+  const [editingCase, setEditingCase] = useState<CaseStudyPost | null>(null);
+  const [bestSortActive, setBestSortActive] = useState(false);
+
   const {
     items: caseStudies,
-    bestItems,
-    sort,
-    setSort,
     searchInput,
     setSearchInput,
     currentPage,
@@ -199,12 +194,11 @@ export function EmsCaseStudyScreen() {
     error: listError,
     goToPage,
     refresh: refreshList,
-    sortOptions,
+    patchPost,
   } = usePaginatedEmsPosts({
     postTypes: ['case_study'],
     mapRow: mapRowToCaseStudy,
-    sortOptions: CASE_STUDY_SORT_OPTIONS,
-    enableBest: true,
+    sort: bestSortActive ? 'popular' : 'latest',
   });
 
   const error = listError ?? feedError;
@@ -219,13 +213,31 @@ export function EmsCaseStudyScreen() {
     [goToPage, scrollToTop],
   );
 
-  const [writeOpen, setWriteOpen] = useState(false);
+  const handleBestToggle = useCallback(() => {
+    setBestSortActive((prev) => !prev);
+    scrollToTop();
+  }, [scrollToTop]);
 
   const [loginOpen, setLoginOpen] = useState(false);
 
   const [permissionOpen, setPermissionOpen] = useState(false);
 
   const [selected, setSelected] = useState<CaseStudyPost | null>(null);
+
+  const patchPostEverywhere = useCallback(
+    (id: string, updater: (prev: CaseStudyPost) => CaseStudyPost) => {
+      patchPost(id, updater);
+      setSelected((prev) => (prev?.id === id ? updater(prev) : prev));
+    },
+    [patchPost],
+  );
+
+  const { toggleLike: handleLike } = useCommunityPostLike<CaseStudyPost>({
+    patchPost: patchPostEverywhere,
+    canLike: () => Boolean(user),
+    onAuthRequired: () => setLoginOpen(true),
+    onError: (message) => Alert.alert('좋아요', message),
+  });
 
 
 
@@ -265,6 +277,7 @@ export function EmsCaseStudyScreen() {
 
     }
 
+    setEditingCase(null);
     setWriteOpen(true);
 
   }, [user, canAccessParamedicChannel]);
@@ -302,11 +315,44 @@ export function EmsCaseStudyScreen() {
 
 
   const handleSaveCase = async (input: { title: string; summary: string; body: string }) => {
-    await postCaseStudy(input.title, input.summary || input.body.slice(0, 80), input.body);
-    setSort('latest');
+    if (editingCase?.id) {
+      const updated = await updateCommunityPostByAuthor(editingCase.id, {
+        title: input.title,
+        summary: input.summary || input.body.slice(0, 80),
+        content: input.body,
+      });
+      const mapped = mapRowToCaseStudy(updated);
+      if (selected?.id === editingCase.id) {
+        setSelected(mapped);
+      }
+      setEditingCase(null);
+    } else {
+      await postCaseStudy(input.title, input.summary || input.body.slice(0, 80), input.body);
+    }
     await refreshList();
     scrollToTop();
   };
+
+  const handleEditCase = () => {
+    if (!selected) return;
+    setEditingCase(selected);
+    setWriteOpen(true);
+  };
+
+  const handleDeleteCase = () => {
+    if (!selected) return;
+    confirmDestructiveAction(
+      '케이스 삭제',
+      '삭제된 케이스는 복구할 수 없습니다. 계속하시겠습니까?',
+      async () => {
+        await deleteCommunityPostByAuthor(selected.id);
+        setSelected(null);
+        await refreshList();
+      },
+    );
+  };
+
+  const isSelectedAuthor = isPostAuthor(selected?.authorId, user?.id);
 
 
 
@@ -434,9 +480,14 @@ export function EmsCaseStudyScreen() {
 
         visible={writeOpen}
 
-        onClose={() => setWriteOpen(false)}
+        onClose={() => {
+          setWriteOpen(false);
+          setEditingCase(null);
+        }}
 
         onSubmit={handleSaveCase}
+
+        editingPost={editingCase}
 
       />
 
@@ -491,19 +542,16 @@ export function EmsCaseStudyScreen() {
             </View>
 
             <View className="mt-4 flex-row justify-end">
-
               <ReportContentButton
-
                 contentId={selected.id}
-
                 contentType="post"
-
                 preview={selected.title}
-
               />
-
             </View>
 
+            {isSelectedAuthor ? (
+              <CommunityAuthorActions onEdit={handleEditCase} onDelete={handleDeleteCase} />
+            ) : null}
           </LoungeCard>
 
           <CommunityCommentSection
@@ -513,8 +561,6 @@ export function EmsCaseStudyScreen() {
             canWrite={Boolean(user)}
 
             writeDeniedMessage="댓글을 작성하려면 로그인이 필요합니다."
-
-            authorLabel={(user?.user_metadata?.name as string | undefined) ?? '구급대원'}
 
             sectionLabel="댓글"
 
@@ -542,21 +588,6 @@ export function EmsCaseStudyScreen() {
 
       <ParamedicHeader />
 
-      <LoungeWriteBar label="케이스 작성" onPress={handleWritePress} icon="document-text-outline" />
-
-      <CommunityListToolbar
-        searchValue={searchInput}
-        onSearchChange={setSearchInput}
-        searchPlaceholder="케이스 제목·내용 검색"
-        sort={sort}
-        onSortChange={setSort}
-        sortOptions={sortOptions}
-      />
-
-      {error ? <LoungeErrorBanner message={error} /> : null}
-
-
-
       {loading && caseStudies.length === 0 ? (
 
         <View className="flex-1 items-center justify-center py-16">
@@ -567,24 +598,28 @@ export function EmsCaseStudyScreen() {
 
       ) : (
 
+        <View className="flex-1">
+
         <FlatList
 
           ref={listRef}
 
           data={caseStudies}
 
-          extraData={currentPage}
+          extraData={`${currentPage}-${bestSortActive}`}
 
           keyExtractor={(item) => item.id}
 
           contentContainerStyle={loungeListContentStyle}
 
           ListHeaderComponent={
-            <CommunityBestSection
-              items={bestItems}
-              renderItem={(post) => (
-                <CaseStudyCard post={post} onLike={likeCaseStudy} onOpen={setSelected} />
-              )}
+            <CommunityListScrollHeader
+              searchValue={searchInput}
+              onSearchChange={setSearchInput}
+              searchPlaceholder="케이스 제목·내용 검색"
+              error={error}
+              bestActive={bestSortActive}
+              onBestToggle={handleBestToggle}
             />
           }
 
@@ -614,15 +649,21 @@ export function EmsCaseStudyScreen() {
 
           renderItem={({ item }) => (
 
-            <CaseStudyCard post={item} onLike={likeCaseStudy} onOpen={setSelected} />
+            <CaseStudyCard post={item} onLike={handleLike} onOpen={setSelected} />
 
           )}
 
         />
 
+        <LoungeFab
+          onPress={handleWritePress}
+          accessibilityLabel="케이스 작성"
+          icon="create-outline"
+        />
+
+        </View>
+
       )}
-
-
 
       {overlays}
     </LoungeScreen>

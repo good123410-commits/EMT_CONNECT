@@ -63,5 +63,5 @@ export const UTILITY_SCREEN_TITLES: Record<keyof UtilitiesStackParamList, string
 export const CHEMICAL_SCREEN_TITLE = '약물정보찾기';
 
 export const SETTINGS_NESTED_TITLES: Record<string, string> = {
-  AdminDashboard: '관리자',
+  AdminDashboard: '관리자 대시보드',
 };

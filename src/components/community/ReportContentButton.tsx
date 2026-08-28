@@ -1,5 +1,5 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import { Alert, Pressable, Text } from 'react-native';
+import { Pressable, Alert, Text } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   submitCommunityReport,

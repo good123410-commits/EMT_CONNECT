@@ -6,9 +6,11 @@ import type {
   CommunityReaction,
   PaginatedPosts,
 } from '@/types/community';
+import { fetchCurrentUserNickname } from '@/utils/userNickname';
 
 const QA_CATEGORY_SLUG = 'question';
 const BOARD_PAGE_SIZE = 15;
+const EMS_COMMUNITY_COMMENTS_TABLE = 'ems_community_comments';
 
 type PostRow = CommunityPost & {
   kemix_community_categories?:
@@ -61,6 +63,7 @@ export function mapCommunityPostRow(row: PostRow): CommunityPost {
     category_name: cat?.name ?? row.category_name ?? null,
     comment_count: row.comment_count ?? 0,
     my_reaction: row.my_reaction ?? null,
+    is_secret: Boolean(row.is_secret),
   };
 }
 
@@ -144,6 +147,7 @@ export async function createQaPost(input: {
   content: string;
   authorLabel?: string;
   categoryId?: string | null;
+  isSecret?: boolean;
 }): Promise<CommunityPost> {
   let categoryId = input.categoryId ?? null;
   if (!categoryId) {
@@ -151,12 +155,15 @@ export async function createQaPost(input: {
     categoryId = categories.find((item) => item.slug === QA_CATEGORY_SLUG)?.id ?? null;
   }
 
+  const authorLabel = input.authorLabel?.trim() || (await fetchCurrentUserNickname());
+
   const { data, error } = await supabase.rpc('create_community_bamboo_post', {
     p_title: input.title.trim(),
     p_content: input.content.trim(),
     p_category_id: categoryId,
     p_category_slug: QA_CATEGORY_SLUG,
-    p_anonymous_label: input.authorLabel ?? '회원',
+    p_anonymous_label: authorLabel,
+    p_is_secret: input.isSecret ?? false,
   });
   if (error) throw error;
   if (!data) {
@@ -171,14 +178,103 @@ export async function createPostComment(
   parentId?: string | null,
   authorLabel?: string,
 ): Promise<CommunityComment> {
+  const resolvedLabel = authorLabel?.trim() || (await fetchCurrentUserNickname());
+
   const { data, error } = await supabase.rpc('create_post_comment', {
     p_post_id: postId,
     p_content: content.trim(),
     p_parent_id: parentId ?? null,
-    p_anonymous_label: authorLabel ?? '익명',
+    p_anonymous_label: resolvedLabel,
   });
   if (error) throw error;
   return mapComment(data as Record<string, unknown>);
+}
+
+export async function updatePostComment(
+  commentId: string,
+  content: string,
+): Promise<CommunityComment> {
+  const trimmed = content.trim();
+  if (!trimmed) {
+    throw new Error('content_too_short');
+  }
+
+  const { data, error } = await supabase
+    .from(EMS_COMMUNITY_COMMENTS_TABLE)
+    .update({ content: trimmed })
+    .eq('id', commentId)
+    .select('*')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error('comment_not_found');
+  }
+
+  return mapComment(data as Record<string, unknown>);
+}
+
+export async function deletePostComment(commentId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from(EMS_COMMUNITY_COMMENTS_TABLE)
+    .delete()
+    .eq('id', commentId)
+    .select('id');
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.length) {
+    throw new Error('comment_delete_failed');
+  }
+}
+
+export async function fetchMyPostReactions(
+  postIds: string[],
+): Promise<Map<string, CommunityReaction>> {
+  const map = new Map<string, CommunityReaction>();
+  if (!postIds.length) return map;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return map;
+
+  const { data, error } = await supabase
+    .from('ems_community_post_reactions')
+    .select('post_id, reaction')
+    .eq('user_id', user.id)
+    .in('post_id', postIds);
+
+  if (error) {
+    if (__DEV__) {
+      console.warn('[community] fetchMyPostReactions failed', error.message);
+    }
+    return map;
+  }
+
+  for (const row of data ?? []) {
+    const reaction = row.reaction;
+    if (reaction === 'like' || reaction === 'dislike') {
+      map.set(String(row.post_id), reaction);
+    }
+  }
+
+  return map;
+}
+
+export function applyMyReactionsToRows<T extends { id: string }>(
+  rows: T[],
+  reactions: Map<string, CommunityReaction>,
+): Array<T & { my_reaction: CommunityReaction | null }> {
+  return rows.map((row) => ({
+    ...row,
+    my_reaction: reactions.get(row.id) ?? null,
+  }));
 }
 
 export async function togglePostReaction(
@@ -225,6 +321,15 @@ export function parseCommunityError(message: string): string {
   }
   if (message.includes('content_too_short')) {
     return '내용을 5자 이상 입력해 주세요.';
+  }
+  if (message.includes('comment_not_found')) {
+    return '댓글을 찾을 수 없습니다.';
+  }
+  if (message.includes('comment_delete_failed')) {
+    return '댓글을 삭제하지 못했습니다. 작성자 본인이거나 관리자 권한이 있는지 확인해 주세요.';
+  }
+  if (message.includes('row-level security')) {
+    return '댓글 수정·삭제 권한이 없습니다.';
   }
   if (message.includes('create_failed')) {
     return '글 등록에 실패했습니다. 다시 시도해 주세요.';

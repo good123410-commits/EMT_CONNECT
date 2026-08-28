@@ -1,13 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,7 +83,7 @@ export function GuideCommentsSection({
       </View>
 
       <View className="rounded-2xl border border-kemix-border-light bg-kemix-bg p-3">
-        <TextInput
+        <ShortcodeTextInput
           className="min-h-[72px] text-sm text-kemix-text"
           placeholder={user ? '응급처치 경험이나 궁금한 점을 남겨 주세요.' : '댓글 작성은 로그인 후 가능합니다.'}
           placeholderTextColor="#94a3b8"

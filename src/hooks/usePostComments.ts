@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   createPostComment,
+  deletePostComment,
   fetchPostComments,
   parseCommunityError,
+  updatePostComment,
 } from '@/services/communityService';
 import { subscribeEmsPostComments } from '@/lib/realtimeSubscription';
 import type { CommunityComment } from '@/types/community';
@@ -63,6 +65,37 @@ export function usePostComments(postId: string | null) {
     [postId, reload],
   );
 
+  const editComment = useCallback(
+    async (commentId: string, content: string) => {
+      const trimmed = content.trim();
+      if (!trimmed) {
+        throw new Error('content_too_short');
+      }
+
+      setSubmitting(true);
+      try {
+        await updatePostComment(commentId, trimmed);
+        await reload();
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [reload],
+  );
+
+  const deleteComment = useCallback(
+    async (commentId: string) => {
+      setSubmitting(true);
+      try {
+        await deletePostComment(commentId);
+        await reload();
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [reload],
+  );
+
   return {
     comments,
     loading,
@@ -70,5 +103,7 @@ export function usePostComments(postId: string | null) {
     error,
     reload,
     submitComment,
+    editComment,
+    deleteComment,
   };
 }

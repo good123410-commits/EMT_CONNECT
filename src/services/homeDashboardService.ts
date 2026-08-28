@@ -81,6 +81,13 @@ export async function loadHomeCommerceConfig(): Promise<HomeDashboardConfig> {
 export async function saveHomeCommerceConfig(
   commerceItems: HomeCommerceItem[],
 ): Promise<HomeDashboardConfig> {
+  if (__DEV__) {
+    console.log(
+      '[saveHomeCommerceConfig] saving itemIds:',
+      commerceItems.map((item) => item.id),
+    );
+  }
+
   const next: HomeDashboardConfig = {
     commerceItems: sortCommerce(commerceItems),
     updatedAt: new Date().toISOString(),
@@ -92,4 +99,17 @@ export async function saveHomeCommerceConfig(
 
 export function getActiveCommerceItems(config: HomeDashboardConfig): HomeCommerceItem[] {
   return config.commerceItems.filter((item) => item.isActive);
+}
+
+export function createCommerceItem(sortOrder: number): HomeCommerceItem {
+  return {
+    id: `commerce-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: '',
+    description: '',
+    imageUrl: null,
+    partnerUrl: '',
+    partnerLabel: '',
+    isActive: true,
+    sortOrder,
+  };
 }

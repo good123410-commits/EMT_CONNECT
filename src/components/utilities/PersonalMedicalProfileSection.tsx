@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, ActivityIndicator, Alert, Text, TextInput, View } from 'react-native';
 import {
   persistMedicalProfile,
   loadStoredMedicalProfile,

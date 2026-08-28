@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, FlatList, Modal, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_FONT } from '@/constants/appTheme';
 import { KEMIX_TOUCH_MIN_HEIGHT } from '@/theme/kemixSemantic';
 import { useThemedColors } from '@/hooks/useThemedColors';
@@ -13,6 +14,8 @@ type RegionPickerModalProps = {
   onClose: () => void;
 };
 
+const LIST_MAX_HEIGHT = 360;
+
 export function RegionPickerModal({
   visible,
   title,
@@ -22,6 +25,7 @@ export function RegionPickerModal({
   onClose,
 }: RegionPickerModalProps) {
   const { colors, semantic, status } = useThemedColors();
+  const insets = useSafeAreaInsets();
 
   const scrimStyle = useMemo(
     () => ({ backgroundColor: colors.overlay }),
@@ -32,23 +36,30 @@ export function RegionPickerModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 justify-end" style={scrimStyle} onPress={onClose}>
         <Pressable
-          className="max-h-[60%] rounded-t-3xl bg-kemix-elevated"
+          className="rounded-t-3xl bg-kemix-elevated"
+          style={{ maxHeight: '72%' }}
           onPress={(e) => e.stopPropagation()}
         >
           <View className="border-b border-kemix-border-light px-4 py-3">
-            <Text
-              className="text-base text-kemix-text"
-              style={{ fontFamily: APP_FONT.bold }}
-            >
+            <Text className="text-base text-kemix-text" style={{ fontFamily: APP_FONT.bold }}>
               {title}
             </Text>
           </View>
-          <ScrollView className="max-h-80">
-            {options.map((option) => {
+
+          <FlatList
+            data={options}
+            keyExtractor={(item) => item}
+            style={{ maxHeight: LIST_MAX_HEIGHT }}
+            contentContainerStyle={{
+              paddingTop: 8,
+              paddingBottom: Math.max(insets.bottom, 20),
+            }}
+            showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item: option }) => {
               const active = selected === option;
               return (
                 <Pressable
-                  key={option}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   className="border-b border-kemix-border-light px-4"
@@ -74,8 +85,8 @@ export function RegionPickerModal({
                   </Text>
                 </Pressable>
               );
-            })}
-          </ScrollView>
+            }}
+          />
         </Pressable>
       </Pressable>
     </Modal>

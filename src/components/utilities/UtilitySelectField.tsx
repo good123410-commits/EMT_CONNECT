@@ -1,6 +1,8 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Pressable, FlatList, Modal, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KEMIX_TOUCH_MIN_HEIGHT } from '@/theme/kemixSemantic';
 
 export type UtilitySelectOption<T extends string> = {
   value: T;
@@ -16,6 +18,8 @@ type UtilitySelectFieldProps<T extends string> = {
   onChange: (value: T) => void;
 };
 
+const LIST_MAX_HEIGHT = 360;
+
 export function UtilitySelectField<T extends string>({
   label,
   placeholder = '선택하세요',
@@ -25,6 +29,7 @@ export function UtilitySelectField<T extends string>({
   onChange,
 }: UtilitySelectFieldProps<T>) {
   const [open, setOpen] = useState(false);
+  const insets = useSafeAreaInsets();
   const selected = options.find((option) => option.value === value);
 
   return (
@@ -33,6 +38,7 @@ export function UtilitySelectField<T extends string>({
       <Pressable
         accessibilityRole="button"
         className="flex-row items-center justify-between rounded-xl border border-kemix-border bg-kemix-surface px-4 py-3.5 active:bg-kemix-bg"
+        style={{ minHeight: KEMIX_TOUCH_MIN_HEIGHT }}
         onPress={() => setOpen(true)}
       >
         <Text className={`text-base ${selected ? 'text-kemix-text' : 'text-kemix-muted'}`}>
@@ -42,24 +48,39 @@ export function UtilitySelectField<T extends string>({
       </Pressable>
       {hint ? <Text className="mt-1.5 text-xs leading-5 text-kemix-muted">{hint}</Text> : null}
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/40" onPress={() => setOpen(false)}>
-          <View className="flex-1 justify-end">
-            <Pressable className="rounded-t-2xl bg-kemix-surface px-4 pb-6 pt-3" onPress={(e) => e.stopPropagation()}>
-              <View className="mb-3 flex-row items-center justify-between">
-                <Text className="text-base font-bold text-kemix-text">{label}</Text>
-                <Pressable onPress={() => setOpen(false)} hitSlop={8}>
-                  <Ionicons name="close" size={22} color="#64748b" />
-                </Pressable>
-              </View>
-              {options.map((option) => {
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <View className="flex-1 justify-end">
+          <Pressable className="flex-1 bg-black/40" onPress={() => setOpen(false)} />
+          <View
+            className="rounded-t-2xl bg-kemix-surface"
+            style={{ maxHeight: '75%' }}
+          >
+            <View className="flex-row items-center justify-between border-b border-kemix-border px-4 py-3">
+              <Text className="text-base font-bold text-kemix-text">{label}</Text>
+              <Pressable onPress={() => setOpen(false)} hitSlop={8}>
+                <Ionicons name="close" size={22} color="#64748b" />
+              </Pressable>
+            </View>
+
+            <FlatList
+              data={options}
+              keyExtractor={(item) => item.value}
+              style={{ maxHeight: LIST_MAX_HEIGHT }}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingTop: 8,
+                paddingBottom: Math.max(insets.bottom, 20),
+              }}
+              showsVerticalScrollIndicator
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item: option }) => {
                 const active = option.value === value;
                 return (
                   <Pressable
-                    key={option.value}
                     className={`mb-2 flex-row items-center justify-between rounded-xl border px-4 py-3.5 ${
                       active ? 'border-sky-300 bg-sky-50' : 'border-kemix-border bg-kemix-surface'
                     }`}
+                    style={{ minHeight: KEMIX_TOUCH_MIN_HEIGHT }}
                     onPress={() => {
                       onChange(option.value);
                       setOpen(false);
@@ -73,10 +94,10 @@ export function UtilitySelectField<T extends string>({
                     {active ? <Ionicons name="checkmark-circle" size={20} color="#0284c7" /> : null}
                   </Pressable>
                 );
-              })}
-            </Pressable>
+              }}
+            />
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );

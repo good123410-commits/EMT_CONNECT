@@ -3,8 +3,8 @@
 export function EmergencyLockScreenGuideCard() { return null; }
 
 /*
-﻿import { Ionicons } from '@expo/vector-icons';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, Platform, Text, View } from 'react-native';
 import {
   addEmergencyLockScreenShortcut,
   promptEmergencyShortcutResult,

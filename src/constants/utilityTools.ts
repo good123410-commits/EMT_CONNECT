@@ -26,7 +26,7 @@ export const UTILITY_TOOL_ITEMS: UtilityToolItem[] = [
   {
     id: 'emergency-response',
     route: 'EmergencyResponse',
-    title: '응급 정보 및 위치 문자',
+    title: '의료정보 및 비상연락망',
     icon: 'message-alert-outline',
     accent: '#F87171',
     accentBg: '#3A1F1F',

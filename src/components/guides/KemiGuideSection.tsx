@@ -1,17 +1,6 @@
-﻿import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { SearchBar } from '@/components/SearchBar';
@@ -23,6 +12,10 @@ import { GuideShareSheet } from '@/components/guides/GuideShareSheet';
 import { GuideWriteModal, type GuideWriteDraft } from '@/components/guides/GuideWriteModal';
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
 import { resolveGuideIcon } from '@/constants/guideIcons';
+import {
+  DEFAULT_GUIDE_FONT_ID,
+  DEFAULT_GUIDE_FONT_SIZE,
+} from '@/constants/guideFonts';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import { useKemiGuideEngagement } from '@/hooks/useKemiGuideEngagement';
@@ -110,111 +103,152 @@ export function KemiGuideSection() {
   };
 
   const openEditModal = (guide: KemiGuide) => {
-    const { body } = parseGuideContent(guide.content);
+    const { body, meta } = parseGuideContent(guide.content);
     setEditingDraft({
       id: guide.id,
       title: guide.title,
       category: guide.category ?? '기타',
       content: body,
       severity: 'moderate',
-      fontId: 'pretendard',
-      fontSize: 16,
+      fontId: meta?.fontId ?? DEFAULT_GUIDE_FONT_ID,
+      fontSize: meta?.fontSize ?? DEFAULT_GUIDE_FONT_SIZE,
     });
     setWriteModalVisible(true);
   };
 
+  const handleGuideSaved = async () => {
+    const slug = selectedSlug;
+    await reload();
+    setWriteModalVisible(false);
+    setEditingDraft(null);
+
+    if (slug) {
+      setDetailLoading(true);
+      const row = await fetchGuideBySlug(slug);
+      setSelectedGuide(row);
+      setDetailLoading(false);
+    }
+  };
+
   const handleDeleteGuide = (guide: KemiGuide) => {
-    Alert.alert('가이드 삭제', `"${guide.title}" 글을 삭제할까요?`, [
+    const runDelete = async () => {
+      try {
+        await deleteKemiGuide(guide.id);
+        setSelectedSlug(null);
+        setSelectedGuide(null);
+        await reload();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '다시 시도해 주세요.';
+        if (Platform.OS === 'web') {
+          window.alert(`삭제 실패\n\n${message}`);
+          return;
+        }
+        Alert.alert('삭제 실패', message);
+      }
+    };
+
+    const message = `"${guide.title}" 글을 정말 삭제하시겠습니까?`;
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) {
+        void runDelete();
+      }
+      return;
+    }
+
+    Alert.alert('가이드 삭제', message, [
       { text: '취소', style: 'cancel' },
       {
         text: '삭제',
         style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteKemiGuide(guide.id);
-            setSelectedSlug(null);
-            await reload();
-          } catch (err) {
-            Alert.alert('삭제 실패', err instanceof Error ? err.message : '다시 시도해 주세요.');
-          }
-        },
+        onPress: () => void runDelete(),
       },
     ]);
   };
 
-  if (selectedSlug) {
-    return (
-      <GuideDetailView
-        guide={selectedGuide}
-        loading={detailLoading}
-        isGuideAdmin={isGuideAdmin}
-        onBack={() => setSelectedSlug(null)}
-        onEdit={() => selectedGuide && openEditModal(selectedGuide)}
-        onDelete={() => selectedGuide && handleDeleteGuide(selectedGuide)}
-      />
-    );
-  }
-
   return (
-    <View className="flex-1">
-      <View className="px-4 pt-1 pb-2">
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder="제목, 분류, 내용 검색..."
-          loading={loading}
-        />
-        <GuideCategoryFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+    <>
+      {selectedSlug ? (
+        <GuideDetailView
+          guide={selectedGuide}
+          loading={detailLoading}
           isGuideAdmin={isGuideAdmin}
-          onManageCategories={() => setManageCategoryVisible(true)}
+          onBack={() => {
+            setSelectedSlug(null);
+            setSelectedGuide(null);
+          }}
+          onEdit={() => {
+            if (selectedGuide) openEditModal(selectedGuide);
+          }}
+          onDelete={() => {
+            if (selectedGuide) handleDeleteGuide(selectedGuide);
+          }}
         />
-      </View>
-
-      {error ? (
-        <View className="mx-4 rounded-xl border border-red-200 bg-red-50 p-4">
-          <Text className="text-sm text-red-700">{error}</Text>
-          <Pressable className="mt-3 self-start rounded-lg bg-red-600 px-3 py-1.5" onPress={() => void reload()}>
-            <Text className="text-xs font-semibold text-white">다시 시도</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {loading && guides.length === 0 && !error ? (
-        <View className="flex-1 items-center justify-center py-12">
-          <ActivityIndicator size="large" color="#047857" />
-          <Text className="mt-2 text-xs text-kemix-muted">생활 응급처치 가이드 불러오는 중...</Text>
-        </View>
       ) : (
-        <FlatList
-          data={guides}
-          keyExtractor={(item) => item.id}
-          contentContainerClassName="px-4 pb-4"
-          contentContainerStyle={{ paddingBottom: isGuideAdmin ? insets.bottom + 88 : insets.bottom + 16 }}
-          ListEmptyComponent={
-            <EmptyState
-              message="가이드가 없습니다"
-              hint="KEMIX 웹·앱에서 동일한 콘텐츠가 표시됩니다"
+        <View className="flex-1">
+          <View className="px-4 pt-1 pb-2">
+            <SearchBar
+              value={query}
+              onChangeText={setQuery}
+              placeholder="제목, 분류, 내용 검색..."
+              loading={loading}
             />
-          }
-          renderItem={({ item }) => (
-            <GuideListCard guide={item} onPress={() => setSelectedSlug(item.slug)} />
-          )}
-        />
-      )}
+            <GuideCategoryFilter
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              isGuideAdmin={isGuideAdmin}
+              onManageCategories={() => setManageCategoryVisible(true)}
+            />
+          </View>
 
-      {isGuideAdmin ? (
-        <Pressable
-          accessibilityLabel="가이드 글쓰기"
-          style={[fabStyles.button, { bottom: insets.bottom + 16 }]}
-          onPress={openCreateModal}
-        >
-          <Text style={fabStyles.label}>📝</Text>
-          <Text style={fabStyles.caption}>글쓰기</Text>
-        </Pressable>
-      ) : null}
+          {error ? (
+            <View className="mx-4 rounded-xl border border-red-200 bg-red-50 p-4">
+              <Text className="text-sm text-red-700">{error}</Text>
+              <Pressable
+                className="mt-3 self-start rounded-lg bg-red-600 px-3 py-1.5"
+                onPress={() => void reload()}
+              >
+                <Text className="text-xs font-semibold text-white">다시 시도</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {loading && guides.length === 0 && !error ? (
+            <View className="flex-1 items-center justify-center py-12">
+              <ActivityIndicator size="large" color="#047857" />
+              <Text className="mt-2 text-xs text-kemix-muted">생활 응급처치 가이드 불러오는 중...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={guides}
+              keyExtractor={(item) => item.id}
+              contentContainerClassName="px-4 pb-4"
+              contentContainerStyle={{ paddingBottom: isGuideAdmin ? insets.bottom + 88 : insets.bottom + 16 }}
+              ListEmptyComponent={
+                <EmptyState
+                  message="가이드가 없습니다"
+                  hint="KEMIX 웹·앱에서 동일한 콘텐츠가 표시됩니다"
+                />
+              }
+              renderItem={({ item }) => (
+                <GuideListCard guide={item} onPress={() => setSelectedSlug(item.slug)} />
+              )}
+            />
+          )}
+
+          {isGuideAdmin ? (
+            <Pressable
+              accessibilityLabel="가이드 글쓰기"
+              style={[fabStyles.button, { bottom: insets.bottom + 16 }]}
+              onPress={openCreateModal}
+            >
+              <Text style={fabStyles.label}>📝</Text>
+              <Text style={fabStyles.caption}>글쓰기</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
 
       <GuideWriteModal
         visible={writeModalVisible}
@@ -223,11 +257,7 @@ export function KemiGuideSection() {
           setWriteModalVisible(false);
           setEditingDraft(null);
         }}
-        onSaved={() => {
-          void reload();
-          setWriteModalVisible(false);
-          setEditingDraft(null);
-        }}
+        onSaved={() => void handleGuideSaved()}
       />
 
       <GuideCategoryManageModal
@@ -242,7 +272,7 @@ export function KemiGuideSection() {
           void reload();
         }}
       />
-    </View>
+    </>
   );
 }
 
@@ -302,6 +332,7 @@ function CategoryChip({
       className={`flex-row items-center rounded-full border px-3 py-2 ${
         selected ? 'border-emerald-600 bg-emerald-50' : 'border-kemix-border bg-kemix-surface'
       }`}
+
       onPress={onPress}
     >
       {icon ? (

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /** 아이콘+라벨이 차지하는 고정 콘텐츠 높이 */
 const TAB_CONTENT_HEIGHT_DEFAULT = 52;
 const TAB_CONTENT_HEIGHT_COMPACT = 44;
+const TAB_CONTENT_HEIGHT_ICON_ONLY = 36;
 const TAB_TOP_PADDING_DEFAULT = 8;
 const TAB_TOP_PADDING_COMPACT = 4;
 /** 홈 인디케이터/내비게이션 바 아래 추가 터치 여백 */
@@ -30,6 +31,8 @@ export type ExpertTabBarTheme = {
   showBottomBorder?: boolean;
   /** 메인 6탭 — 균등 분할·촘촘한 아이콘/라벨 */
   compactLayout?: boolean;
+  /** 라벨 숨김 — 아이콘만 표시 (메인 하단 탭) */
+  iconOnlyLayout?: boolean;
   /** 메인 하단 탭 위 EMS 서브 탭 — 하단 safe area 패딩 생략 */
   nestedAboveMainTabBar?: boolean;
   /** 탭바 위치 */
@@ -38,6 +41,7 @@ export type ExpertTabBarTheme = {
 
 export type ExpertTabBarMetricsOptions = {
   compact?: boolean;
+  iconOnly?: boolean;
   nestedAboveMainTabBar?: boolean;
   position?: 'top' | 'bottom';
 };
@@ -58,11 +62,18 @@ export function getExpertTabBarMetrics(
   options: ExpertTabBarMetricsOptions = {},
 ): ExpertTabBarMetrics {
   const compact = options.compact ?? false;
+  const iconOnly = options.iconOnly ?? false;
   const nested = options.nestedAboveMainTabBar ?? false;
   const position = options.position ?? 'bottom';
 
+  const resolveTabContentHeight = () => {
+    if (iconOnly) return TAB_CONTENT_HEIGHT_ICON_ONLY;
+    if (compact) return TAB_CONTENT_HEIGHT_COMPACT;
+    return TAB_CONTENT_HEIGHT_DEFAULT;
+  };
+
   if (position === 'top') {
-    const tabContentHeight = compact ? TAB_CONTENT_HEIGHT_COMPACT : TAB_CONTENT_HEIGHT_DEFAULT;
+    const tabContentHeight = resolveTabContentHeight();
     const tabTopPadding = 0;
     const paddingTop = 4;
     const paddingBottom = 8;
@@ -79,7 +90,7 @@ export function getExpertTabBarMetrics(
   }
 
   if (nested) {
-    const tabContentHeight = compact ? TAB_CONTENT_HEIGHT_COMPACT : TAB_CONTENT_HEIGHT_DEFAULT;
+    const tabContentHeight = resolveTabContentHeight();
     const tabTopPadding = compact ? TAB_TOP_PADDING_COMPACT : TAB_TOP_PADDING_DEFAULT;
     const paddingBottom = NESTED_TAB_BOTTOM_GAP;
     const marginBottom = NESTED_TAB_MARGIN_ABOVE_MAIN;
@@ -94,7 +105,7 @@ export function getExpertTabBarMetrics(
     };
   }
 
-  const tabContentHeight = compact ? TAB_CONTENT_HEIGHT_COMPACT : TAB_CONTENT_HEIGHT_DEFAULT;
+  const tabContentHeight = resolveTabContentHeight();
   const tabTopPadding = compact ? TAB_TOP_PADDING_COMPACT : TAB_TOP_PADDING_DEFAULT;
   const safeBottom = Math.max(insetsBottom, MIN_BOTTOM_INSET);
   const paddingBottom = safeBottom + TAB_BOTTOM_EXTRA;
@@ -123,9 +134,15 @@ export type ExpertTabBarConfig = {
 export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarConfig {
   const insets = useSafeAreaInsets();
   const compact = theme.compactLayout ?? false;
+  const iconOnly = theme.iconOnlyLayout ?? false;
   const nestedAboveMainTabBar = theme.nestedAboveMainTabBar ?? false;
   const position = theme.position ?? 'bottom';
-  const metrics = getExpertTabBarMetrics(insets.bottom, { compact, nestedAboveMainTabBar, position });
+  const metrics = getExpertTabBarMetrics(insets.bottom, {
+    compact,
+    iconOnly,
+    nestedAboveMainTabBar,
+    position,
+  });
 
   return useMemo(
     () => ({
@@ -167,13 +184,26 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
           paddingHorizontal: compact ? 0 : (theme.tabBarItemPaddingHorizontal ?? 0),
           marginHorizontal: 0,
         },
-        tabBarLabelStyle: {
-          fontSize: theme.labelFontSize ?? (position === 'top' ? 13 : 11),
-          fontFamily: 'Pretendard-SemiBold',
-          marginTop: position === 'top' ? 0 : 2,
-          marginBottom: 0,
-        },
         tabBarAllowFontScaling: false,
+        tabBarShowLabel: !iconOnly,
+        ...(iconOnly
+          ? {
+              tabBarLabelStyle: {
+                fontSize: 0,
+                height: 0,
+                lineHeight: 0,
+                marginTop: 0,
+                marginBottom: 0,
+              },
+            }
+          : {
+              tabBarLabelStyle: {
+                fontSize: theme.labelFontSize ?? (position === 'top' ? 13 : 11),
+                fontFamily: 'Pretendard-SemiBold',
+                marginTop: position === 'top' ? 0 : 2,
+                marginBottom: 0,
+              },
+            }),
         tabBarIconStyle: {
           marginTop: 0,
           marginBottom: 0,
@@ -183,6 +213,7 @@ export function useExpertTabBarConfig(theme: ExpertTabBarTheme): ExpertTabBarCon
     }),
     [
       compact,
+      iconOnly,
       position,
       metrics.marginBottom,
       metrics.paddingBottom,

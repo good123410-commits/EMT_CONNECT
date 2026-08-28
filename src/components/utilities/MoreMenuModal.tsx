@@ -1,10 +1,13 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppIcon } from '@/components/ui/AppIcon';
+import { BookmarkButton } from '@/components/bookmarks/BookmarkButton';
+import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { APP_RADIUS } from '@/constants/appTheme';
 import { UTILITY_TOOL_ITEMS } from '@/constants/utilityTools';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import { CHEMICAL_BOOKMARK, createUtilityToolBookmark } from '@/utils/bookmarkItems';
 import type { UtilityToolRoute } from '@/constants/utilityTools';
+import type { BookmarkInput } from '@/types/bookmark';
 
 type MoreMenuModalProps = {
   visible: boolean;
@@ -15,13 +18,104 @@ type MoreMenuModalProps = {
 
 const ICON_SIZE = 44;
 
-const CHEMICAL_INFO_ITEM = {
-  title: '약물정보찾기',
-  subtitle: '성분·효능·주의사항을 빠르게 검색',
-  icon: 'flask-outline' as const,
-  accent: '#A78BFA',
-  accentBg: '#2A2240',
+type EmergencyReferenceTool = {
+  id: string;
+  bookmark: BookmarkInput;
+  title: string;
+  subtitle?: string;
+  icon: AppIconName;
+  accent: string;
+  accentBg: string;
+  onPress: () => void;
 };
+
+type MoreMenuRowProps = {
+  item: EmergencyReferenceTool;
+  showDivider?: boolean;
+};
+
+function MoreMenuRow({ item, showDivider = false }: MoreMenuRowProps) {
+  const { colors } = useThemedColors();
+
+  return (
+    <View>
+      <View className="flex-row items-center bg-kemix-surface" style={{ paddingVertical: 14, paddingHorizontal: 14 }}>
+        <Pressable
+          className="min-w-0 flex-1 flex-row items-center active:opacity-90"
+          onPress={item.onPress}
+          accessibilityRole="button"
+        >
+          <View
+            className="items-center justify-center rounded-xl"
+            style={{
+              width: ICON_SIZE,
+              height: ICON_SIZE,
+              backgroundColor: item.accentBg,
+            }}
+          >
+            <AppIcon name={item.icon} size={22} color={item.accent} />
+          </View>
+          <View className="ml-3 min-w-0 flex-1">
+            <Text
+              className="text-[15px] leading-5 text-kemix-text"
+              style={{
+                fontFamily: 'Pretendard-SemiBold',
+                color: colors.textPrimary,
+              }}
+              numberOfLines={2}
+            >
+              {item.title}
+            </Text>
+            {item.subtitle ? (
+              <Text
+                className="mt-1 text-[12px] leading-4"
+                style={{
+                  fontFamily: 'Pretendard',
+                  color: colors.textSecondary,
+                }}
+                numberOfLines={2}
+              >
+                {item.subtitle}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
+        <BookmarkButton item={item.bookmark} size={20} style={{ marginHorizontal: 8 }} />
+        <AppIcon name="chevron-right" size={18} color={colors.textMuted} />
+      </View>
+      {showDivider ? (
+        <View style={{ height: 1, backgroundColor: colors.borderLight }} />
+      ) : null}
+    </View>
+  );
+}
+
+function buildEmergencyReferenceTools(
+  onOpenChemicalInfo: () => void,
+  onSelectTool: (route: UtilityToolRoute) => void,
+): EmergencyReferenceTool[] {
+  return [
+    {
+      id: 'chemical',
+      bookmark: CHEMICAL_BOOKMARK,
+      title: CHEMICAL_BOOKMARK.title,
+      subtitle: '성분·효능·주의사항을 빠르게 검색',
+      icon: CHEMICAL_BOOKMARK.icon,
+      accent: CHEMICAL_BOOKMARK.iconColor,
+      accentBg: CHEMICAL_BOOKMARK.iconBg,
+      onPress: onOpenChemicalInfo,
+    },
+    ...UTILITY_TOOL_ITEMS.map((tool) => ({
+      id: tool.id,
+      bookmark: createUtilityToolBookmark(tool),
+      title: tool.title,
+      icon: tool.icon as AppIconName,
+      accent: tool.accent,
+      accentBg: tool.accentBg,
+      onPress: () => onSelectTool(tool.route),
+    })),
+  ];
+}
 
 export function MoreMenuModal({
   visible,
@@ -31,6 +125,7 @@ export function MoreMenuModal({
 }: MoreMenuModalProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useThemedColors();
+  const emergencyReferenceTools = buildEmergencyReferenceTools(onOpenChemicalInfo, onSelectTool);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -80,51 +175,6 @@ export function MoreMenuModal({
             className="mb-2 text-[12px] uppercase tracking-wide text-kemix-text-muted"
             style={{ fontFamily: 'Pretendard-SemiBold' }}
           >
-            자주 찾는 정보
-          </Text>
-
-          <Pressable
-            className="mb-5 flex-row items-center rounded-2xl active:opacity-90"
-            style={{
-              paddingVertical: 16,
-              paddingHorizontal: 16,
-              backgroundColor: CHEMICAL_INFO_ITEM.accentBg,
-              borderWidth: 1,
-              borderColor: `${CHEMICAL_INFO_ITEM.accent}33`,
-            }}
-            onPress={onOpenChemicalInfo}
-          >
-            <View
-              className="items-center justify-center rounded-xl"
-              style={{
-                width: ICON_SIZE,
-                height: ICON_SIZE,
-                backgroundColor: 'rgba(255,255,255,0.08)',
-              }}
-            >
-              <AppIcon name={CHEMICAL_INFO_ITEM.icon} size={22} color={CHEMICAL_INFO_ITEM.accent} />
-            </View>
-            <View className="ml-3.5 flex-1">
-              <Text
-                className="text-[16px] leading-5 text-kemix-text"
-                style={{ fontFamily: 'Pretendard-Bold', color: '#F8FAFC' }}
-              >
-                {CHEMICAL_INFO_ITEM.title}
-              </Text>
-              <Text
-                className="mt-1 text-[12px] leading-4"
-                style={{ fontFamily: 'Pretendard', color: '#C4B5FD' }}
-              >
-                {CHEMICAL_INFO_ITEM.subtitle}
-              </Text>
-            </View>
-            <AppIcon name="chevron-forward" size={20} color={CHEMICAL_INFO_ITEM.accent} />
-          </Pressable>
-
-          <Text
-            className="mb-2 text-[12px] uppercase tracking-wide text-kemix-text-muted"
-            style={{ fontFamily: 'Pretendard-SemiBold' }}
-          >
             응급 참고 도구
           </Text>
 
@@ -136,36 +186,12 @@ export function MoreMenuModal({
               borderColor: colors.borderLight,
             }}
           >
-            {UTILITY_TOOL_ITEMS.map((item, index) => (
-              <Pressable
+            {emergencyReferenceTools.map((item, index) => (
+              <MoreMenuRow
                 key={item.id}
-                className="flex-row items-center bg-kemix-surface active:opacity-90"
-                style={{
-                  paddingVertical: 14,
-                  paddingHorizontal: 14,
-                  borderBottomWidth: index < UTILITY_TOOL_ITEMS.length - 1 ? 1 : 0,
-                  borderBottomColor: colors.borderLight,
-                }}
-                onPress={() => onSelectTool(item.route)}
-              >
-                <View
-                  className="items-center justify-center rounded-xl"
-                  style={{
-                    width: ICON_SIZE,
-                    height: ICON_SIZE,
-                    backgroundColor: item.accentBg,
-                  }}
-                >
-                  <AppIcon name={item.icon} size={22} color={item.accent} />
-                </View>
-                <Text
-                  className="ml-3 flex-1 text-[15px] leading-5 text-kemix-text"
-                  style={{ fontFamily: 'Pretendard-SemiBold' }}
-                >
-                  {item.title}
-                </Text>
-                <AppIcon name="chevron-right" size={18} color={colors.textMuted} />
-              </Pressable>
+                item={item}
+                showDivider={index < emergencyReferenceTools.length - 1}
+              />
             ))}
           </View>
 

@@ -1,15 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Share,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, Platform, ScrollView, Share, Text, View } from 'react-native';
 import { SegmentControl } from '@/components/SegmentControl';
 import { AdminFormField } from '@/components/admin/AdminFormField';
 import {

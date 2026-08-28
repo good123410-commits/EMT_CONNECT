@@ -6,7 +6,7 @@ import {
   mapRowToChat,
   type EmsCommunityPostRow,
 } from '@/services/emsCommunityService';
-import { generateAnonymousLabel } from '@/utils/localCommunityModeration';
+import { fetchCurrentUserNickname } from '@/utils/userNickname';
 
 export const EMS_CHAT_ROOMS_TABLE = 'ems_chat_rooms';
 
@@ -151,12 +151,14 @@ export async function createCommunityChatRoom(input: CreateChatRoomInput): Promi
     throw new EmsCommunityServiceError('로그인 후 채팅방을 개설할 수 있습니다.');
   }
 
+  const creatorLabel = await fetchCurrentUserNickname();
+
   const payload = {
     room_name: input.roomName.trim(),
     region: input.region?.trim() || null,
     category: input.category?.trim() || null,
     description: input.description?.trim() || null,
-    creator_label: generateAnonymousLabel(),
+    creator_label: creatorLabel,
     is_active: true,
     created_by: auth.user.id,
     updated_at: new Date().toISOString(),

@@ -7,6 +7,37 @@ export async function fetchPublishedKemixResources(): Promise<KemixResource[]> {
   return (data ?? []) as KemixResource[];
 }
 
+export async function adminListKemixResources(): Promise<KemixResource[]> {
+  const { data, error } = await supabase.rpc('admin_list_resources');
+  if (error) throw new Error(parseResourceServiceError(error.message));
+  return (data ?? []) as KemixResource[];
+}
+
+export async function adminDeleteKemixResource(id: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_delete_resource', { p_id: id });
+  if (error) throw new Error(parseResourceServiceError(error.message));
+}
+
+export async function adminSetKemixResourcePublished(
+  resource: KemixResource,
+  isPublished: boolean,
+): Promise<KemixResource> {
+  const { data, error } = await supabase.rpc('admin_upsert_resource', {
+    p_id: resource.id,
+    p_title: resource.title,
+    p_description: resource.description,
+    p_category: resource.category,
+    p_file_url: resource.file_url,
+    p_file_name: resource.file_name,
+    p_file_size: resource.file_size,
+    p_display_order: resource.display_order,
+    p_is_published: isPublished,
+  });
+  if (error) throw new Error(parseResourceServiceError(error.message));
+  if (!data) throw new Error('자료 공개 상태를 변경하지 못했습니다.');
+  return data as KemixResource;
+}
+
 export async function fetchPublishedKemixResource(id: string): Promise<KemixResource> {
   const { data, error } = await supabase.rpc('get_published_resource', { p_id: id });
   if (error) throw new Error(error.message || '자료를 불러오지 못했습니다.');

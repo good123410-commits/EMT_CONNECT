@@ -27,6 +27,7 @@ export type CommunityPost = {
   category_name: string | null;
   comment_count: number;
   my_reaction: CommunityReaction | null;
+  is_secret: boolean;
 };
 
 export type CommunityComment = {

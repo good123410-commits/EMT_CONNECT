@@ -1,33 +1,26 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, FlatList, Image, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
 import { CommunityHtmlContent } from '@/components/community/CommunityHtmlContent';
 import { CommunityListPagination } from '@/components/emsCommunity/CommunityListPagination';
-import { CommunityBestSection } from '@/components/emsCommunity/CommunityBestSection';
 import { CommunityCommentSection } from '@/components/emsCommunity/CommunityCommentSection';
+import { CommunityListScrollHeader } from '@/components/emsCommunity/CommunityListScrollHeader';
 import { CommunityListToolbar } from '@/components/emsCommunity/CommunityListToolbar';
 import { CommunityPostDetailLayout } from '@/components/emsCommunity/CommunityPostDetailLayout';
-import { QaWriteModal } from '@/components/emsCommunity/QaWriteModal';
+import { CommunityAuthorActions } from '@/components/emsCommunity/CommunityAuthorActions';
+import { QaWriteModal, type QaEditingPost } from '@/components/emsCommunity/QaWriteModal';
 import {
   LoungeAnonymousBadge,
   LoungeCard,
   LoungeCommentButton,
-  LoungeErrorBanner,
+  LoungeLikeButton,
   LoungeMetaText,
+  LoungeFab,
   LoungeScreen,
   LoungeTitle,
-  LoungeWriteBar,
+  communityListItemGapStyle,
   useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
@@ -35,37 +28,65 @@ import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { useCommunityListScrollToTop } from '@/hooks/useCommunityListScrollToTop';
+import { useCommunityModerator } from '@/hooks/useCommunityModerator';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import { useCommunityPostLike } from '@/hooks/useCommunityPostLike';
 import { usePaginatedEmsPosts } from '@/hooks/usePaginatedEmsPosts';
 import {
   createQaPost,
   formatRelativeTime,
   mapCommunityPostRow,
 } from '@/services/communityService';
+import {
+  deleteCommunityPostByAuthor,
+  updateCommunityPostByAuthor,
+} from '@/services/communityAuthorService';
 import type { EmsCommunityPostRow } from '@/services/emsCommunityService';
 import type { CommunityPost } from '@/types/community';
-import { DEFAULT_COMMUNITY_SORT_OPTIONS } from '@/types/communityList';
 import { getFirstCommunityImageUrl } from '@/utils/communityContent';
 import { canWriteCommunityAnswer } from '@/utils/communityRbac';
 import { consumeAuthIntent } from '@/utils/authIntent';
+import { confirmDestructiveAction } from '@/utils/confirmDestructiveAction';
+import {
+  canViewSecretCommunityPost,
+  isPostAuthor,
+  resolveSecretPostTitle,
+} from '@/utils/communityPostAccess';
+
+import { isPostLiked } from '@/utils/communityPostLike';
 
 function QaPostCard({
   post,
   onPress,
+  onLike,
   lounge,
+  userId,
+  isAdmin,
 }: {
   post: CommunityPost;
   onPress: () => void;
+  onLike?: (post: CommunityPost) => void;
   lounge?: boolean;
+  userId?: string | null;
+  isAdmin?: boolean;
 }) {
   const { lounge: loungeColors } = useEmsLoungeTheme();
   const thumb = getFirstCommunityImageUrl(post.content);
+  const liked = isPostLiked(post);
+  const displayTitle = resolveSecretPostTitle(
+    post.title,
+    post.is_secret,
+    post.author_id,
+    userId,
+    Boolean(isAdmin),
+  );
+  const isMaskedSecret = post.is_secret && displayTitle !== (post.title?.trim() || '제목 없음');
 
   if (lounge) {
     return (
       <LoungeCard onPress={onPress}>
         <View className="flex-row items-center gap-3">
-          {thumb ? (
+          {thumb && !isMaskedSecret ? (
             <Image
               source={{ uri: thumb }}
               style={{ width: 48, height: 48, borderRadius: 8 }}
@@ -73,7 +94,12 @@ function QaPostCard({
             />
           ) : null}
           <View className="flex-1">
-            <LoungeTitle numberOfLines={1}>{post.title?.trim() || '제목 없음'}</LoungeTitle>
+            <View className="flex-row items-center gap-1.5">
+              {post.is_secret ? (
+                <Ionicons name="lock-closed" size={14} color={loungeColors.textMuted} />
+              ) : null}
+              <LoungeTitle numberOfLines={1}>{displayTitle}</LoungeTitle>
+            </View>
             <View className="mt-1 flex-row items-center gap-2">
               <LoungeAnonymousBadge label={post.anonymous_label} />
               <LoungeMetaText>{formatRelativeTime(post.created_at)}</LoungeMetaText>
@@ -82,17 +108,30 @@ function QaPostCard({
           </View>
           <Ionicons name="chevron-forward" size={16} color={loungeColors.textMuted} />
         </View>
+        {onLike ? (
+          <View
+            className="mt-3 flex-row justify-end border-t pt-3"
+            style={{ borderTopColor: loungeColors.border }}
+          >
+            <LoungeLikeButton
+              count={post.likes}
+              liked={liked}
+              onPress={() => onLike(post)}
+            />
+          </View>
+        ) : null}
       </LoungeCard>
     );
   }
 
   return (
     <Pressable
-      className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4 active:bg-kemix-bg"
+      className="rounded-2xl border border-kemix-border bg-kemix-surface p-4 active:bg-kemix-bg"
+      style={communityListItemGapStyle}
       onPress={onPress}
     >
       <View className="flex-row items-center gap-3">
-        {thumb ? (
+        {thumb && !isMaskedSecret ? (
           <Image
             source={{ uri: thumb }}
             style={{ width: 48, height: 48, borderRadius: 6 }}
@@ -100,13 +139,27 @@ function QaPostCard({
           />
         ) : null}
         <View className="flex-1">
-          <Text className="text-base font-bold text-kemix-text" numberOfLines={1}>
-            {post.title?.trim() || '제목 없음'}
-          </Text>
+          <View className="flex-row items-center gap-1.5">
+            {post.is_secret ? (
+              <Ionicons name="lock-closed" size={14} color="#94a3b8" />
+            ) : null}
+            <Text className="flex-1 text-base font-bold text-kemix-text" numberOfLines={1}>
+              {displayTitle}
+            </Text>
+          </View>
           <Text className="mt-1 text-xs text-kemix-muted">
             {post.anonymous_label} · {formatRelativeTime(post.created_at)} · 답변{' '}
             {post.comment_count}
           </Text>
+          {onLike ? (
+            <View className="mt-3 flex-row justify-end">
+              <LoungeLikeButton
+                count={post.likes}
+                liked={liked}
+                onPress={() => onLike(post)}
+              />
+            </View>
+          ) : null}
         </View>
         <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
       </View>
@@ -122,9 +175,11 @@ type EmsQaBoardScreenProps = {
 export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps) {
   const { lounge } = useEmsLoungeTheme();
   const isLounge = variant === 'paramedic';
-  const loungeListContentStyle = useLoungeListContentStyle();
+  const loungeListContentStyle = useLoungeListContentStyle(12, isLounge);
+  const defaultFabListContentStyle = useLoungeListContentStyle(12, true);
   const { user } = useAuth();
   const { role, isApproved } = useUserRole();
+  const isModerator = useCommunityModerator();
   const canAnswer = canWriteCommunityAnswer(role, isApproved);
 
   const mapQaRow = useCallback(
@@ -132,11 +187,10 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
     [],
   );
 
+  const [bestSortActive, setBestSortActive] = useState(false);
+
   const {
     items: posts,
-    bestItems,
-    sort,
-    setSort,
     searchInput,
     setSearchInput,
     currentPage,
@@ -146,25 +200,41 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
     error,
     goToPage,
     refresh,
-    sortOptions,
+    patchPost,
   } = usePaginatedEmsPosts<CommunityPost>({
     postTypes: ['bamboo'],
     categorySlug: 'question',
     mapRow: mapQaRow,
-    sortOptions: DEFAULT_COMMUNITY_SORT_OPTIONS,
-    enableBest: isLounge,
-    useDailyBestRpc: isLounge,
+    sort: bestSortActive ? 'popular' : 'latest',
   });
 
   const { listRef, scrollToTop } = useCommunityListScrollToTop<CommunityPost>();
 
   const [selected, setSelected] = useState<CommunityPost | null>(null);
-
+  const [editingPost, setEditingPost] = useState<QaEditingPost | null>(null);
   const [writeOpen, setWriteOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginIntent, setLoginIntent] = useState<'question-write' | 'community-write'>(
     'question-write',
   );
+
+  const patchPostEverywhere = useCallback(
+    (id: string, updater: (prev: CommunityPost) => CommunityPost) => {
+      patchPost(id, updater);
+      setSelected((prev) => (prev?.id === id ? updater(prev) : prev));
+    },
+    [patchPost],
+  );
+
+  const { toggleLike: handleLike } = useCommunityPostLike<CommunityPost>({
+    patchPost: patchPostEverywhere,
+    canLike: () => Boolean(user),
+    onAuthRequired: () => {
+      setLoginIntent('question-write');
+      setLoginOpen(true);
+    },
+    onError: (message) => Alert.alert('좋아요', message),
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -175,9 +245,18 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
     });
   }, [user]);
 
-  const openPost = useCallback((post: CommunityPost) => {
-    setSelected(post);
-  }, []);
+  const openPost = useCallback(
+    (post: CommunityPost) => {
+      if (
+        !canViewSecretCommunityPost(post.is_secret, post.author_id, user?.id, isModerator)
+      ) {
+        Alert.alert('비밀글', '비밀글은 작성자만 볼 수 있습니다.');
+        return;
+      }
+      setSelected(post);
+    },
+    [user?.id, isModerator],
+  );
 
   const handlePageChange = useCallback(
     (page: number) => {
@@ -186,6 +265,11 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
     },
     [goToPage, scrollToTop],
   );
+
+  const handleBestToggle = useCallback(() => {
+    setBestSortActive((prev) => !prev);
+    scrollToTop();
+  }, [scrollToTop]);
 
   const listPagination = (
     <CommunityListPagination
@@ -219,46 +303,102 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
       openLogin('question-write');
       return;
     }
+    setEditingPost(null);
     setWriteOpen(true);
   }, [user]);
 
+  const handleEditPost = useCallback(() => {
+    if (!selected) return;
+    setEditingPost({
+      id: selected.id,
+      title: selected.title ?? '',
+      content: selected.content,
+      isSecret: selected.is_secret,
+    });
+    setWriteOpen(true);
+  }, [selected]);
+
+  const handleDeletePost = useCallback(() => {
+    if (!selected) return;
+    confirmDestructiveAction(
+      '질문 삭제',
+      '삭제된 질문은 복구할 수 없습니다. 계속하시겠습니까?',
+      async () => {
+        await deleteCommunityPostByAuthor(selected.id);
+        setSelected(null);
+        await refresh();
+      },
+    );
+  }, [selected, refresh]);
+
   const handleSaveQuestion = useCallback(
-    async (input: { title: string; content: string }) => {
-      await createQaPost({
-        title: input.title,
-        content: input.content,
-        authorLabel: (user?.user_metadata?.name as string | undefined) ?? '회원',
-      });
+    async (input: { title: string; content: string; isSecret: boolean }) => {
+      if (editingPost?.id) {
+        const updated = await updateCommunityPostByAuthor(editingPost.id, {
+          title: input.title,
+          content: input.content,
+          isSecret: input.isSecret,
+        });
+        const mapped = mapCommunityPostRow(updated as CommunityPost);
+        if (selected?.id === editingPost.id) {
+          setSelected(mapped);
+        }
+        setEditingPost(null);
+      } else {
+        await createQaPost({
+          title: input.title,
+          content: input.content,
+          isSecret: input.isSecret,
+        });
+      }
       await refresh();
     },
-    [refresh, user],
+    [editingPost, refresh, selected?.id, user],
   );
+
+  const isSelectedAuthor = isPostAuthor(selected?.author_id, user?.id);
 
   const qaWriteModal = (
     <QaWriteModal
       visible={writeOpen}
-      onClose={() => setWriteOpen(false)}
+      onClose={() => {
+        setWriteOpen(false);
+        setEditingPost(null);
+      }}
       onSave={handleSaveQuestion}
+      editingPost={editingPost}
+    />
+  );
+
+  const loginModal = (
+    <GuestLoginPromptModal
+      visible={loginOpen}
+      onClose={() => setLoginOpen(false)}
+      title="로그인이 필요한 서비스입니다"
+      description="질문을 남기시려면 로그인 또는 회원가입이 필요합니다."
+      intent={{ type: loginIntent }}
+      kakaoLabel="카카오 3초 로그인"
+      googleLabel="구글 로그인"
     />
   );
 
   const listToolbar = (
     <CommunityListToolbar
+      embedded
       searchValue={searchInput}
       onSearchChange={setSearchInput}
       searchPlaceholder="질문 제목·내용 검색"
-      sort={sort}
-      onSortChange={setSort}
-      sortOptions={sortOptions}
     />
   );
 
-  const listBestHeader = isLounge ? (
-    <CommunityBestSection
-      items={bestItems}
-      renderItem={(post) => (
-        <QaPostCard post={post} onPress={() => openPost(post)} lounge />
-      )}
+  const listScrollHeader = isLounge ? (
+    <CommunityListScrollHeader
+      searchValue={searchInput}
+      onSearchChange={setSearchInput}
+      searchPlaceholder="질문 제목·내용 검색"
+      error={error}
+      bestActive={bestSortActive}
+      onBestToggle={handleBestToggle}
     />
   ) : null;
 
@@ -267,7 +407,6 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
       postId={selected?.id ?? null}
       canWrite={canAnswer}
       writeDeniedMessage="답변은 구급대원 및 관리자만 작성 가능합니다."
-      authorLabel={(user?.user_metadata?.name as string | undefined) ?? '구급대원'}
       sectionLabel="답변"
       emptyMessage="아직 답변이 없습니다."
       placeholder="구급대원 답변을 입력해 주세요"
@@ -291,9 +430,19 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
               <View className="mt-4">
                 <CommunityHtmlContent content={selected.content} />
               </View>
+              {isSelectedAuthor ? (
+                <View className="mt-4">
+                  <CommunityAuthorActions
+                    onEdit={handleEditPost}
+                    onDelete={handleDeletePost}
+                  />
+                </View>
+              ) : null}
             </LoungeCard>
             {renderAnswerSection('lounge')}
           </CommunityPostDetailLayout>
+          {qaWriteModal}
+          {loginModal}
         </LoungeScreen>
       );
     }
@@ -315,9 +464,18 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
             <View className="mt-4">
               <CommunityHtmlContent content={selected.content} />
             </View>
+            {isSelectedAuthor ? (
+              <CommunityAuthorActions
+                variant="default"
+                onEdit={handleEditPost}
+                onDelete={handleDeletePost}
+              />
+            ) : null}
           </View>
           {renderAnswerSection('default')}
         </ScrollView>
+        {qaWriteModal}
+        {loginModal}
       </View>
     );
   }
@@ -327,115 +485,119 @@ export function EmsQaBoardScreen({ variant = 'default' }: EmsQaBoardScreenProps)
       <LoungeScreen>
         <ParamedicHeader />
 
-        <LoungeWriteBar label="질문 작성" onPress={handleWritePress} icon="chatbubble-ellipses-outline" />
-
-        {listToolbar}
-
-        {error ? <LoungeErrorBanner message={error} /> : null}
-
         {loading && posts.length === 0 ? (
           <View className="items-center py-16">
             <ActivityIndicator color={lounge.accent} />
           </View>
         ) : (
-          <FlatList
-            ref={listRef}
-            data={posts}
-            extraData={currentPage}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <QaPostCard post={item} onPress={() => openPost(item)} lounge />
-            )}
-            ListHeaderComponent={listBestHeader}
-            ListEmptyComponent={
-              <View className="items-center py-16">
-                <Ionicons name="chatbubbles-outline" size={40} color={lounge.textMuted} />
-                <Text
-                  style={{
-                    marginTop: 12,
-                    fontFamily: 'Pretendard',
-                    fontSize: 14,
-                    color: lounge.textSecondary,
-                  }}
-                >
-                  {searchInput.trim() ? '검색 결과가 없습니다' : '아직 질문이 없습니다'}
-                </Text>
-              </View>
-            }
-            ListFooterComponent={listPagination}
-            contentContainerStyle={loungeListContentStyle}
-          />
+          <View className="flex-1">
+            <FlatList
+              ref={listRef}
+              data={posts}
+              extraData={`${currentPage}-${bestSortActive}`}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <QaPostCard
+                  post={item}
+                  onPress={() => openPost(item)}
+                  onLike={handleLike}
+                  lounge
+                  userId={user?.id}
+                  isAdmin={isModerator}
+                />
+              )}
+              ListHeaderComponent={listScrollHeader}
+              ListEmptyComponent={
+                <View className="items-center py-16">
+                  <Ionicons name="chatbubbles-outline" size={40} color={lounge.textMuted} />
+                  <Text
+                    style={{
+                      marginTop: 12,
+                      fontFamily: 'Pretendard',
+                      fontSize: 14,
+                      color: lounge.textSecondary,
+                    }}
+                  >
+                    {searchInput.trim() ? '검색 결과가 없습니다' : '아직 질문이 없습니다'}
+                  </Text>
+                </View>
+              }
+              ListFooterComponent={listPagination}
+              contentContainerStyle={loungeListContentStyle}
+            />
+            <LoungeFab
+              onPress={handleWritePress}
+              accessibilityLabel="질문 작성"
+              icon="create-outline"
+            />
+          </View>
         )}
 
-        <GuestLoginPromptModal
-          visible={loginOpen}
-          onClose={() => setLoginOpen(false)}
-          title="로그인이 필요한 서비스입니다"
-          description="질문을 남기시려면 로그인 또는 회원가입이 필요합니다."
-          intent={{ type: loginIntent }}
-          kakaoLabel="카카오 3초 로그인"
-          googleLabel="구글 로그인"
-        />
-
+        {loginModal}
         {qaWriteModal}
       </LoungeScreen>
     );
   }
 
+  const defaultListHeader = (
+    <>
+      {listToolbar}
+      {error ? (
+        <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
+          <Text className="text-sm text-red-700">{error}</Text>
+        </View>
+      ) : null}
+    </>
+  );
+
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-kemix-bg">
       <View className="flex-1 px-4 pt-3">
-        <Pressable
-          onPress={handleWritePress}
-          className="mb-3 flex-row items-center justify-center rounded-full bg-green-700 py-3 active:bg-green-800"
-        >
-          <Ionicons name="create-outline" size={18} color="#fff" />
-          <Text className="ml-2 font-semibold text-white">질문 작성</Text>
-        </Pressable>
-
-        {listToolbar}
-
-        {error ? (
-          <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
-            <Text className="text-sm text-red-700">{error}</Text>
-          </View>
-        ) : null}
-
         {loading && posts.length === 0 ? (
           <View className="items-center py-16">
             <ActivityIndicator color="#15803d" />
           </View>
         ) : (
-          <FlatList
-            ref={listRef}
-            data={posts}
-            extraData={currentPage}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <QaPostCard post={item} onPress={() => openPost(item)} />}
-            ListEmptyComponent={
-              <View className="items-center rounded-2xl border border-dashed border-kemix-border bg-kemix-surface py-16">
-                <Ionicons name="chatbubbles-outline" size={40} color="#cbd5e1" />
-                <Text className="mt-3 text-sm text-kemix-text-secondary">
-                  {searchInput.trim() ? '검색 결과가 없습니다' : '아직 질문이 없습니다'}
-                </Text>
-              </View>
-            }
-            ListFooterComponent={listPagination}
-            contentContainerStyle={{ paddingBottom: 24 }}
-          />
+          <View className="flex-1">
+            <FlatList
+              ref={listRef}
+              data={posts}
+              extraData={currentPage}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <QaPostCard
+                  post={item}
+                  onPress={() => openPost(item)}
+                  onLike={handleLike}
+                  userId={user?.id}
+                  isAdmin={isModerator}
+                />
+              )}
+              ListHeaderComponent={defaultListHeader}
+              ListEmptyComponent={
+                <View className="items-center rounded-2xl border border-dashed border-kemix-border bg-kemix-surface py-16">
+                  <Ionicons name="chatbubbles-outline" size={40} color="#cbd5e1" />
+                  <Text className="mt-3 text-sm text-kemix-text-secondary">
+                    {searchInput.trim() ? '검색 결과가 없습니다' : '아직 질문이 없습니다'}
+                  </Text>
+                </View>
+              }
+              ListFooterComponent={listPagination}
+              contentContainerStyle={{
+                paddingTop: defaultFabListContentStyle.paddingTop,
+                paddingBottom: defaultFabListContentStyle.paddingBottom,
+              }}
+            />
+            <LoungeFab
+              onPress={handleWritePress}
+              accessibilityLabel="질문 작성"
+              icon="create-outline"
+            />
+          </View>
         )}
       </View>
 
-      <GuestLoginPromptModal
-        visible={loginOpen}
-        onClose={() => setLoginOpen(false)}
-        title="로그인이 필요한 서비스입니다"
-        description="질문을 남기시려면 로그인 또는 회원가입이 필요합니다."
-        intent={{ type: loginIntent }}
-        kakaoLabel="카카오 3초 로그인"
-        googleLabel="구글 로그인"
-      />
-
+      {loginModal}
       {qaWriteModal}
     </SafeAreaView>
   );

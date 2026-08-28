@@ -1,17 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  LayoutAnimation,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  UIManager,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, FlatList, LayoutAnimation, Platform, ScrollView, Text, UIManager, View } from 'react-native';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminFormField } from '@/components/admin/AdminFormField';
 import {

@@ -1,5 +1,5 @@
 import * as Linking from 'expo-linking';
-import { Alert, Image, Pressable, Text, View } from 'react-native';
+import { Pressable, Alert, Image, Text, View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { APP_FONT, APP_RADIUS } from '@/constants/appTheme';

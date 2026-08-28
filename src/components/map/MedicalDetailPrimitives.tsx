@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { EmergencyMapView } from '@/components/map/EmergencyMapView';
 import type { MapMarkerKind } from '@/components/map/EmergencyMapView.types';
 import { MapModuleErrorBoundary } from '@/components/map/MapModuleErrorBoundary';

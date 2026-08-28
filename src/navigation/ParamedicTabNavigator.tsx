@@ -4,6 +4,7 @@ import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { ParamedicTabLayoutContext } from '@/navigation/paramedicTabLayout';
 import { ParamedicCommunityProvider } from '@/contexts/ParamedicCommunityContext';
+import { useCommunityImmersive } from '@/contexts/CommunityImmersiveContext';
 import { useExpertTabBarConfig } from '@/navigation/expertTabBarOptions';
 import { EmsCaseStudyScreen } from '@/screens/emsCommunity/EmsCaseStudyScreen';
 import { EmsChatRoomsScreen } from '@/screens/emsCommunity/EmsChatRoomsScreen';
@@ -35,6 +36,7 @@ function ParamedicTabNavigatorContent({
   nestedAboveMainTabBar?: boolean;
 }) {
   const { lounge } = useEmsLoungeTheme();
+  const { immersive } = useCommunityImmersive();
   const { screenOptions, safeAreaInsets } = useExpertTabBarConfig({
     activeTintColor: lounge.accent,
     inactiveTintColor: lounge.textMuted,
@@ -50,7 +52,15 @@ function ParamedicTabNavigatorContent({
 
   return (
     <View className="flex-1">
-      <Tab.Navigator screenOptions={screenOptions} safeAreaInsets={safeAreaInsets}>
+      <Tab.Navigator
+        screenOptions={{
+          ...screenOptions,
+          tabBarStyle: immersive
+            ? { display: 'none', height: 0, overflow: 'hidden' }
+            : screenOptions.tabBarStyle,
+        }}
+        safeAreaInsets={safeAreaInsets}
+      >
         <Tab.Screen
           name="QaBoard"
           component={ParamedicQaBoardScreen}
@@ -93,7 +103,7 @@ function ParamedicTabNavigatorContent({
 
 /**
  * EMS 커뮤니티(미래회) — 승인된 준회원·정회원 전용 서브 탭.
- * 글쓰기는 각 탭 화면 상단 버튼으로 독립 관리한다.
+ * 글쓰기는 각 탭 화면 우측 하단 FAB으로 관리한다.
  */
 export function ParamedicTabNavigator({
   nestedAboveMainTabBar = true,

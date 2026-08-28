@@ -48,6 +48,29 @@ function normalizeSettingsRow(row: AppSettings): AppSettings {
   return { ...row, kakaotalk_pay_link: link };
 }
 
+export async function updateAppSettings(kakaotalkPayLink: string): Promise<AppSettings> {
+  const link = kakaotalkPayLink.trim();
+  if (!link) {
+    throw new Error('카카오페이 송금 링크를 입력해 주세요.');
+  }
+
+  const { data, error } = await supabase
+    .from('settings')
+    .upsert({
+      id: 1,
+      kakaotalk_pay_link: link,
+      updated_at: new Date().toISOString(),
+    })
+    .select('id, kakaotalk_pay_link, updated_at')
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeSettingsRow(data as AppSettings);
+}
+
 export function subscribeAppSettings(onChange: () => void): () => void {
   const channel = supabase
     .channel('app_settings_mobile')

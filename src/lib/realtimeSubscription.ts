@@ -155,6 +155,22 @@ export function subscribeHomeEventBanners(onChange: ChangeListener): () => void 
   return subscribe(onChange);
 }
 
+export function subscribeHomeEmergencyNotices(onChange: ChangeListener): () => void {
+  const subscribe = createPostgresChangeSubscription('kemix_home_emergency_notices_live', [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'kemix_home_emergency_notices',
+    },
+    {
+      event: '*',
+      schema: 'public',
+      table: 'kemix_disaster_ticker_cache',
+    },
+  ]);
+  return subscribe(onChange);
+}
+
 export function subscribeLocalCommunityPosts(
   regionCode: string,
   onChange: ChangeListener,

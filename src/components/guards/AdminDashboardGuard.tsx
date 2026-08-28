@@ -1,42 +1,14 @@
-﻿import { CommonActions } from '@react-navigation/native';
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveDbAdmin } from '@/hooks/useLiveDbAdmin';
 import { useUserRole } from '@/contexts/UserRoleContext';
-import { navigationRef } from '@/navigation/navigationRef';
+import { resetNavigationToHome } from '@/navigation/goHome';
 
 type Props = {
   children: ReactNode;
 };
-
-function redirectToHome() {
-  if (navigationRef.isReady()) {
-    navigationRef.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'Main',
-            state: {
-              routes: [{ name: 'Home' }],
-              index: 0,
-            },
-          },
-        ],
-      }),
-    );
-    return;
-  }
-
-  const interval = setInterval(() => {
-    if (navigationRef.isReady()) {
-      clearInterval(interval);
-      redirectToHome();
-    }
-  }, 100);
-}
 
 /**
  * auth.uid() + user_profiles 실시간 조회로 DB 관리자 여부를 확인합니다.
@@ -56,7 +28,7 @@ export function AdminDashboardGuard({ children }: Props) {
 
   useEffect(() => {
     if (!checking && !canEnterDashboard) {
-      redirectToHome();
+      resetNavigationToHome();
     }
   }, [checking, canEnterDashboard]);
 

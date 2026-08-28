@@ -22,7 +22,7 @@ export function EmsChatRoomCard({ room, onPress }: EmsChatRoomCardProps) {
   const preview = room.lastMessagePreview ?? room.description ?? '아직 메시지가 없습니다.';
 
   return (
-    <LoungeCard onPress={onPress} style={{ marginBottom: 0 }}>
+    <LoungeCard onPress={onPress}>
       <View className="flex-row items-start justify-between">
         <View className="mr-3 flex-1">
           <Text

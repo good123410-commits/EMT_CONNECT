@@ -600,6 +600,56 @@
   background: rgba(2, 6, 23, 0.72);
 }
 
+[data-theme='dark'] .rte {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .rte-toolbar {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-bottom-color: var(--border);
+}
+
+[data-theme='dark'] .rte-select,
+[data-theme='dark'] .rte-btn {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .rte-btn:hover,
+[data-theme='dark'] .rte-select:hover {
+  background: var(--hover-bg);
+  border-color: #475569;
+}
+
+[data-theme='dark'] .rte-body {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .rte-divider {
+  background: var(--border);
+}
+
+[data-theme='dark'] .rte-toolbar-label {
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .modal-footer-actions,
+[data-theme='dark'] .write-actions,
+[data-theme='dark'] .admin-form-card .admin-form-actions {
+  border-top-color: var(--border);
+}
+
+[data-theme='dark'] .btn-ghost {
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .btn-ghost:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
 /* ── Prose / legal / about ── */
 [data-theme='dark'] .prose-block,
 [data-theme='dark'] .rich-content,
@@ -625,6 +675,27 @@
   background: var(--bg-surface);
   border-color: var(--border);
   color: var(--text-primary);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] .admin-form-card h3 {
+  border-bottom-color: var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .admin-form-card .admin-form-actions {
+  border-top-color: var(--border);
+}
+
+[data-theme='dark'] .admin-form-card .image-upload-zone,
+[data-theme='dark'] .admin-form-card .file-upload-zone {
+  background: linear-gradient(180deg, var(--bg-surface-2) 0%, var(--bg-surface) 100%);
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .admin-form-card .image-upload-zone:hover:not(.image-upload-zone--disabled),
+[data-theme='dark'] .admin-form-card .file-upload-zone:hover:not(.file-upload-zone--disabled) {
+  background: linear-gradient(180deg, rgba(4, 120, 87, 0.12) 0%, var(--bg-surface) 100%);
 }
 
 [data-theme='dark'] .admin-table th {

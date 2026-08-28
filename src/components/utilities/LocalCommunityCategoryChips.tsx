@@ -1,4 +1,4 @@
-﻿import { ScrollView, Pressable, Text, View } from 'react-native';
+﻿import { Pressable, ScrollView, Text, View } from 'react-native';
 import {
   LOCAL_COMMUNITY_CATEGORIES,
   LOCAL_COMMUNITY_CATEGORY_LABELS,

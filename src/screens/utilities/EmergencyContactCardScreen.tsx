@@ -3,9 +3,9 @@
 export function EmergencyContactCardScreen() { return null; }
 
 /*
-﻿import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Alert, Text, View } from 'react-native';
 import { EmergencyInfoCardContent } from '@/components/utilities/EmergencyInfoCardContent';
 import { EmergencyLockScreenGuideCard } from '@/components/utilities/EmergencyLockScreenGuideCard';
 import { EmergencyQuickViewOverlay } from '@/components/utilities/EmergencyQuickViewOverlay';

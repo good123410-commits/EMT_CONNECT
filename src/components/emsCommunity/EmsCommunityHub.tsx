@@ -4,24 +4,31 @@ import { EmsCommunityContent } from '@/components/emsCommunity/EmsCommunityConte
 import { EmsCommunitySegmentBar } from '@/components/emsCommunity/EmsCommunitySegmentBar';
 import { ThemedScreen } from '@/components/theme/ThemedScreen';
 import type { EmsCommunitySegment } from '@/constants/emsCommunity';
+import { CommunityImmersiveProvider, useCommunityImmersive } from '@/contexts/CommunityImmersiveContext';
 import { LocalCommunityTalkScreen } from '@/screens/utilities/LocalCommunityTalkScreen';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export function EmsCommunityHub() {
+function EmsCommunityHubBody() {
   const [segment, setSegment] = useState<EmsCommunitySegment>('localTalk');
+  const { immersive } = useCommunityImmersive();
 
-  const handleSegmentChange = useCallback((next: EmsCommunitySegment) => {
-    if (next === segment) return;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setSegment(next);
-  }, [segment]);
+  const handleSegmentChange = useCallback(
+    (next: EmsCommunitySegment) => {
+      if (next === segment) return;
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setSegment(next);
+    },
+    [segment],
+  );
 
   return (
     <ThemedScreen>
-      <EmsCommunitySegmentBar value={segment} onChange={handleSegmentChange} />
+      {!immersive ? (
+        <EmsCommunitySegmentBar value={segment} onChange={handleSegmentChange} />
+      ) : null}
       <View className="flex-1">
         {segment === 'localTalk' ? (
           <LocalCommunityTalkScreen embedded key="local-talk" />
@@ -30,5 +37,13 @@ export function EmsCommunityHub() {
         )}
       </View>
     </ThemedScreen>
+  );
+}
+
+export function EmsCommunityHub() {
+  return (
+    <CommunityImmersiveProvider>
+      <EmsCommunityHubBody />
+    </CommunityImmersiveProvider>
   );
 }

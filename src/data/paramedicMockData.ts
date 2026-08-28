@@ -1,3 +1,5 @@
+import type { CommunityReaction } from '@/types/community';
+
 export type BambooMessage = {
   id: string;
   anonymousLabel: string;
@@ -13,11 +15,13 @@ export type CaseStudyPost = {
   id: string;
   title: string;
   anonymousLabel: string;
+  authorId: string | null;
   summary: string;
   body: string;
   tags: string[];
   postedAt: string;
   likes: number;
+  myReaction: CommunityReaction | null;
 };
 
 export type ChatMessage = {
@@ -50,6 +54,7 @@ export type JobPost = {
   requirements: string;
   postedAt: string;
   isUrgent?: boolean;
+  authorId?: string | null;
 };
 
 export const BAMBOO_MESSAGES: BambooMessage[] = [
@@ -112,6 +117,7 @@ export const CASE_STUDY_POSTS: CaseStudyPost[] = [
     tags: ['케이스스터디', '전원', 'ROSC'],
     postedAt: '2시간 전',
     likes: 18,
+    myReaction: null,
   },
   {
     id: 'cs-2',
@@ -122,6 +128,7 @@ export const CASE_STUDY_POSTS: CaseStudyPost[] = [
     tags: ['케이스스터디', '소아', '기도'],
     postedAt: '5시간 전',
     likes: 27,
+    myReaction: null,
   },
   {
     id: 'cs-3',
@@ -132,6 +139,7 @@ export const CASE_STUDY_POSTS: CaseStudyPost[] = [
     tags: ['케이스스터디', '외상', 'triage'],
     postedAt: '1일 전',
     likes: 34,
+    myReaction: null,
   },
 ];
 

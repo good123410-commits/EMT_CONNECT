@@ -3,8 +3,8 @@
 export function EmergencyQuickViewOverlay() { return null; }
 
 /*
-﻿import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmergencyPublicCard } from '@/components/utilities/EmergencyPublicCard';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';

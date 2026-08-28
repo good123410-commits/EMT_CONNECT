@@ -67,6 +67,13 @@ const expoConfig: ExpoConfig = {
           '주변 AED, 응급실, 약국 정보를 제공하기 위해 위치 접근 권한이 필요합니다.',
       },
     ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/ic_launcher.png',
+        color: '#2563eb',
+      },
+    ],
   ],
   extra: {
     eas: {

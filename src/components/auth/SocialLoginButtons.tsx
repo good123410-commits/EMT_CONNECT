@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Text, View } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { getOAuthLinkErrorMessage } from '@/services/authService';
 import type { AuthIntent } from '@/utils/authIntent';

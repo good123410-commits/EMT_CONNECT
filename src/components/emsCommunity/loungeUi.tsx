@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, Pressable, ScrollView, Text, TextInput, View, type ViewStyle } from 'react-native';
+import { Pressable, Animated, Platform, ScrollView, Text, View, type ViewStyle } from 'react-native';
+import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EMS_LOUNGE_SHADOW, EMS_LOUNGE_SPACING, useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { DRAGGABLE_FAB_SIZE } from '@/constants/fabLayout';
@@ -19,11 +21,18 @@ export function LoungeScreen({ children }: { children: ReactNode }) {
 }
 
 /** 상단 액션·필터 영역 — 배경 없이 본문과 연속 */
-export function LoungeTopSection({ children }: { children: ReactNode }) {
+export function LoungeTopSection({
+  children,
+  embedded = false,
+}: {
+  children: ReactNode;
+  /** FlatList ListHeaderComponent 등 이미 좌우 패딩이 있는 영역 */
+  embedded?: boolean;
+}) {
   return (
     <View
       style={{
-        paddingHorizontal: EMS_LOUNGE_SPACING.screen,
+        paddingHorizontal: embedded ? 0 : EMS_LOUNGE_SPACING.screen,
         paddingTop: EMS_LOUNGE_SPACING.screenTop,
         paddingBottom: EMS_LOUNGE_SPACING.headerBottom,
       }}
@@ -61,7 +70,7 @@ export function LoungeCard({
     backgroundColor: lounge.surface,
     borderRadius: 16,
     padding: EMS_LOUNGE_SPACING.cardPadding,
-    marginBottom: EMS_LOUNGE_SPACING.cardGap,
+    marginBottom: EMS_LOUNGE_SPACING.listItemGap,
     borderWidth: 1,
     borderColor: lounge.border,
     ...EMS_LOUNGE_SHADOW.cardSoft,
@@ -76,7 +85,7 @@ export function LoungeCard({
   if (Platform.OS === 'web') {
     return (
       <View
-        style={[cardStyle, { cursor: 'pointer' }]}
+        style={[cardStyle, { cursor: 'pointer', alignSelf: 'stretch' }]}
         // @ts-expect-error web pointer handler
         onClick={onPress}
         onKeyDown={(event: { key?: string; preventDefault?: () => void }) => {
@@ -94,7 +103,7 @@ export function LoungeCard({
   }
 
   return (
-    <Pressable onPress={onPress} className="active:opacity-95">
+    <Pressable onPress={onPress} style={{ alignSelf: 'stretch' }}>
       <View style={cardStyle}>{children}</View>
     </Pressable>
   );
@@ -263,32 +272,103 @@ export function LoungeActionRow({
 
 export function LoungeLikeButton({
   count,
+  liked = false,
+  disabled = false,
   onPress,
 }: {
   count: number;
+  liked?: boolean;
+  disabled?: boolean;
   onPress?: () => void;
 }) {
   const { lounge } = useEmsLoungeTheme();
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const popAnim = useRef(new Animated.Value(0)).current;
+
+  const triggerPop = () => {
+    popAnim.setValue(0);
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.35,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 4,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(popAnim, {
+        toValue: 1,
+        duration: 420,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      popAnim.setValue(0);
+    });
+  };
 
   const handlePress = (event?: { stopPropagation?: () => void }) => {
     if (Platform.OS === 'web') {
       event?.stopPropagation?.();
     }
+    if (disabled) return;
+    if (!liked) {
+      triggerPop();
+    }
     onPress?.();
   };
 
+  const heartColor = liked ? '#ef4444' : lounge.textMuted;
+  const countColor = liked ? '#ef4444' : lounge.textSecondary;
+
   return (
     <Pressable
-      className="flex-row items-center active:opacity-70"
+      className="flex-row items-center"
+      disabled={disabled}
+
       onPress={(event) => handlePress(event)}
+      hitSlop={8}
     >
-      <Ionicons name="heart-outline" size={18} color={lounge.textMuted} />
+      <View className="relative items-center justify-center">
+        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={18} color={heartColor} />
+        </Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            opacity: popAnim.interpolate({
+              inputRange: [0, 0.35, 1],
+              outputRange: [0, 1, 0],
+            }),
+            transform: [
+              {
+                scale: popAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.5, 1.8],
+                }),
+              },
+              {
+                translateY: popAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -16],
+                }),
+              },
+            ],
+          }}
+        >
+          <Ionicons name="heart" size={14} color="#ef4444" />
+        </Animated.View>
+      </View>
       <Text
         style={{
           marginLeft: 6,
           fontFamily: 'Pretendard-Medium',
           fontSize: 13,
-          color: lounge.textSecondary,
+          color: countColor,
         }}
       >
         {count}
@@ -341,14 +421,21 @@ export function LoungeBackBar({ label, onPress }: { label: string; onPress: () =
   );
 }
 
-export function LoungeErrorBanner({ message }: { message: string }) {
+export function LoungeErrorBanner({
+  message,
+  embedded = false,
+}: {
+  message: string;
+  /** FlatList 등 이미 좌우 패딩이 있는 컨테이너 안에 넣을 때 */
+  embedded?: boolean;
+}) {
   const { lounge } = useEmsLoungeTheme();
 
   return (
     <View
       style={{
-        marginHorizontal: EMS_LOUNGE_SPACING.screen,
-        marginTop: 12,
+        marginHorizontal: embedded ? 0 : EMS_LOUNGE_SPACING.screen,
+        marginTop: embedded ? 0 : 12,
         borderRadius: 14,
         padding: 14,
         backgroundColor: lounge.errorBg,
@@ -408,16 +495,18 @@ export function LoungeWriteBar({
   onPress,
   trailing,
   icon = 'create-outline',
+  embedded = false,
 }: {
   label: string;
   onPress: () => void;
   trailing?: ReactNode;
   icon?: keyof typeof Ionicons.glyphMap;
+  embedded?: boolean;
 }) {
   const { lounge } = useEmsLoungeTheme();
 
   return (
-    <LoungeTopSection>
+    <LoungeTopSection embedded={embedded}>
       <View className="flex-row items-center gap-3">
         <Pressable
           className="flex-1 flex-row items-center justify-center active:opacity-90"
@@ -531,7 +620,7 @@ export function LoungeInput({
   const { lounge } = useEmsLoungeTheme();
 
   return (
-    <TextInput
+    <ShortcodeTextInput
       style={{
         marginBottom: 12,
         borderRadius: 12,
@@ -563,11 +652,13 @@ export function LoungeFab({
   onPress,
   accessibilityLabel = '글쓰기',
   avoidGlobalMoreFab = false,
+  icon = 'add',
 }: {
   onPress: () => void;
   accessibilityLabel?: string;
   /** 글로벌 더보기 FAB와 겹치지 않도록 왼쪽으로 밀기 */
   avoidGlobalMoreFab?: boolean;
+  icon?: 'add' | 'create-outline';
 }) {
   const { lounge } = useEmsLoungeTheme();
   const insets = useSafeAreaInsets();
@@ -613,7 +704,7 @@ export function LoungeFab({
         tabIndex={0}
         role="button"
       >
-        <Ionicons name="add" size={32} color="#FFFFFF" />
+        <Ionicons name={icon} size={icon === 'add' ? 32 : 28} color="#FFFFFF" />
       </View>
     );
   }
@@ -626,29 +717,39 @@ export function LoungeFab({
       className="active:opacity-90"
       style={fabStyle}
     >
-      <Ionicons name="add" size={32} color="#FFFFFF" />
+      <Ionicons name={icon} size={icon === 'add' ? 32 : 28} color="#FFFFFF" />
     </Pressable>
   );
 }
 
 export const loungeListContent = {
   paddingHorizontal: EMS_LOUNGE_SPACING.screen,
-  paddingTop: 4,
+  paddingTop: EMS_LOUNGE_SPACING.screenTop,
   paddingBottom: 96,
 } as const;
 
+/** FlatList 카드 아이템 하단 간격 — LoungeCard marginBottom 과 동일 */
+export const communityListItemGapStyle = {
+  marginBottom: EMS_LOUNGE_SPACING.listItemGap,
+} as const;
+
+export function CommunityListItemSeparator() {
+  return <View style={{ height: EMS_LOUNGE_SPACING.listItemGap }} />;
+}
+
 /** EMS 서브 탭 바 높이에 맞춘 리스트 하단 여백 */
-export function useLoungeListContentStyle(extraBottom = 12) {
+export function useLoungeListContentStyle(extraBottom = 12, reserveWriteFab = false) {
   const insets = useSafeAreaInsets();
   const { nestedAboveMainTabBar } = useParamedicTabLayout();
   const metrics = getExpertTabBarMetrics(insets.bottom, {
     compact: false,
     nestedAboveMainTabBar,
   });
+  const fabReserve = reserveWriteFab ? 76 : 0;
 
   return {
     paddingHorizontal: EMS_LOUNGE_SPACING.screen,
-    paddingTop: 4,
-    paddingBottom: metrics.occupiedBottomSpace + extraBottom,
+    paddingTop: EMS_LOUNGE_SPACING.screenTop,
+    paddingBottom: metrics.occupiedBottomSpace + extraBottom + fabReserve,
   };
 }

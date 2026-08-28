@@ -1,6 +1,7 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Alert, Text, View } from 'react-native';
+import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import type { LocalCommunityCategory } from '@/types/localCommunity';
 import { LOCAL_COMMUNITY_CATEGORY_LABELS } from '@/types/localCommunity';
 
@@ -44,7 +45,7 @@ export function LocalCommunityWriteForm({ category, onSubmit }: LocalCommunityWr
       <Text className="mt-2 text-[11px] leading-4 text-kemix-text-secondary">
         「{LOCAL_COMMUNITY_CATEGORY_LABELS[category]}」 카테고리로 등록됩니다. 개인정보·비방은 삼가해 주세요.
       </Text>
-      <TextInput
+      <ShortcodeTextInput
         className="mt-3 min-h-[88px] rounded-xl border border-kemix-border bg-kemix-bg px-4 py-3 text-base text-kemix-text"
         placeholder="대기 시간, 야간 진료 정보, 응급·육아 팁을 공유해 주세요"
         placeholderTextColor="#94a3b8"

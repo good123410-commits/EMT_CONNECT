@@ -146,7 +146,7 @@ export function AdminTrainingsPanel() {
       <div className="admin-form-card">
         <h3>{editingId ? '교육 안내 수정' : '새 교육 안내 등록'}</h3>
         <div className="admin-form-grid">
-          <label className="admin-span-2">
+          <label className="admin-span-3">
             교육 과정명
             <input
               className="modal-input"
@@ -246,13 +246,13 @@ export function AdminTrainingsPanel() {
             />
           </div>
 
-          <label className="admin-span-2">
+          <label className="admin-span-full">
             요약
             <textarea
-              className="modal-textarea"
-              rows={2}
+              className="modal-textarea admin-textarea--summary"
               value={form.excerpt ?? ''}
               onChange={(e) => setForm((prev) => ({ ...prev, excerpt: e.target.value }))}
+              placeholder="목록에 노출될 짧은 설명"
             />
           </label>
           <label>
@@ -272,19 +272,20 @@ export function AdminTrainingsPanel() {
             />
             공개 (사용자 게시판 노출)
           </label>
-        </div>
 
-        <div className="admin-span-2">
-          <span className="image-upload-label">본문 (리치 텍스트)</span>
-          <RichTextEditor
-            value={form.content}
-            onChange={(content) => setForm((prev) => ({ ...prev, content }))}
-            placeholder="교육 안내 본문을 작성하세요."
-            imageFolder="trainings"
-            variant="article"
-            minHeight={280}
-            onUploadError={(msg) => showToast(msg, 'error')}
-          />
+          <div className="admin-span-full">
+            <span className="image-upload-label">본문 (리치 텍스트)</span>
+            <RichTextEditor
+              value={form.content}
+              onChange={(content) => setForm((prev) => ({ ...prev, content }))}
+              placeholder="교육 안내 본문을 작성하세요."
+              imageFolder="trainings"
+              variant="article"
+              admin
+              minHeight={520}
+              onUploadError={(msg) => showToast(msg, 'error')}
+            />
+          </div>
         </div>
 
         <div className="admin-form-actions">

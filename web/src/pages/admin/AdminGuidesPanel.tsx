@@ -163,7 +163,8 @@ export function AdminGuidesPanel() {
               placeholder="1단계: 상황을 확인합니다.&#10;2단계: 응급처치를 시행합니다."
               imageFolder="guides"
               variant="article"
-              minHeight={360}
+              admin
+              minHeight={520}
               onUploadError={(msg) => showToast(msg, 'error')}
             />
           </div>

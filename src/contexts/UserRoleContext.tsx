@@ -35,7 +35,7 @@ type UserRoleContextValue = {
   guideAdminVerified: boolean;
   verifyGuideAdminCode: (code: string) => boolean;
   clearGuideAdminVerification: () => void;
-  /** 설정 > 관리자 모드 — DB admin 또는 운영 비밀코드 */
+  /** 설정 > 관리자 대시보드 — DB admin 또는 운영 비밀코드 */
   opsAdminVerified: boolean;
   verifyOpsAdminCode: (code: string) => boolean;
   clearOpsAdminVerification: () => void;

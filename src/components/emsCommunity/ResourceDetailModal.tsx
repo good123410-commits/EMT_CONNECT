@@ -1,20 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, Linking, Modal, ScrollView, Text, View } from 'react-native';
 import { ResourceEmailModal } from '@/components/emsCommunity/ResourceEmailModal';
 import { CommunityCommentSection } from '@/components/emsCommunity/CommunityCommentSection';
 import { LoungeBackBar } from '@/components/emsCommunity/loungeUi';
 import { getResourceCategoryLabel } from '@/constants/resourceCategories';
-import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
+import { EMS_LOUNGE_SPACING, useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { formatResourceFileSize } from '@/services/kemixResourceService';
 import type { KemixResource } from '@/types/kemixResource';
 import { shareResourceOnKakao } from '@/utils/resourceShare';
@@ -70,7 +61,7 @@ export function ResourceDetailModal({ resource, visible, onClose }: ResourceDeta
           <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
             <LoungeBackBar label="목록" onPress={onClose} />
 
-            <View style={{ paddingHorizontal: 24 }}>
+            <View style={{ paddingHorizontal: EMS_LOUNGE_SPACING.screen }}>
             <Text
               style={{
                 fontFamily: 'Pretendard-SemiBold',

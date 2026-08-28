@@ -1,20 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, Alert, FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { ShortcodeComposerField } from '@/components/content/ShortcodeComposerField';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useAppTheme } from '@/contexts/AppThemeContext';
 import { APP_SPACING } from '@/constants/appTheme';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import {
+  bootstrapLocalChatRoomParticipation,
+  setActiveLocalChatRoomForNotifications,
+} from '@/contexts/PushNotificationContext';
 import {
   fetchLocalCommunityMessages,
   formatChatTimestamp,
@@ -104,12 +100,17 @@ export function LocalCommunityChatRoomView({
   useEffect(() => {
     setLoading(true);
     void loadMessages();
+    void bootstrapLocalChatRoomParticipation(room.id);
+    setActiveLocalChatRoomForNotifications(room.id);
 
     const unsubscribe = subscribeLocalCommunityRoomMessages(room.id, () => {
       void loadMessages();
     });
 
-    return unsubscribe;
+    return () => {
+      setActiveLocalChatRoomForNotifications(null);
+      unsubscribe();
+    };
   }, [room.id, loadMessages]);
 
   useEffect(() => {
@@ -270,19 +271,21 @@ export function LocalCommunityChatRoomView({
         }}
       >
         <View className="flex-row items-end gap-2">
-          <TextInput
-            className="max-h-24 flex-1 rounded-2xl border px-3 py-2.5 text-sm"
-            style={{
-              borderColor: colors.border,
-              backgroundColor: colors.background,
-              color: colors.textPrimary,
-            }}
-            placeholder="메시지 입력 (개인정보·비방 금지)"
-            placeholderTextColor={colors.textMuted}
+          <ShortcodeComposerField
             value={draft}
             onChangeText={setDraft}
-            multiline
-            editable={!sending}
+            inputProps={{
+              className: 'max-h-24 flex-1 rounded-2xl border px-3 py-2.5 text-sm',
+              style: {
+                borderColor: colors.border,
+                backgroundColor: colors.background,
+                color: colors.textPrimary,
+              },
+              placeholder: '메시지 입력 (개인정보·비방 금지)',
+              placeholderTextColor: colors.textMuted,
+              multiline: true,
+              editable: !sending,
+            }}
           />
           <Pressable
             className="rounded-xl px-4 py-3 active:opacity-90"

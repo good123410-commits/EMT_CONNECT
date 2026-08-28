@@ -95,7 +95,7 @@ export function PollWriteModal({
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
       <div
-        className="modal-dialog modal-dialog--wide"
+        className="modal-dialog modal-dialog--admin"
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
@@ -109,7 +109,7 @@ export function PollWriteModal({
         <h2 className="modal-title">투표 안건 {initial.title ? '수정' : '작성'}</h2>
         <p className="modal-desc">제목, 설명, 투표 항목, 종료일을 설정하세요.</p>
 
-        <div className="poll-form">
+        <div className="admin-modal-form">
           <label className="modal-label">
             제목
             <input
@@ -179,7 +179,7 @@ export function PollWriteModal({
             ))}
           </div>
 
-          <div className="admin-form-actions">
+          <div className="modal-footer-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>
               취소
             </button>

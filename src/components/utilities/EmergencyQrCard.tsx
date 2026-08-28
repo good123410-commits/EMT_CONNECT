@@ -4,7 +4,7 @@ export function EmergencyQrCard() { return null; }
 
 /*
 import { Ionicons } from '@expo/vector-icons';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Linking, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { getEmergencyShareUrl } from '@/utils/emergencyCardEncoding';
 import type { EmergencyContactCardData } from '@/types/emergencyContactCard';

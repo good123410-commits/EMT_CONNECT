@@ -14,6 +14,7 @@ import { generateAnonymousLabel } from '@/utils/localCommunityModeration';
 
 export const LOCAL_COMMUNITY_ROOMS_TABLE = 'local_community_rooms';
 export const LOCAL_COMMUNITY_MESSAGES_TABLE = 'local_community_messages';
+export const MAX_LOCAL_COMMUNITY_ROOMS_PER_SIGUNGU = 3;
 
 const REGION_KEY = 'kemix_local_community_region_v2';
 const LEGACY_AREA_KEY = 'kemix_local_community_area_v1';
@@ -134,6 +135,20 @@ export async function fetchLocalCommunityRooms(regionCode: string): Promise<Loca
   return (data as LocalCommunityRoomRow[]).map(mapRoomRow);
 }
 
+export async function countActiveLocalCommunityRooms(regionCode: string): Promise<number> {
+  const { count, error } = await supabase
+    .from(LOCAL_COMMUNITY_ROOMS_TABLE)
+    .select('id', { count: 'exact', head: true })
+    .eq('region_code', regionCode)
+    .eq('is_active', true);
+
+  if (error) {
+    throw new LocalCommunityChatServiceError(parseServiceError(error));
+  }
+
+  return count ?? 0;
+}
+
 export async function fetchLocalCommunityMessages(roomId: string): Promise<LocalCommunityMessage[]> {
   const { data, error } = await supabase
     .from(LOCAL_COMMUNITY_MESSAGES_TABLE)
@@ -160,6 +175,13 @@ export async function createLocalCommunityRoom(input: {
   const title = input.title.trim();
   if (title.length < 2) {
     throw new LocalCommunityChatServiceError('방 제목을 2자 이상 입력해 주세요.');
+  }
+
+  const activeCount = await countActiveLocalCommunityRooms(input.regionCode);
+  if (activeCount >= MAX_LOCAL_COMMUNITY_ROOMS_PER_SIGUNGU) {
+    throw new LocalCommunityChatServiceError(
+      '해당 시/군/구에는 이미 최대 3개의 채팅방이 개설되어 있습니다.',
+    );
   }
 
   const {

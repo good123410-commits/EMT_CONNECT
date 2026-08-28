@@ -94,7 +94,7 @@ export function TrainingCategoryManageModal({ open, onClose, onChanged }: Traini
   return (
     <div className="modal-overlay" role="presentation" onClick={onClose}>
       <div
-        className="modal-dialog modal-dialog--wide"
+        className="modal-dialog modal-dialog--admin"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

@@ -1,15 +1,19 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { InteractionManager } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
 import type { FacilitySearchParams } from '@/hooks/useFacilitySearchMode';
 import {
   buildFacilityMarkerQueryKey,
+  getFacilitySearchOptions,
   searchFacilityMarkers,
   type FacilityMarkerKind,
 } from '@/services/facilityMarkerService';
 import type { UnifiedFacilitySearchOptions } from '@/services/facilitySearchService';
+import { deferToNextFrame } from '@/utils/mapRoughRadius';
 
 const FACILITY_STALE_MS = 1000 * 60 * 15;
 const FACILITY_GC_MS = 1000 * 60 * 60;
+const EXPAND_DELAY_MS = 450;
 
 export function useFacilityMarkersQuery(
   kind: FacilityMarkerKind,
@@ -17,41 +21,96 @@ export function useFacilityMarkersQuery(
   options?: UnifiedFacilitySearchOptions,
   enabled = true,
 ) {
-  const queryKey = useMemo(
-    () => buildFacilityMarkerQueryKey(kind, params, options),
-    [kind, params, options],
+  const [expandEnabled, setExpandEnabled] = useState(false);
+
+  const initialOptions = useMemo(
+    () => getFacilitySearchOptions(kind, 'initial', options),
+    [kind, options],
+  );
+  const expandedOptions = useMemo(
+    () => getFacilitySearchOptions(kind, 'expanded', options),
+    [kind, options],
   );
 
-  return useQuery({
-    queryKey,
-    queryFn: () => searchFacilityMarkers(kind, params, options),
+  const initialKey = useMemo(
+    () => buildFacilityMarkerQueryKey(kind, params, initialOptions, 'initial'),
+    [kind, initialOptions, params],
+  );
+  const expandedKey = useMemo(
+    () => buildFacilityMarkerQueryKey(kind, params, expandedOptions, 'expanded'),
+    [expandedOptions, kind, params],
+  );
+
+  const initialQuery = useQuery({
+    queryKey: initialKey,
+    queryFn: async ({ signal }) => {
+      await new Promise<void>((resolve) => {
+        InteractionManager.runAfterInteractions(() => resolve());
+      });
+      if (signal.aborted) return [];
+      await deferToNextFrame();
+      if (signal.aborted) return [];
+      return searchFacilityMarkers(kind, params, initialOptions);
+    },
     enabled,
     staleTime: FACILITY_STALE_MS,
     gcTime: FACILITY_GC_MS,
     placeholderData: (previous) => previous,
     refetchOnMount: false,
   });
-}
 
-/** 탭·지역 전환 시 즉시 표시 — 해당 시설 종류만 선캐시 */
-export function usePrefetchFacilityMarkers(
-  params: FacilitySearchParams,
-  kind: FacilityMarkerKind,
-  enabled = true,
-) {
-  const queryClient = useQueryClient();
+  const expandedQuery = useQuery({
+    queryKey: expandedKey,
+    queryFn: async ({ signal }) => {
+      await new Promise<void>((resolve) => {
+        InteractionManager.runAfterInteractions(() => resolve());
+      });
+      if (signal.aborted) return [];
+      await deferToNextFrame();
+      if (signal.aborted) return [];
+      return searchFacilityMarkers(kind, params, expandedOptions);
+    },
+    enabled: enabled && expandEnabled,
+    staleTime: FACILITY_STALE_MS,
+    gcTime: FACILITY_GC_MS,
+    placeholderData: (previous) => previous,
+    refetchOnMount: false,
+  });
 
   useEffect(() => {
-    if (!enabled) return;
+    setExpandEnabled(false);
+  }, [
+    params.mode,
+    params.textQuery,
+    params.regionFilter?.stage1,
+    params.regionFilter?.stage2,
+    Number(params.coordinate.latitude.toFixed(3)),
+    Number(params.coordinate.longitude.toFixed(3)),
+    kind,
+  ]);
 
-    const queryKey = buildFacilityMarkerQueryKey(kind, params);
-    const cached = queryClient.getQueryData(queryKey);
-    if (cached) return;
+  useEffect(() => {
+    if (!enabled || expandEnabled) return;
+    if (!initialQuery.isSuccess || initialQuery.isFetching) return;
 
-    void queryClient.prefetchQuery({
-      queryKey,
-      queryFn: () => searchFacilityMarkers(kind, params),
-      staleTime: FACILITY_STALE_MS,
-    });
-  }, [enabled, kind, params, queryClient]);
+    const timer = setTimeout(() => {
+      setExpandEnabled(true);
+    }, EXPAND_DELAY_MS);
+
+    return () => clearTimeout(timer);
+  }, [enabled, expandEnabled, initialQuery.isFetching, initialQuery.isSuccess]);
+
+  const data = expandedQuery.data ?? initialQuery.data ?? [];
+  const isInitialLoad =
+    initialQuery.isLoading || (initialQuery.isFetching && !initialQuery.data?.length);
+
+  return {
+    data,
+    isFetching: initialQuery.isFetching || expandedQuery.isFetching,
+    isLoading: isInitialLoad,
+    isInitialLoad,
+    isError: initialQuery.isError || expandedQuery.isError,
+    isSuccess: initialQuery.isSuccess,
+    phase: expandEnabled ? ('expanded' as const) : ('initial' as const),
+  };
 }

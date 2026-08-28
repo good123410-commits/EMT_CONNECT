@@ -2,7 +2,9 @@ import { Fragment, useMemo } from 'react';
 import { Text } from 'react-native';
 import { ShortcodeAdBanner } from '@/components/content/ShortcodeAdBanner';
 import { ShortcodeCallButton } from '@/components/content/ShortcodeCallButton';
+import { ShortcodeTemplateBlock } from '@/components/content/ShortcodeTemplateBlock';
 import { RichTextSegment, type RichTextTone } from '@/components/content/RichTextSegment';
+import { useShortcodeRegistry } from '@/contexts/ShortcodeRegistryContext';
 import { parseGuideContent } from '@/utils/guideContentFormat';
 import { parseContentShortcodes } from '@/utils/contentShortcodes';
 
@@ -20,10 +22,11 @@ export function RichContentRenderer({
   tone = 'default',
   emptyMessage = '본문이 없습니다.',
 }: RichContentRendererProps) {
+  const { shortcodes } = useShortcodeRegistry();
   const segments = useMemo(() => {
     const body = variant === 'guide' ? parseGuideContent(content).body : content;
-    return parseContentShortcodes(body);
-  }, [content, variant]);
+    return parseContentShortcodes(body, shortcodes);
+  }, [content, variant, shortcodes]);
 
   if (!content.trim()) {
     return <Text className="text-sm text-kemix-text-secondary">{emptyMessage}</Text>;
@@ -44,6 +47,16 @@ export function RichContentRenderer({
 
         if (segment.type === 'ad_banner') {
           return <ShortcodeAdBanner key={`banner-${index}`} bannerId={segment.bannerId} />;
+        }
+
+        if (segment.type === 'template') {
+          return (
+            <ShortcodeTemplateBlock
+              key={`template-${index}`}
+              body={segment.body}
+              title={segment.title}
+            />
+          );
         }
 
         return (

@@ -1,16 +1,5 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, FlatList, Modal, Platform, ScrollView, Switch, Text, View } from 'react-native';
 import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminFormField } from '@/components/admin/AdminFormField';
 import {

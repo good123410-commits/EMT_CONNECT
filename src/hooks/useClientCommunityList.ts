@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { CommunityListSort, CommunitySortOption } from '@/types/communityList';
+import type { CommunityListSort } from '@/types/communityList';
 import { COMMUNITY_LIST_PAGE_SIZE, getTotalPages } from '@/types/communityList';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -10,7 +10,6 @@ type SearchableItem = {
 
 type UseClientCommunityListOptions<T extends SearchableItem> = {
   data: T[];
-  sortOptions: CommunitySortOption[];
   searchText: (item: T) => string;
   sortCompare: (a: T, b: T, sort: CommunityListSort) => number;
   pickBest?: (items: T[]) => T[];
@@ -19,13 +18,11 @@ type UseClientCommunityListOptions<T extends SearchableItem> = {
 
 export function useClientCommunityList<T extends SearchableItem>({
   data,
-  sortOptions,
   searchText,
   sortCompare,
   pickBest,
   enabled = true,
 }: UseClientCommunityListOptions<T>) {
-  const [sort, setSort] = useState<CommunityListSort>('latest');
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,7 +34,7 @@ export function useClientCommunityList<T extends SearchableItem>({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, sort, data]);
+  }, [debouncedSearch, data]);
 
   const bestItems = useMemo(() => {
     if (!enabled || !pickBest) return [] as T[];
@@ -56,8 +53,8 @@ export function useClientCommunityList<T extends SearchableItem>({
       rows = rows.filter((item) => searchText(item).toLowerCase().includes(keyword));
     }
 
-    return [...rows].sort((a, b) => sortCompare(a, b, sort));
-  }, [bestIdSet, data, debouncedSearch, enabled, searchText, sort, sortCompare]);
+    return [...rows].sort((a, b) => sortCompare(a, b, 'latest'));
+  }, [bestIdSet, data, debouncedSearch, enabled, searchText, sortCompare]);
 
   const totalCount = filteredSorted.length;
   const totalPages = getTotalPages(totalCount, COMMUNITY_LIST_PAGE_SIZE);
@@ -76,8 +73,6 @@ export function useClientCommunityList<T extends SearchableItem>({
   };
 
   return {
-    sort,
-    setSort,
     searchInput,
     setSearchInput,
     debouncedSearch,
@@ -88,6 +83,5 @@ export function useClientCommunityList<T extends SearchableItem>({
     totalPages,
     hasMultiplePages,
     goToPage,
-    sortOptions,
   };
 }

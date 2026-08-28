@@ -1,15 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  LayoutAnimation,
-  Platform,
-  Pressable,
-  Text,
-  UIManager,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, LayoutAnimation, Platform, Text, UIManager, View } from 'react-native';
 import { UtilitySelectField } from '@/components/utilities/UtilitySelectField';
 import type { KoreanSigunguUnit } from '@/constants/koreanRegions';
 import { getLocationWithRegion } from '@/services/locationService';

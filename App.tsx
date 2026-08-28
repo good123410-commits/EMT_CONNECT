@@ -7,14 +7,19 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { ThemeRoot } from '@/components/theme/ThemeRoot';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { PushNotificationProvider } from '@/contexts/PushNotificationContext';
+import { BookmarkProvider } from '@/contexts/BookmarkContext';
 import { AppThemeProvider, useAppTheme } from '@/contexts/AppThemeContext';
 import { UserRoleProvider } from '@/contexts/UserRoleContext';
+import { ShortcodeComposerProvider } from '@/contexts/ShortcodeComposerContext';
+import { ShortcodeRegistryProvider } from '@/contexts/ShortcodeRegistryContext';
 import { WalletProvider } from '@/contexts/WalletContext';
 // DISABLED: 비상연락망 & 응급카드 (ICE)
 // import { EmergencyOverlayBootstrap } from '@/components/utilities/EmergencyOverlayBootstrap';
 // import { EmergencyQuickViewBootstrap } from '@/components/utilities/EmergencyQuickViewBootstrap';
 import { AppLaunchGate } from '@/components/intro/AppLaunchGate';
 import { BrandSplashView } from '@/components/intro/BrandSplashView';
+import { BookmarkToast } from '@/components/bookmarks/BookmarkToast';
 import { APP_COLORS } from '@/constants/appTheme';
 import { useAppFonts } from '@/hooks/useAppFonts';
 import { queryClient } from '@/lib/queryClient';
@@ -56,17 +61,26 @@ function AppProviders() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AppLaunchGate>
+        <PushNotificationProvider>
+          <AppLaunchGate>
           <UserRoleProvider>
-            <WalletProvider>
-              <ThemeRoot style={styles.root}>
-                <StatusBar style={statusBarStyle} />
-                <AppNavigation />
-                {DevRoleCheatMenu ? <DevRoleCheatMenu /> : null}
-              </ThemeRoot>
-            </WalletProvider>
+            <ShortcodeRegistryProvider>
+              <ShortcodeComposerProvider>
+                <BookmarkProvider>
+                  <WalletProvider>
+                    <ThemeRoot style={styles.root}>
+                      <StatusBar style={statusBarStyle} />
+                      <AppNavigation />
+                      <BookmarkToast />
+                      {DevRoleCheatMenu ? <DevRoleCheatMenu /> : null}
+                    </ThemeRoot>
+                  </WalletProvider>
+                </BookmarkProvider>
+              </ShortcodeComposerProvider>
+            </ShortcodeRegistryProvider>
           </UserRoleProvider>
         </AppLaunchGate>
+        </PushNotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

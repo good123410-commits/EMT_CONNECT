@@ -1,5 +1,5 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Alert, Text, View } from 'react-native';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useAppTheme } from '@/contexts/AppThemeContext';
 import {

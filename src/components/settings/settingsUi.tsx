@@ -1,5 +1,47 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View, type ReactNode } from 'react-native';
+import type { ReactNode } from 'react';
+import { Pressable, Switch, Text, View } from 'react-native';
+
+export function SettingsToggleRow({
+  icon,
+  label,
+  subtitle,
+  value,
+  onValueChange,
+  showDivider = true,
+  disabled = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  subtitle?: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+  showDivider?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <View
+      className={`flex-row items-center justify-between px-4 py-4 ${showDivider ? 'border-b border-kemix-border-light' : ''}`}
+    >
+      <View className="mr-3 flex-1 flex-row items-start gap-3">
+        <Ionicons name={icon} size={22} color="#475569" />
+        <View className="flex-1">
+          <Text className="text-base font-medium text-kemix-text">{label}</Text>
+          {subtitle ? (
+            <Text className="mt-1 text-xs leading-5 text-kemix-text-secondary">{subtitle}</Text>
+          ) : null}
+        </View>
+      </View>
+      <Switch
+        value={value}
+        disabled={disabled}
+        onValueChange={onValueChange}
+        trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
+        thumbColor={value ? '#2563eb' : '#f8fafc'}
+      />
+    </View>
+  );
+}
 
 export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (

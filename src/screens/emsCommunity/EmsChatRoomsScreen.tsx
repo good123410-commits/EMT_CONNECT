@@ -1,24 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Text, View } from 'react-native';
 import { EmsChatCreateRoomModal } from '@/components/emsCommunity/EmsChatCreateRoomModal';
 import { EmsChatRoomCard } from '@/components/emsCommunity/EmsChatRoomCard';
 import { EmsChatRoomView } from '@/components/emsCommunity/EmsChatRoomView';
-import { CommunityBestSection } from '@/components/emsCommunity/CommunityBestSection';
+import { CommunityListScrollHeader } from '@/components/emsCommunity/CommunityListScrollHeader';
 import {
-  LoungeErrorBanner,
-  LoungePrimaryButton,
+  LoungeFab,
   LoungeScreen,
-  LoungeTopSection,
   useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
-import { EMS_LOUNGE_SPACING, useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
+import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
+import { useCommunityImmersive } from '@/contexts/CommunityImmersiveContext';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import type { EmsChatRoom } from '@/services/emsChatRoomService';
-
-const BEST_ROOM_LIMIT = 3;
 
 function sortRoomsByLatest(rooms: EmsChatRoom[]): EmsChatRoom[] {
   return [...rooms].sort((a, b) => {
@@ -28,15 +25,22 @@ function sortRoomsByLatest(rooms: EmsChatRoom[]): EmsChatRoom[] {
   });
 }
 
-function pickBestRooms(rooms: EmsChatRoom[]): EmsChatRoom[] {
-  return [...rooms]
-    .sort((a, b) => b.participantCount - a.participantCount || b.messageCount - a.messageCount)
-    .slice(0, BEST_ROOM_LIMIT);
+function sortRoomsByPopularity(rooms: EmsChatRoom[]): EmsChatRoom[] {
+  return [...rooms].sort((a, b) => {
+    const participantDiff = b.participantCount - a.participantCount;
+    if (participantDiff !== 0) return participantDiff;
+    const messageDiff = b.messageCount - a.messageCount;
+    if (messageDiff !== 0) return messageDiff;
+    const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+    const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+    return bTime - aTime;
+  });
 }
 
 export function EmsChatRoomsScreen() {
   const { lounge } = useEmsLoungeTheme();
-  const loungeListContentStyle = useLoungeListContentStyle();
+  const loungeListContentStyle = useLoungeListContentStyle(12, true);
+  const { setImmersive } = useCommunityImmersive();
   const {
     chatRooms,
     chatRoomsLoading,
@@ -48,15 +52,21 @@ export function EmsChatRoomsScreen() {
   const [selectedRoom, setSelectedRoom] = useState<EmsChatRoom | null>(null);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [creatingRoom, setCreatingRoom] = useState(false);
-
-  const bestItems = useMemo(() => pickBestRooms(chatRooms), [chatRooms]);
-
-  const bestIdSet = useMemo(() => new Set(bestItems.map((room) => room.id)), [bestItems]);
+  const [bestSortActive, setBestSortActive] = useState(false);
 
   const visibleRooms = useMemo(
-    () => sortRoomsByLatest(chatRooms.filter((room) => !bestIdSet.has(room.id))),
-    [bestIdSet, chatRooms],
+    () => (bestSortActive ? sortRoomsByPopularity(chatRooms) : sortRoomsByLatest(chatRooms)),
+    [bestSortActive, chatRooms],
   );
+
+  const handleBestToggle = useCallback(() => {
+    setBestSortActive((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    setImmersive(Boolean(selectedRoom));
+    return () => setImmersive(false);
+  }, [selectedRoom, setImmersive]);
 
   useHardwareBackHandler(() => {
     if (createModalVisible) {
@@ -115,71 +125,32 @@ export function EmsChatRoomsScreen() {
   }
 
   const listHeader = (
-    <View>
-      <LoungeTopSection>
+    <CommunityListScrollHeader
+      error={error}
+      bestActive={bestSortActive}
+      onBestToggle={handleBestToggle}
+    >
+      <View className="mb-2 mt-1 flex-row items-center justify-between">
         <Text
-          style={{
-            fontFamily: 'Pretendard-Bold',
-            fontSize: 18,
-            color: lounge.text,
-          }}
-        >
-          소통창
-        </Text>
-        <Text
-          className="mt-1"
           style={{
             fontFamily: 'Pretendard',
-            fontSize: 13,
-            color: lounge.textSecondary,
+            fontSize: 11,
+            color: lounge.textMuted,
           }}
         >
-          주제별 오픈채팅방에서 실시간으로 소통해 보세요.
+          {chatRoomsLoading ? '동기화 중…' : '실시간 연결'}
         </Text>
-      </LoungeTopSection>
-
-      <View style={{ paddingHorizontal: EMS_LOUNGE_SPACING.screen }}>
-        <LoungePrimaryButton
-          label="채팅방 개설하기"
-          icon="add-circle-outline"
-          onPress={() => setCreateModalVisible(true)}
-        />
-
-        {error ? (
-          <View className="mt-3">
-            <LoungeErrorBanner message={error} />
-          </View>
-        ) : null}
-
-        <View className="mb-2 mt-4 flex-row items-center justify-between">
-          <Text
-            style={{
-              fontFamily: 'Pretendard',
-              fontSize: 11,
-              color: lounge.textMuted,
-            }}
-          >
-            {chatRoomsLoading ? '동기화 중…' : '실시간 연결'}
-          </Text>
-          <Text
-            style={{
-              fontFamily: 'Pretendard',
-              fontSize: 11,
-              color: lounge.textMuted,
-            }}
-          >
-            {chatRooms.length}개 방
-          </Text>
-        </View>
-
-        <CommunityBestSection
-          items={bestItems}
-          renderItem={(room) => (
-            <EmsChatRoomCard room={room} onPress={() => setSelectedRoom(room)} />
-          )}
-        />
+        <Text
+          style={{
+            fontFamily: 'Pretendard',
+            fontSize: 11,
+            color: lounge.textMuted,
+          }}
+        >
+          {chatRooms.length}개 방
+        </Text>
       </View>
-    </View>
+    </CommunityListScrollHeader>
   );
 
   const listEmpty = chatRoomsLoading ? (
@@ -223,7 +194,7 @@ export function EmsChatRoomsScreen() {
           color: lounge.textMuted,
         }}
       >
-        위 버튼으로 첫 채팅방을 만들어 보세요.
+        우측 하단 + 버튼으로 첫 채팅방을 만들어 보세요.
       </Text>
     </View>
   );
@@ -232,18 +203,25 @@ export function EmsChatRoomsScreen() {
     <LoungeScreen>
       <ParamedicHeader />
 
-      <FlatList
-        data={visibleRooms}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={loungeListContentStyle}
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={chatRooms.length === 0 ? listEmpty : null}
-        ItemSeparatorComponent={() => <View className="h-3" />}
-        renderItem={({ item }) => (
-          <EmsChatRoomCard room={item} onPress={() => setSelectedRoom(item)} />
-        )}
-        showsVerticalScrollIndicator={false}
-      />
+      <View className="flex-1">
+        <FlatList
+          data={visibleRooms}
+          keyExtractor={(item) => item.id}
+          extraData={bestSortActive}
+          contentContainerStyle={loungeListContentStyle}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={chatRooms.length === 0 ? listEmpty : null}
+          renderItem={({ item }) => (
+            <EmsChatRoomCard room={item} onPress={() => setSelectedRoom(item)} />
+          )}
+          showsVerticalScrollIndicator={false}
+        />
+
+        <LoungeFab
+          onPress={() => setCreateModalVisible(true)}
+          accessibilityLabel="채팅방 개설하기"
+        />
+      </View>
 
       <EmsChatCreateRoomModal
         visible={createModalVisible}

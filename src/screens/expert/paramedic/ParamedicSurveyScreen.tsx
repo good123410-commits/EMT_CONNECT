@@ -1,6 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Alert, ScrollView, Text, View } from 'react-native';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { SegmentControl } from '@/components/SegmentControl';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Text, View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { APP_RADIUS } from '@/constants/appTheme';
 import { useAuth } from '@/contexts/AuthContext';

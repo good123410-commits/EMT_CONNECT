@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CoffeeSupportModal } from '@/components/support/CoffeeSupportModal';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { useAppTheme } from '@/contexts/AppThemeContext';
-import { openKakaoTalkPayLink } from '@/utils/kakaoTalkPayLink';
 
 type CoffeeSupportButtonProps = {
   iconColor?: string;
@@ -18,11 +17,6 @@ export function CoffeeSupportButton({
   const { navHeader } = useAppTheme();
   const { kakaoTalkPayLink } = useAppConfig();
   const [modalVisible, setModalVisible] = useState(false);
-
-  const handleConfirm = () => {
-    setModalVisible(false);
-    void openKakaoTalkPayLink(kakaoTalkPayLink);
-  };
 
   return (
     <>
@@ -46,7 +40,7 @@ export function CoffeeSupportButton({
       <CoffeeSupportModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onConfirm={handleConfirm}
+        kakaoTalkPayLink={kakaoTalkPayLink}
       />
     </>
   );

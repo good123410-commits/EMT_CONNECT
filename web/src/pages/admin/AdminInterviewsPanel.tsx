@@ -127,15 +127,20 @@ export function AdminInterviewsPanel() {
               onChange={(e) => setForm({ ...form, interviewee_role: e.target.value })}
             />
           </label>
-          <label>
+          <label className="admin-span-full">
             타이틀
             <input className="modal-input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </label>
-          <label className="admin-span-2">
+          <label className="admin-span-full">
             요약문 (리드)
-            <input className="modal-input" value={form.excerpt ?? ''} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} />
+            <textarea
+              className="modal-textarea admin-textarea--summary"
+              value={form.excerpt ?? ''}
+              onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
+              placeholder="카드·목록에 노출될 짧은 소개 문구"
+            />
           </label>
-          <div className="admin-span-2">
+          <div className="admin-span-full">
             <ImageUploadField
               label="대표 썸네일 (선택)"
               hint="미지정 시 본문 첫 번째 이미지가 자동으로 썸네일이 됩니다"
@@ -165,7 +170,7 @@ export function AdminInterviewsPanel() {
               </button>
             ) : null}
           </div>
-          <div className="admin-span-2">
+          <div className="admin-span-full">
             <span className="image-upload-label">인터뷰 본문</span>
             <RichTextEditor
               value={form.content}
@@ -173,7 +178,8 @@ export function AdminInterviewsPanel() {
               placeholder="인터뷰 본문을 작성하세요. 이미지는 툴바에서 첨부할 수 있습니다."
               imageFolder="interviews"
               variant="article"
-              minHeight={320}
+              admin
+              minHeight={520}
               onUploadError={(msg) => showToast(msg, 'error')}
             />
           </div>

@@ -1,6 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Alert, Text, View } from 'react-native';
 import { SegmentControl } from '@/components/SegmentControl';
 import { useWallet } from '@/contexts/WalletContext';
 import {

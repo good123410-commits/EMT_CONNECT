@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Text, View } from 'react-native';
 import { MedicineImage } from '@/components/medicine/MedicineImage';
 import type { MedicineInfo } from '@/services/emergencyApi';
 

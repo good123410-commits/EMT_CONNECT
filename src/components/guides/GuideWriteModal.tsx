@@ -1,18 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GuideCategoryAddModal } from '@/components/guides/GuideCategoryAddModal';
 import { GuideCategoryManageModal } from '@/components/guides/GuideCategoryManageModal';
@@ -265,7 +254,7 @@ export function GuideWriteModal({ visible, onClose, onSaved, editingGuide }: Gui
             keyboardShouldPersistTaps="always"
           >
             <Text style={styles.fieldLabel}>제목</Text>
-            <TextInput
+            <ShortcodeTextInput
               key={`title-${fontId}-${fontSize}-${fontFamily ?? 'system'}`}
               style={titleInputStyle}
               value={title}
@@ -343,7 +332,7 @@ export function GuideWriteModal({ visible, onClose, onSaved, editingGuide }: Gui
             />
 
             <View style={styles.editorShell}>
-              <TextInput
+              <ShortcodeTextInput
                 key={`body-${fontId}-${fontSize}-${fontFamily ?? 'system'}`}
                 style={bodyInputStyle}
                 value={content}
@@ -537,7 +526,7 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     backgroundColor: '#f8fafc',
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   bodyInput: {
     minHeight: 280,

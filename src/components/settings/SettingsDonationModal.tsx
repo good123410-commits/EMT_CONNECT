@@ -1,16 +1,10 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemedColors } from '@/hooks/useThemedColors';
-import { fetchActiveDonationAccounts, type DonationAccount } from '@/services/donationService';
+import { DonationAccountCard } from '@/components/support/DonationAccountCard';
+import { fetchActiveDonationAccounts } from '@/services/donationService';
 import { fetchDonationNotice } from '@/services/siteSettingsService';
 
 type SettingsDonationModalProps = {
@@ -18,29 +12,11 @@ type SettingsDonationModalProps = {
   onClose: () => void;
 };
 
-function DonationAccountCard({ account }: { account: DonationAccount }) {
-  return (
-    <View className="mb-3 rounded-2xl border border-kemix-border bg-kemix-surface p-4">
-      <View className="flex-row items-center justify-between">
-        <Text className="text-sm font-bold text-kemix-text">{account.bank_name}</Text>
-        {account.purpose ? (
-          <Text className="text-[11px] font-medium text-kemix-text-secondary">{account.purpose}</Text>
-        ) : null}
-      </View>
-      <Text selectable className="mt-2 text-lg font-bold text-kemix-text">
-        {account.account_number}
-      </Text>
-      <Text className="mt-1 text-sm text-kemix-text-secondary">예금주: {account.account_holder}</Text>
-      <Text className="mt-2 text-[10px] text-kemix-muted">계좌번호를 길게 눌러 복사할 수 있습니다.</Text>
-    </View>
-  );
-}
-
 export function SettingsDonationModal({ visible, onClose }: SettingsDonationModalProps) {
   const { colors } = useThemedColors();
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
-  const [accounts, setAccounts] = useState<DonationAccount[]>([]);
+  const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof fetchActiveDonationAccounts>>>([]);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -62,8 +38,9 @@ export function SettingsDonationModal({ visible, onClose }: SettingsDonationModa
   }, []);
 
   useEffect(() => {
+    if (!visible) return;
     void load();
-  }, [load]);
+  }, [visible, load]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>

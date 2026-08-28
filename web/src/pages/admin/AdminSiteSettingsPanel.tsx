@@ -96,21 +96,24 @@ export function AdminSiteSettingsPanel() {
       {loading ? <p className="muted">불러오는 중…</p> : null}
 
       <div className="admin-form-card">
-        <label className="admin-span-full">
-          페이지 제목
-          <input className="modal-input" value={title} onChange={(e) => setTitle(e.target.value)} />
-        </label>
+        <div className="admin-form-grid">
+          <label className="admin-span-full">
+            페이지 제목
+            <input className="modal-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </label>
 
-        <div className="admin-span-full" style={{ marginTop: '1rem' }}>
-          <span className="image-upload-label">본문</span>
-          <RichTextEditor
-            value={content}
-            onChange={setContent}
-            imageFolder="legal"
-            variant="article"
-            minHeight={320}
-            onUploadError={(msg) => showToast(msg, 'error')}
-          />
+          <div className="admin-span-full">
+            <span className="image-upload-label">본문</span>
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              imageFolder="legal"
+              variant="article"
+              admin
+              minHeight={520}
+              onUploadError={(msg) => showToast(msg, 'error')}
+            />
+          </div>
         </div>
 
         <div className="admin-form-actions">

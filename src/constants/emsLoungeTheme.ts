@@ -110,11 +110,14 @@ export const EMS_LOUNGE_SHADOW = {
 } as const;
 
 export const EMS_LOUNGE_SPACING = {
-  screen: 32,
-  cardGap: 20,
+  /** 모바일 풀폭 — 앱 contentHorizontal(16)과 동일 */
+  screen: 16,
+  /** EMS 커뮤니티 리스트 카드 간 세로 간격 (질문함·케이스·소통창·자료실·구인구직 공통) */
+  cardGap: 12,
+  listItemGap: 12,
   screenTop: 8,
-  cardPadding: 24,
-  headerBottom: 12,
+  cardPadding: 16,
+  headerBottom: 8,
 } as const;
 
 /** @deprecated use useEmsLoungeTheme().chip */

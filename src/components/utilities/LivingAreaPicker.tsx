@@ -1,6 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Modal, ScrollView, Text, View } from 'react-native';
 import {
   LIVING_AREA_MACRO_REGIONS,
   LIVING_AREAS,

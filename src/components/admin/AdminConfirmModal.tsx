@@ -1,4 +1,4 @@
-﻿import { Modal, Pressable, Text, View } from 'react-native';
+﻿import { Pressable, Modal, Text, View } from 'react-native';
 
 type Props = {
   visible: boolean;

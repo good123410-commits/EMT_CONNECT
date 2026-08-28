@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { APP_FONT } from '@/constants/appTheme';
 import { KEMIX_TOUCH_MIN_HEIGHT } from '@/theme/kemixSemantic';

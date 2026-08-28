@@ -1,15 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  Modal,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, Linking, Modal, Text, TextInput, View } from 'react-native';
 import { LoungePrimaryButton } from '@/components/emsCommunity/loungeUi';
 import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { sendResourceByEmail } from '@/services/resourceEmailService';

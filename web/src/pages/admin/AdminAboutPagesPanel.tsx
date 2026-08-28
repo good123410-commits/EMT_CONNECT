@@ -107,7 +107,7 @@ export function AdminAboutPagesPanel({ slug }: AdminAboutPagesPanelProps) {
             />
             공개
           </label>
-          <label className="admin-span-2">
+          <label className="admin-span-full">
             페이지 제목
             <input
               className="modal-input"
@@ -115,7 +115,7 @@ export function AdminAboutPagesPanel({ slug }: AdminAboutPagesPanelProps) {
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
             />
           </label>
-          <label className="admin-span-2">
+          <label className="admin-span-full">
             부제목
             <input
               className="modal-input"
@@ -123,18 +123,18 @@ export function AdminAboutPagesPanel({ slug }: AdminAboutPagesPanelProps) {
               onChange={(e) => setForm((p) => ({ ...p, subtitle: e.target.value }))}
             />
           </label>
-        </div>
-
-        <div className="admin-span-full" style={{ marginTop: '1rem' }}>
-          <span className="image-upload-label">본문 (리치 텍스트)</span>
-          <RichTextEditor
-            value={form.content}
-            onChange={(content) => setForm((p) => ({ ...p, content }))}
-            imageFolder="about"
-            variant="article"
-            minHeight={320}
-            onUploadError={(msg) => showToast(msg, 'error')}
-          />
+          <div className="admin-span-full">
+            <span className="image-upload-label">본문 (리치 텍스트)</span>
+            <RichTextEditor
+              value={form.content}
+              onChange={(content) => setForm((p) => ({ ...p, content }))}
+              imageFolder="about"
+              variant="article"
+              admin
+              minHeight={520}
+              onUploadError={(msg) => showToast(msg, 'error')}
+            />
+          </div>
         </div>
 
         <div className="admin-form-actions">

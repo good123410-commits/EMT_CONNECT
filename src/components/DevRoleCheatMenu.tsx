@@ -1,12 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useRef, useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  Text,
-  View,
-  type GestureResponderEvent,
-} from 'react-native';
+import { Pressable, Modal, Text, View, type GestureResponderEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { useExpertTabBarHeight } from '@/navigation/expertTabBarOptions';

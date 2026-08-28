@@ -1,7 +1,7 @@
 ﻿import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Pressable, Text, View } from 'react-native';
+import { Pressable, Alert, FlatList, Text, View } from 'react-native';
 import { LocalCommunityChatRoomView } from '@/components/utilities/LocalCommunityChatRoomView';
 import { LocalCommunityCreateRoomModal } from '@/components/utilities/LocalCommunityCreateRoomModal';
 import { LocalCommunityRoomCard } from '@/components/utilities/LocalCommunityRoomCard';
@@ -16,6 +16,7 @@ import {
   createLocalCommunityRoom,
   fetchLocalCommunityRooms,
   loadSelectedRegionCode,
+  MAX_LOCAL_COMMUNITY_ROOMS_PER_SIGUNGU,
   saveSelectedRegionCode,
   subscribeLocalCommunityRoomList,
 } from '@/services/localCommunityChatService';
@@ -131,6 +132,18 @@ export function LocalCommunityTalkScreen({ embedded = false }: { embedded?: bool
 
   const selectedRegion = getRegionUnitByCode(regionCode);
   const fabBottomInset = useGlobalFabBottomInset();
+  const roomQuotaReached = rooms.length >= MAX_LOCAL_COMMUNITY_ROOMS_PER_SIGUNGU;
+
+  const handleOpenCreateModal = () => {
+    if (roomQuotaReached) {
+      Alert.alert(
+        '개설 제한',
+        '해당 시/군/구에는 이미 최대 3개의 채팅방이 개설되어 있습니다.',
+      );
+      return;
+    }
+    setCreateModalVisible(true);
+  };
 
   const handleCreateRoom = async (input: {
     title: string;
@@ -197,6 +210,16 @@ export function LocalCommunityTalkScreen({ embedded = false }: { embedded?: bool
         </View>
       ) : null}
 
+      <View className="mb-3 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
+        <Text className="text-xs font-semibold text-sky-700">이 지역 채팅방 이용 현황</Text>
+        <Text className="mt-1 text-base font-bold text-sky-900">
+          개설된 채팅방 {rooms.length}/{MAX_LOCAL_COMMUNITY_ROOMS_PER_SIGUNGU}
+        </Text>
+        <Text className="mt-1 text-xs leading-5 text-sky-800/80">
+          시·군·구당 최대 {MAX_LOCAL_COMMUNITY_ROOMS_PER_SIGUNGU}개까지 개설할 수 있습니다.
+        </Text>
+      </View>
+
       <KoreanRegionSelector
         selectedCode={regionCode}
         onSelect={(code) => void applyRegionCode(code)}
@@ -207,8 +230,8 @@ export function LocalCommunityTalkScreen({ embedded = false }: { embedded?: bool
 
       <Pressable
         className="mb-4 mt-3 flex-row items-center justify-center rounded-xl py-3 active:opacity-90"
-        style={{ backgroundColor: '#2563eb' }}
-        onPress={() => setCreateModalVisible(true)}
+        style={{ backgroundColor: roomQuotaReached ? '#94a3b8' : '#2563eb' }}
+        onPress={handleOpenCreateModal}
       >
         <Ionicons name="add-circle-outline" size={18} color="#fff" />
         <Text className="ml-2 text-sm font-bold text-white">채팅방 개설하기</Text>

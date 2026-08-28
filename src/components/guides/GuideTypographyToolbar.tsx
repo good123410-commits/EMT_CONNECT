@@ -1,14 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type TextStyle,
-} from 'react-native';
+import { Pressable, ActivityIndicator, ScrollView, StyleSheet, Text, View, type TextStyle } from 'react-native';
 import {
   DEFAULT_GUIDE_FONT_ID,
   DEFAULT_GUIDE_FONT_SIZE,

@@ -7,6 +7,7 @@ import {
   isWriteFormValid,
 } from '@/components/emsCommunity/EmsCommunityWriteModal';
 import { LoungeInput } from '@/components/emsCommunity/loungeUi';
+import type { CaseStudyPost } from '@/data/paramedicMockData';
 
 const TITLE_MIN = 4;
 const BODY_MIN = 10;
@@ -15,9 +16,16 @@ type CaseStudyWriteModalProps = {
   visible: boolean;
   onClose: () => void;
   onSubmit: (input: { title: string; summary: string; body: string }) => Promise<void>;
+  editingPost?: CaseStudyPost | null;
 };
 
-export function CaseStudyWriteModal({ visible, onClose, onSubmit }: CaseStudyWriteModalProps) {
+export function CaseStudyWriteModal({
+  visible,
+  onClose,
+  onSubmit,
+  editingPost,
+}: CaseStudyWriteModalProps) {
+  const isEditing = Boolean(editingPost?.id);
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [body, setBody] = useState('');
@@ -43,8 +51,16 @@ export function CaseStudyWriteModal({ visible, onClose, onSubmit }: CaseStudyWri
   useEffect(() => {
     if (!visible) {
       resetForm();
+      return;
     }
-  }, [visible]);
+    if (editingPost) {
+      setTitle(editingPost.title);
+      setSummary(editingPost.summary);
+      setBody(editingPost.body);
+      return;
+    }
+    resetForm();
+  }, [visible, editingPost]);
 
   const handleClose = () => {
     if (submitting) return;
@@ -59,21 +75,21 @@ export function CaseStudyWriteModal({ visible, onClose, onSubmit }: CaseStudyWri
       return;
     }
 
-    const trimmedTitle = title.trim();
-    const trimmedBody = body.trim();
-
     setSubmitting(true);
     try {
       await onSubmit({
-        title: trimmedTitle,
+        title: title.trim(),
         summary: summary.trim(),
-        body: trimmedBody,
+        body: body.trim(),
       });
       resetForm();
       onClose();
-      Alert.alert('등록 완료', '케이스가 익명으로 등록되었습니다. 환자 식별 정보는 포함하지 마세요.');
+      Alert.alert('완료', isEditing ? '케이스가 수정되었습니다.' : '케이스가 익명으로 등록되었습니다.');
     } catch (err) {
-      Alert.alert('등록 실패', err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.');
+      Alert.alert(
+        isEditing ? '수정 실패' : '등록 실패',
+        err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -82,8 +98,8 @@ export function CaseStudyWriteModal({ visible, onClose, onSubmit }: CaseStudyWri
   return (
     <EmsCommunityWriteModal
       visible={visible}
-      title="케이스 작성"
-      submitLabel="케이스 등록"
+      title={isEditing ? '케이스 수정' : '케이스 작성'}
+      submitLabel={isEditing ? '수정 저장' : '케이스 등록'}
       submitting={submitting}
       submitReady={submitReady}
       onClose={handleClose}

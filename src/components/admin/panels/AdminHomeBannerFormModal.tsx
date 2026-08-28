@@ -1,18 +1,7 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Switch, Text, View } from 'react-native';
 import { AdminFormField } from '@/components/admin/AdminFormField';
 import { uploadHomeBannerImage } from '@/services/homeBannerService';
 import type { HomeBanner } from '@/types/homeDashboard';
@@ -50,6 +39,8 @@ export function AdminHomeBannerFormModal({
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const editingId = editing?.id ?? null;
+
   useEffect(() => {
     if (!visible) return;
     if (editing) {
@@ -63,7 +54,7 @@ export function AdminHomeBannerFormModal({
     } else {
       setForm(EMPTY_FORM);
     }
-  }, [visible, editing]);
+  }, [visible, editingId]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

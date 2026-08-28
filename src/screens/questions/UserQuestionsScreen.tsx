@@ -2,18 +2,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, View } from 'react-native';
+import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
@@ -330,14 +320,14 @@ export function UserQuestionsScreen() {
                 </Text>
               </View>
               <Text className="mb-1 text-xs font-semibold text-kemix-text-secondary">제목</Text>
-              <TextInput
+              <ShortcodeTextInput
                 className="mb-3 rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3 text-sm"
                 placeholder="예: 가슴 통증 환자 이송 시 주의점"
                 value={title}
                 onChangeText={setTitle}
               />
               <Text className="mb-1 text-xs font-semibold text-kemix-text-secondary">내용</Text>
-              <TextInput
+              <ShortcodeTextInput
                 className="min-h-[140px] rounded-xl border border-kemix-border bg-kemix-surface px-3 py-3 text-sm"
                 placeholder="상황을 구체적으로 적어 주세요. 환자 실명·연락처는 입력하지 마세요."
                 value={content}

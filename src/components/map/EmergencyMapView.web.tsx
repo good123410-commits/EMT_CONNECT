@@ -1,13 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createElement, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { EmergencyMapViewProps } from '@/components/map/EmergencyMapView.types';
 import { isValidCoordinate } from '@/utils/mapViewport';
 

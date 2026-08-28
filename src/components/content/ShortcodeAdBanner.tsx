@@ -1,6 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Image, Linking, Text, View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { APP_RADIUS } from '@/constants/appTheme';
 import { KEMIX_WEB_URL } from '@/constants/env';

@@ -1,18 +1,33 @@
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ScrollView } from 'react-native';
+import { HomeBookmarksSection } from '@/components/home/HomeBookmarksSection';
 import { HomeCommerceCuration } from '@/components/home/HomeCommerceCuration';
-import { HomeEmergencyHero } from '@/components/home/HomeEmergencyHero';
-import { HomeEventBannerList } from '@/components/home/HomeEventBannerList';
+import { HomeEmergencyTicker } from '@/components/home/HomeEmergencyTicker';
+import { HomeEventBannerSection } from '@/components/home/HomeEventBannerSection';
+import { HomeLocationSection } from '@/components/home/HomeLocationSection';
 import { ThemedScreen } from '@/components/theme/ThemedScreen';
 import { APP_SPACING } from '@/constants/appTheme';
+import { useBookmarks } from '@/contexts/BookmarkContext';
+import { useEmergencyTicker } from '@/hooks/useEmergencyTicker';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHomeDashboard } from '@/hooks/useHomeDashboard';
-import { useThemedColors } from '@/hooks/useThemedColors';
+import { subscribeHomeScreenRefresh } from '@/navigation/goHome';
 
 export function HomeScreen() {
-  const { banners, commerceItems, loading } = useHomeDashboard();
+  const { banners, commerceItems, loading, refresh } = useHomeDashboard();
+  const { items: tickerItems, refresh: refreshTicker } = useEmergencyTicker();
+  const { reload: reloadBookmarks } = useBookmarks();
   const fabBottomInset = useGlobalFabBottomInset();
-  const { colors } = useThemedColors();
-  const hasBanners = banners.length > 0;
+  const [locationRefreshKey, setLocationRefreshKey] = useState(0);
+
+  useEffect(() => {
+    return subscribeHomeScreenRefresh(() => {
+      void refresh();
+      void refreshTicker();
+      void reloadBookmarks();
+      setLocationRefreshKey((key) => key + 1);
+    });
+  }, [refresh, refreshTicker, reloadBookmarks]);
 
   return (
     <ThemedScreen>
@@ -26,17 +41,11 @@ export function HomeScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {hasBanners ? <HomeEventBannerList banners={banners} /> : null}
-
-        <HomeEmergencyHero />
-
-        {loading ? (
-          <View className="items-center py-6">
-            <ActivityIndicator color={colors.blue} />
-          </View>
-        ) : (
-          <HomeCommerceCuration items={commerceItems} />
-        )}
+        <HomeEventBannerSection banners={banners} loading={loading} />
+        <HomeEmergencyTicker items={tickerItems} />
+        <HomeLocationSection refreshKey={locationRefreshKey} />
+        <HomeBookmarksSection />
+        <HomeCommerceCuration items={commerceItems} loading={loading} />
       </ScrollView>
     </ThemedScreen>
   );

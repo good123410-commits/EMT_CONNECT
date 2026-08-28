@@ -1,4 +1,5 @@
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Alert, ScrollView, Text, View } from 'react-native';
+import { BookmarkButton } from '@/components/bookmarks/BookmarkButton';
 import { ThemePickerSection } from '@/components/settings/ThemePickerSection';
 import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
@@ -6,12 +7,16 @@ import { APP_FONT, APP_SPACING } from '@/constants/appTheme';
 import { useAppTheme } from '@/contexts/AppThemeContext';
 import { CHEMICAL_SCREEN_TITLE, SETTINGS_SCREEN_TITLE } from '@/constants/navigationHeader';
 import { UTILITY_TOOL_ITEMS } from '@/constants/utilityTools';
+import { useBookmarks } from '@/contexts/BookmarkContext';
 import { useSettingsMenu } from '@/contexts/SettingsMenuContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { navigateToChemicalScreen, navigateToMainTab } from '@/navigation/mainTabNavigation';
 import { navigateToUtilityTool } from '@/navigation/utilityNavigation';
 import { openAuthScreen } from '@/navigation/rootNavigation';
+import { CHEMICAL_BOOKMARK, createUtilityToolBookmark } from '@/utils/bookmarkItems';
+import { navigateToBookmarkTarget } from '@/utils/bookmarkNavigation';
+import type { BookmarkInput, BookmarkItem } from '@/types/bookmark';
 import type { MedicalMapTab } from '@/types/medicalMap';
 import type { UtilityToolRoute } from '@/constants/utilityTools';
 
@@ -22,6 +27,7 @@ type ServiceItem = {
   icon: AppIconName;
   iconColor: string;
   iconBg: string;
+  bookmark: BookmarkInput;
   onPress: () => void;
 };
 
@@ -35,42 +41,105 @@ function ServiceRow({ item }: { item: ServiceItem }) {
   const { colors } = useAppTheme();
 
   return (
-    <Pressable
-      className="flex-row items-center py-3.5 active:opacity-80"
-      onPress={item.onPress}
-      accessibilityRole="button"
-    >
-      <View
-        className="mr-3.5 h-11 w-11 items-center justify-center rounded-2xl"
-        style={{ backgroundColor: item.iconBg }}
+    <View className="flex-row items-center py-3.5">
+      <Pressable
+        className="min-w-0 flex-1 flex-row items-center active:opacity-80"
+        onPress={item.onPress}
+        accessibilityRole="button"
       >
-        <AppIcon name={item.icon} size={22} color={item.iconColor} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text
-          className="text-[15px] font-semibold text-kemix-text"
-          style={{ fontFamily: APP_FONT.semibold, color: colors.textPrimary }}
+        <View
+          className="mr-3.5 h-11 w-11 items-center justify-center rounded-2xl"
+          style={{ backgroundColor: item.iconBg }}
         >
-          {item.title}
-        </Text>
-        {item.subtitle ? (
-          <Text className="mt-0.5 text-xs leading-4 text-kemix-text-secondary">{item.subtitle}</Text>
-        ) : null}
-      </View>
+          <AppIcon name={item.icon} size={22} color={item.iconColor} />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text
+            className="text-[15px] font-semibold text-kemix-text"
+            style={{ fontFamily: APP_FONT.semibold, color: colors.textPrimary }}
+          >
+            {item.title}
+          </Text>
+          {item.subtitle ? (
+            <Text className="mt-0.5 text-xs leading-4 text-kemix-text-secondary">{item.subtitle}</Text>
+          ) : null}
+        </View>
+      </Pressable>
+      <BookmarkButton item={item.bookmark} size={20} style={{ marginRight: 6 }} />
       <AppIcon name="chevron-right" size={20} color={colors.textMuted} />
-    </Pressable>
+    </View>
   );
 }
 
-function mapMedicalItem(tab: MedicalMapTab, label: string, icon: AppIconName, iconColor: string, iconBg: string): ServiceItem {
+function mapMedicalItem(
+  tab: MedicalMapTab,
+  label: string,
+  icon: AppIconName,
+  iconColor: string,
+  iconBg: string,
+): ServiceItem {
   return {
     id: `map-${tab}`,
     title: label,
     icon,
     iconColor,
     iconBg,
+    bookmark: {
+      id: `map-${tab}`,
+      title: label,
+      subtitle: '안전지도',
+      icon,
+      iconColor,
+      iconBg,
+      target: { type: 'mainTab', screen: 'Map', params: { initialTab: tab } },
+    },
     onPress: () => navigateToMainTab('Map', { initialTab: tab }),
   };
+}
+
+function BookmarkShortcutRow({
+  bookmark,
+  showDivider,
+}: {
+  bookmark: BookmarkItem;
+  showDivider: boolean;
+}) {
+  const { colors } = useAppTheme();
+
+  return (
+    <View>
+      <View className="flex-row items-center py-3.5">
+        <Pressable
+          className="min-w-0 flex-1 flex-row items-center active:opacity-80"
+          onPress={() => navigateToBookmarkTarget(bookmark.target)}
+          accessibilityRole="button"
+        >
+          <View
+            className="mr-3.5 h-11 w-11 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: bookmark.iconBg }}
+          >
+            <AppIcon name={bookmark.icon} size={22} color={bookmark.iconColor} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text
+              className="text-[15px] font-semibold text-kemix-text"
+              style={{ fontFamily: APP_FONT.semibold, color: colors.textPrimary }}
+            >
+              {bookmark.title}
+            </Text>
+            {bookmark.subtitle ? (
+              <Text className="mt-0.5 text-xs leading-4 text-kemix-text-secondary">
+                {bookmark.subtitle}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
+        <BookmarkButton item={bookmark} size={20} style={{ marginRight: 6 }} />
+        <AppIcon name="chevron-right" size={20} color={colors.textMuted} />
+      </View>
+      {showDivider ? <View className="h-px bg-kemix-border-light" /> : null}
+    </View>
+  );
 }
 
 export function AllServicesScreen() {
@@ -78,6 +147,7 @@ export function AllServicesScreen() {
   const { openSettings } = useSettingsMenu();
   const { user, signOut } = useAuth();
   const { colors } = useAppTheme();
+  const { bookmarks } = useBookmarks();
 
   const handleSignOut = () => {
     Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
@@ -92,6 +162,7 @@ export function AllServicesScreen() {
     icon: tool.icon as AppIconName,
     iconColor: tool.accent,
     iconBg: tool.accentBg,
+    bookmark: createUtilityToolBookmark(tool),
     onPress: () => navigateToUtilityTool(tool.route as UtilityToolRoute),
   }));
 
@@ -107,6 +178,15 @@ export function AllServicesScreen() {
           icon: 'cog-outline',
           iconColor: colors.textPrimary,
           iconBg: colors.surfaceElevated,
+          bookmark: {
+            id: 'settings',
+            title: SETTINGS_SCREEN_TITLE,
+            subtitle: '계정 · 설정',
+            icon: 'cog-outline',
+            iconColor: colors.textPrimary,
+            iconBg: colors.surfaceElevated,
+            target: { type: 'mainTab', screen: 'All' },
+          },
           onPress: openSettings,
         },
       ],
@@ -134,6 +214,7 @@ export function AllServicesScreen() {
           icon: 'flask-outline',
           iconColor: '#A78BFA',
           iconBg: '#2A2240',
+          bookmark: CHEMICAL_BOOKMARK,
           onPress: navigateToChemicalScreen,
         },
         ...utilityItems,
@@ -150,6 +231,15 @@ export function AllServicesScreen() {
           icon: 'account-group-outline',
           iconColor: '#4ADE80',
           iconBg: '#1A2E22',
+          bookmark: {
+            id: 'tab-paramedic',
+            title: EMS_COMMUNITY_TAB_LABEL,
+            subtitle: '커뮤니티',
+            icon: 'account-group-outline',
+            iconColor: '#4ADE80',
+            iconBg: '#1A2E22',
+            target: { type: 'mainTab', screen: 'Paramedic' },
+          },
           onPress: () => navigateToMainTab('Paramedic'),
         },
       ],
@@ -164,6 +254,15 @@ export function AllServicesScreen() {
           icon: 'home-outline',
           iconColor: colors.blueSoft,
           iconBg: colors.blueLight,
+          bookmark: {
+            id: 'tab-home',
+            title: '홈',
+            subtitle: '바로가기',
+            icon: 'home-outline',
+            iconColor: colors.blueSoft,
+            iconBg: colors.blueLight,
+            target: { type: 'mainTab', screen: 'Home' },
+          },
           onPress: () => navigateToMainTab('Home'),
         },
         {
@@ -172,11 +271,22 @@ export function AllServicesScreen() {
           icon: 'medical-bag',
           iconColor: '#F87171',
           iconBg: '#3A1F1F',
+          bookmark: {
+            id: 'tab-guide',
+            title: '응급 가이드',
+            subtitle: '바로가기',
+            icon: 'medical-bag',
+            iconColor: '#F87171',
+            iconBg: '#3A1F1F',
+            target: { type: 'mainTab', screen: 'Guide' },
+          },
           onPress: () => navigateToMainTab('Guide'),
         },
       ],
     },
   ];
+
+  const bookmarkRows = bookmarks;
 
   return (
     <ScrollView
@@ -231,6 +341,26 @@ export function AllServicesScreen() {
       <View className="mb-5">
         <ThemePickerSection />
       </View>
+
+      {bookmarkRows.length > 0 ? (
+        <View className="mb-5">
+          <Text
+            className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-kemix-muted"
+            style={{ fontFamily: APP_FONT.semibold }}
+          >
+            즐겨찾기
+          </Text>
+          <View className="overflow-hidden rounded-2xl border border-kemix-border bg-kemix-surface px-4">
+            {bookmarkRows.map((bookmark, index) => (
+              <BookmarkShortcutRow
+                key={bookmark.id}
+                bookmark={bookmark}
+                showDivider={index < bookmarkRows.length - 1}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       {sections.map((section) => (
         <View key={section.id} className="mb-5">

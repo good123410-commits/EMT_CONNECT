@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Text, View } from 'react-native';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import {
   getLocationWithRegion,
@@ -17,12 +17,22 @@ type LocationState = {
   error: string | null;
 };
 
+type LocationRescueProps = {
+  /** 홈 화면용 컴팩트 레이아웃 */
+  variant?: 'default' | 'home';
+  /** 119 문자 신고 버튼 표시 (홈에서는 숨김) */
+  showSmsButton?: boolean;
+};
+
 function formatCoordinate(value: number | undefined): string {
   return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(6) : '—';
 }
 
-/** 현재 위치 표시 + 119 문자 신고 */
-export function LocationRescue() {
+/** 현재 위치 표시 + (선택) 119 문자 신고 */
+export function LocationRescue({
+  variant = 'default',
+  showSmsButton = true,
+}: LocationRescueProps) {
   const { colors } = useThemedColors();
   const [location, setLocation] = useState<LocationState>(() => {
     const snapshot = getLocationWithRegionImmediate();
@@ -81,15 +91,21 @@ export function LocationRescue() {
     }
   };
 
+  const isHome = variant === 'home';
+
   return (
     <View>
-      <Text className="mb-1 text-lg font-bold text-kemix-text" style={{ color: colors.textPrimary }}>
-        내 위치 확인
-      </Text>
-      <Text className="mb-4 text-sm leading-5 text-kemix-text-secondary">
-        GPS와 역지오코딩으로 현재 위치를 표시합니다. 비상 시 119로 위치가 포함된 문자를 보낼 수
-        있습니다.
-      </Text>
+      {!isHome ? (
+        <>
+          <Text className="mb-1 text-lg font-bold text-kemix-text" style={{ color: colors.textPrimary }}>
+            내 위치 확인
+          </Text>
+          <Text className="mb-4 text-sm leading-5 text-kemix-text-secondary">
+            GPS와 역지오코딩으로 현재 위치를 표시합니다. 비상 시 119로 위치가 포함된 문자를 보낼 수
+            있습니다.
+          </Text>
+        </>
+      ) : null}
 
       <View
         className="rounded-2xl border p-5"
@@ -172,26 +188,30 @@ export function LocationRescue() {
         </Pressable>
       </View>
 
-      <Pressable
-        className="mt-5 overflow-hidden rounded-2xl bg-red-600 active:bg-red-700"
-        disabled={smsOpening || location.loading}
-        onPress={() => void handleSmsPress()}
-      >
-        <View className="flex-row items-center justify-center px-4 py-4">
-          {smsOpening ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="chatbox-ellipses" size={22} color="#fff" />
-              <Text className="ml-2 text-base font-bold text-white">119로 문자 신고하기</Text>
-            </>
-          )}
-        </View>
-      </Pressable>
+      {showSmsButton ? (
+        <>
+          <Pressable
+            className="mt-5 overflow-hidden rounded-2xl bg-red-600 active:bg-red-700"
+            disabled={smsOpening || location.loading}
+            onPress={() => void handleSmsPress()}
+          >
+            <View className="flex-row items-center justify-center px-4 py-4">
+              {smsOpening ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="chatbox-ellipses" size={22} color="#fff" />
+                  <Text className="ml-2 text-base font-bold text-white">119로 문자 신고하기</Text>
+                </>
+              )}
+            </View>
+          </Pressable>
 
-      <Text className="mt-3 text-center text-xs leading-5 text-kemix-text-muted">
-        버튼을 누르면 문자 앱이 열리며 위치 정보가 자동 입력됩니다.
-      </Text>
+          <Text className="mt-3 text-center text-xs leading-5 text-kemix-text-muted">
+            버튼을 누르면 문자 앱이 열리며 위치 정보가 자동 입력됩니다.
+          </Text>
+        </>
+      ) : null}
     </View>
   );
 }

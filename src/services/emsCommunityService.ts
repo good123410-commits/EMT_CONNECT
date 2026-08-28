@@ -6,6 +6,7 @@ import type {
   JobPost,
   ResourceDocument,
 } from '@/data/paramedicMockData';
+import { fetchCurrentUserNickname } from '@/utils/userNickname';
 
 export type EmsCommunityPostType =
   | 'bamboo'
@@ -40,6 +41,8 @@ export type EmsCommunityPostRow = {
   is_hidden: boolean;
   hidden_at: string | null;
   hidden_by: string | null;
+  is_secret: boolean;
+  my_reaction?: 'like' | 'dislike' | null;
 };
 
 export type AdminCommunityPost = EmsCommunityPostRow;
@@ -179,15 +182,18 @@ export function mapRowToBamboo(row: EmsCommunityPostRow): BambooMessage {
 }
 
 export function mapRowToCaseStudy(row: EmsCommunityPostRow): CaseStudyPost {
+  const reaction = row.my_reaction;
   return {
     id: row.id,
     title: row.title ?? '제목 없음',
     anonymousLabel: row.anonymous_label,
+    authorId: row.author_id,
     summary: row.summary ?? '',
     body: row.content,
     tags: normalizeTags(row.tags),
     postedAt: formatRelativeTimeKo(row.created_at),
     likes: row.likes,
+    myReaction: reaction === 'like' || reaction === 'dislike' ? reaction : null,
   };
 }
 
@@ -214,6 +220,7 @@ export function mapRowToJobSeek(row: EmsCommunityPostRow): JobPost {
     requirements: row.content,
     postedAt: formatRelativeTimeKo(row.created_at),
     isUrgent: row.is_urgent,
+    authorId: row.author_id,
   };
 }
 
@@ -229,6 +236,7 @@ export function mapRowToJobHire(row: EmsCommunityPostRow): JobPost {
     requirements: row.content,
     postedAt: formatRelativeTimeKo(row.created_at),
     isUrgent: row.is_urgent,
+    authorId: row.author_id,
   };
 }
 
@@ -384,6 +392,8 @@ async function insertPost(input: UpsertCommunityPostInput): Promise<EmsCommunity
     throw new EmsCommunityServiceError('로그인 후 글을 작성할 수 있습니다.');
   }
 
+  const authorLabel = input.anonymousLabel?.trim() || (await fetchCurrentUserNickname());
+
   const payload = {
     post_type: input.postType,
     title: input.title?.trim() || null,
@@ -392,7 +402,7 @@ async function insertPost(input: UpsertCommunityPostInput): Promise<EmsCommunity
     tags: input.tags ?? [],
     room_id: input.roomId ?? null,
     region: input.region?.trim() || null,
-    anonymous_label: input.anonymousLabel?.trim() || pickAnonymousLabel(),
+    anonymous_label: authorLabel,
     is_hot: input.isHot ?? false,
     job_location: input.jobLocation?.trim() || null,
     company_name: input.companyName?.trim() || null,
@@ -431,30 +441,14 @@ export async function createCaseStudyPost(
   summary: string,
   body: string,
 ): Promise<CaseStudyPost> {
-  const { data, error } = await supabase.rpc('create_ems_case_study_post', {
-    p_title: title.trim(),
-    p_summary: summary.trim() || null,
-    p_content: body.trim(),
-  });
-
-  if (!error && data) {
-    return mapRowToCaseStudy(data as EmsCommunityPostRow);
-  }
-
-  const rpcMissing =
-    error?.message?.toLowerCase().includes('could not find the function') ||
-    error?.message?.toLowerCase().includes('function public.create_ems_case_study_post');
-
-  if (error && !rpcMissing) {
-    throw new EmsCommunityServiceError(parseServiceError(error.message));
-  }
-
+  const nickname = await fetchCurrentUserNickname();
   const row = await insertPost({
     postType: 'case_study',
     title: title.trim(),
     summary: summary.trim() || body.trim().slice(0, 80),
     content: body.trim(),
     tags: [],
+    anonymousLabel: nickname,
   });
   return mapRowToCaseStudy(row);
 }
@@ -540,18 +534,6 @@ export async function incrementCommunityLikes(id: string): Promise<number> {
   return nextLikes;
 }
 
-const ANONYMOUS_LABELS = [
-  '익명 · 서울',
-  '익명 · 경기',
-  '익명 · 부산',
-  '익명 · 대구',
-  '익명 · 광주',
-  '익명 · 대전',
-];
-
-function pickAnonymousLabel(): string {
-  return ANONYMOUS_LABELS[Math.floor(Math.random() * ANONYMOUS_LABELS.length)] ?? '익명';
-}
 
 export async function adminListCommunityPosts(
   postType?: EmsCommunityPostType,

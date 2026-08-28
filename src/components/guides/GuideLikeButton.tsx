@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRef } from 'react';
-import { ActivityIndicator, Animated, Pressable, Text } from 'react-native';
+import { Pressable, ActivityIndicator, Animated, Text } from 'react-native';
 
 type GuideLikeButtonProps = {
   liked: boolean;

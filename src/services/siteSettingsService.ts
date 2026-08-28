@@ -50,3 +50,19 @@ export async function fetchDonationNotice(): Promise<string> {
   const setting = await fetchSiteSetting('donation_notice');
   return setting.content.trim();
 }
+
+export async function adminUpsertSiteSetting(input: {
+  key: SiteSettingKey | string;
+  title: string;
+  content: string;
+}): Promise<SiteSetting> {
+  const { data, error } = await supabase.rpc('admin_upsert_site_setting', {
+    p_key: input.key,
+    p_title: input.title,
+    p_content: input.content,
+  });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data as SiteSetting;
+}

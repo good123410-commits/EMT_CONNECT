@@ -1,15 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { useRef } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, View } from 'react-native';
 import { LoungePrimaryButton } from '@/components/emsCommunity/loungeUi';
 import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 

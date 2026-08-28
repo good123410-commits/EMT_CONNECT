@@ -20,16 +20,17 @@ export type FacilitySearchParams = {
 
 type UseFacilitySearchModeOptions = {
   locationSnapshot: LocationSnapshot;
+  /** gps: 좁은 반경 우선 검색 / manual: 시·도·구 선택 */
   defaultMode?: FacilitySearchMode;
 };
 
 export function useFacilitySearchMode({
   locationSnapshot,
-  defaultMode = 'manual',
+  defaultMode = 'gps',
 }: UseFacilitySearchModeOptions) {
   const [mode, setMode] = useState<FacilitySearchMode>(defaultMode);
   const [textQuery, setTextQuery] = useState('');
-  const [sido, setSido] = useState(() => locationSnapshot.region.stage1 || '');
+  const [sido, setSido] = useState('');
   const [sigungu, setSigungu] = useState('');
   const [gpsLoading, setGpsLoading] = useState(false);
   const [manualCoordinate, setManualCoordinate] = useState<GeoCoordinate | null>(null);
@@ -38,13 +39,6 @@ export function useFacilitySearchMode({
   useEffect(() => {
     setActiveSnapshot(locationSnapshot);
   }, [locationSnapshot]);
-
-  useEffect(() => {
-    if (mode !== 'manual') return;
-    if (!sido && locationSnapshot.region.stage1) {
-      setSido(locationSnapshot.region.stage1);
-    }
-  }, [locationSnapshot.region.stage1, mode, sido]);
 
   const regionFilter = useMemo<FacilityRegionFilter | undefined>(() => {
     if (mode === 'gps' || !sido) return undefined;

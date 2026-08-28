@@ -11,16 +11,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, Alert, Modal, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   LOCATION_CONSENT_TEXT,
@@ -33,9 +24,12 @@ import { ThemePickerSection } from '@/components/settings/ThemePickerSection';
 import { SettingsDonationModal } from '@/components/settings/SettingsDonationModal';
 import { SettingsAdminPortalModal } from '@/components/settings/SettingsAdminPortalModal';
 import { SettingsParamedicPortalModal } from '@/components/settings/SettingsParamedicPortalModal';
-import { SettingsRow, SettingsSection } from '@/components/settings/settingsUi';
+import { SettingsRow, SettingsSection, SettingsToggleRow } from '@/components/settings/settingsUi';
+import { usePushNotificationSettingsOptional } from '@/contexts/PushNotificationContext';
 import { useSettingsMenuOptional } from '@/contexts/SettingsMenuContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useExpertSettingsAccess } from '@/hooks/useExpertSettingsAccess';
+import { navigateToAdminDashboard } from '@/navigation/settingsNavigation';
 import { openAuthScreen } from '@/navigation/rootNavigation';
 import { OFFICIAL_WEBSITE_URL } from '@/services/siteSettingsService';
 
@@ -233,6 +227,19 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
     setProfileEditVisible,
   } = useSettingsScreen();
   const settingsMenu = useSettingsMenuOptional();
+  const pushSettings = usePushNotificationSettingsOptional();
+  const { canOpenAdminDashboard } = useExpertSettingsAccess();
+
+  const handleOpenAdminDashboard = useCallback(() => {
+    if (canOpenAdminDashboard) {
+      settingsMenu?.closeSettings();
+      requestAnimationFrame(() => {
+        navigateToAdminDashboard();
+      });
+      return;
+    }
+    setAdminPortalVisible(true);
+  }, [canOpenAdminDashboard, settingsMenu, setAdminPortalVisible]);
 
   const navigateToAuth = useCallback(
     (screen: 'Login' | 'SignUp') => {
@@ -302,6 +309,36 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
       </SettingsSection>
 
       <ThemePickerSection />
+
+      {user && pushSettings ? (
+        <SettingsSection title="알림">
+          <SettingsToggleRow
+            icon="heart-outline"
+            label="게시글 알림"
+            subtitle="내 글에 좋아요가 달리면 알려드립니다"
+            value={pushSettings.settings.push_enabled_posts}
+            disabled={pushSettings.settingsLoading}
+            onValueChange={(next) => void pushSettings.patchSettings({ push_enabled_posts: next })}
+          />
+          <SettingsToggleRow
+            icon="chatbubble-ellipses-outline"
+            label="댓글 알림"
+            subtitle="내 글에 댓글이 달리면 알려드립니다"
+            value={pushSettings.settings.push_enabled_comments}
+            disabled={pushSettings.settingsLoading}
+            onValueChange={(next) => void pushSettings.patchSettings({ push_enabled_comments: next })}
+          />
+          <SettingsToggleRow
+            icon="chatbubbles-outline"
+            label="채팅창 알림"
+            subtitle="참여 중인 소통창·채팅방 새 메시지"
+            value={pushSettings.settings.push_enabled_chats}
+            disabled={pushSettings.settingsLoading}
+            onValueChange={(next) => void pushSettings.patchSettings({ push_enabled_chats: next })}
+            showDivider={false}
+          />
+        </SettingsSection>
+      ) : null}
 
       <SettingsSection title="법적 고지">
         <SettingsRow
@@ -374,9 +411,9 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
         />
         <SettingsRow
           icon="key-outline"
-          label="관리자 모드"
-          subtitle="운영 대시보드 · 구급대원 공간"
-          onPress={() => setAdminPortalVisible(true)}
+          label="관리자 대시보드"
+          subtitle="통합 운영 · 콘텐츠 관리"
+          onPress={handleOpenAdminDashboard}
           accent="violet"
           showDivider={false}
         />

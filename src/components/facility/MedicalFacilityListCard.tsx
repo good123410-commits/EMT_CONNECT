@@ -25,7 +25,10 @@ export function MedicalFacilityListCard({
   children,
 }: MedicalFacilityListCardProps) {
   return (
-    <Pressable className={getMedicalListCardClass(variant, selected)} onPress={onPress}>
+    <Pressable
+      className={getMedicalListCardClass(variant, selected)}
+      onPress={onPress}
+    >
       {children}
     </Pressable>
   );

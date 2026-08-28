@@ -68,27 +68,29 @@ export function AdminAppLinksPanel() {
       {loading ? <p className="muted">불러오는 중…</p> : null}
 
       <div className="admin-form-card">
-        <label className="admin-span-full">
-          공식 웹사이트 URL
-          <input
-            className="modal-input"
-            type="url"
-            placeholder="https://example.com"
-            value={officialUrl}
-            onChange={(e) => setOfficialUrl(e.target.value)}
-          />
-        </label>
+        <div className="admin-form-grid">
+          <label>
+            공식 웹사이트 URL
+            <input
+              className="modal-input"
+              type="url"
+              placeholder="https://example.com"
+              value={officialUrl}
+              onChange={(e) => setOfficialUrl(e.target.value)}
+            />
+          </label>
 
-        <label className="admin-span-full" style={{ marginTop: '1rem' }}>
-          후원하기 안내 문구 (앱 모달)
-          <textarea
-            className="modal-input"
-            rows={5}
-            placeholder="후원 목적·이용 안내를 입력하세요."
-            value={donationNotice}
-            onChange={(e) => setDonationNotice(e.target.value)}
-          />
-        </label>
+          <label>
+            후원하기 안내 문구 (앱 모달)
+            <textarea
+              className="modal-textarea admin-textarea--summary"
+              rows={5}
+              placeholder="후원 목적·이용 안내를 입력하세요."
+              value={donationNotice}
+              onChange={(e) => setDonationNotice(e.target.value)}
+            />
+          </label>
+        </div>
 
         <div className="admin-form-actions">
           <button type="button" className="btn btn-primary" disabled={saving} onClick={() => void handleSave()}>

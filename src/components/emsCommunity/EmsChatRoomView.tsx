@@ -1,35 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { ReportContentButton } from '@/components/community/ReportContentButton';
+import { Pressable, Alert, FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { ShortcodeComposerField } from '@/components/content/ShortcodeComposerField';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
-import {
-  LoungeAnonymousBadge,
-  LoungeErrorBanner,
-  LoungeMetaText,
-  LoungeScreen,
-  useLoungeListContentStyle,
-} from '@/components/emsCommunity/loungeUi';
-import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
-import { EMS_LOUNGE_SPACING, useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
+import { ReportContentButton } from '@/components/community/ReportContentButton';
+import { useAppTheme } from '@/contexts/AppThemeContext';
+import { APP_SPACING } from '@/constants/appTheme';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
 import type { ChatMessage } from '@/data/paramedicMockData';
+import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
+import {
+  bootstrapEmsChatRoomParticipation,
+  setActiveEmsChatRoomForNotifications,
+} from '@/contexts/PushNotificationContext';
 import { subscribeEmsChatRoomMessages } from '@/lib/realtimeSubscription';
 import {
   fetchChatRoomMessages,
   formatEmsChatTimestamp,
   type EmsChatRoom,
 } from '@/services/emsChatRoomService';
+import { parseNicknameError } from '@/utils/userNickname';
 
 type EmsChatRoomViewProps = {
   room: EmsChatRoom;
@@ -37,44 +28,44 @@ type EmsChatRoomViewProps = {
 };
 
 function ChatMessageBubble({ message }: { message: ChatMessage }) {
-  const { lounge } = useEmsLoungeTheme();
+  const { colors } = useAppTheme();
 
   return (
     <View className="mb-3 px-1">
       <View className="mb-1 flex-row items-center justify-between">
-        <LoungeAnonymousBadge label={message.anonymousLabel} />
+        <Text className="text-xs font-bold" style={{ color: colors.textPrimary }}>
+          {message.anonymousLabel}
+        </Text>
         <View className="flex-row items-center">
-          <LoungeMetaText>
+          <Text className="mr-2 text-[10px]" style={{ color: colors.metaText }}>
             {formatEmsChatTimestamp(message.createdAt)}
-          </LoungeMetaText>
-          <View className="ml-2">
-            <ReportContentButton
-              contentId={message.id}
-              contentType="chat"
-              preview={message.content}
-              compact
-            />
-          </View>
+          </Text>
+          <ReportContentButton
+            contentId={message.id}
+            contentType="chat"
+            preview={message.content}
+            compact
+          />
         </View>
       </View>
       <View
         className="self-start rounded-2xl rounded-tl-sm px-3 py-2.5"
         style={{
           maxWidth: '92%',
-          backgroundColor: lounge.surface,
+          backgroundColor: colors.surface,
           borderWidth: 1,
-          borderColor: lounge.border,
+          borderColor: colors.borderLight,
         }}
       >
-        <RichContentRenderer content={message.content} tone="lounge" />
+        <RichContentRenderer content={message.content} tone="community" />
       </View>
     </View>
   );
 }
 
 export function EmsChatRoomView({ room, onBack }: EmsChatRoomViewProps) {
-  const { lounge } = useEmsLoungeTheme();
-  const loungeListContentStyle = useLoungeListContentStyle();
+  const { colors } = useAppTheme();
+  const fabBottomInset = useGlobalFabBottomInset();
   const { postChatMessage } = useParamedicCommunity();
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
@@ -99,12 +90,17 @@ export function EmsChatRoomView({ room, onBack }: EmsChatRoomViewProps) {
   useEffect(() => {
     setLoading(true);
     void loadMessages();
+    void bootstrapEmsChatRoomParticipation(room.id);
+    setActiveEmsChatRoomForNotifications(room.id);
 
     const unsubscribe = subscribeEmsChatRoomMessages(room.id, () => {
       void loadMessages();
     });
 
-    return unsubscribe;
+    return () => {
+      setActiveEmsChatRoomForNotifications(null);
+      unsubscribe();
+    };
   }, [room.id, loadMessages]);
 
   useEffect(() => {
@@ -133,10 +129,7 @@ export function EmsChatRoomView({ room, onBack }: EmsChatRoomViewProps) {
       setDraft('');
       await loadMessages();
     } catch (err) {
-      Alert.alert(
-        '전송 실패',
-        err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
-      );
+      Alert.alert('전송 실패', parseNicknameError(err));
     } finally {
       setSending(false);
     }
@@ -150,158 +143,117 @@ export function EmsChatRoomView({ room, onBack }: EmsChatRoomViewProps) {
     .filter(Boolean)
     .join(' · ');
 
+  const composerBottomPadding = Math.max(12, fabBottomInset - 48);
+
   return (
-    <LoungeScreen>
-      <ParamedicHeader />
-
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={100}
+    <KeyboardAvoidingView
+      className="flex-1"
+      style={{ backgroundColor: colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
+      <View
+        className="border-b px-4 py-3"
+        style={{
+          borderBottomColor: colors.borderLight,
+          backgroundColor: colors.surface,
+        }}
       >
-        <View
-          style={{
-            borderBottomWidth: 1,
-            borderBottomColor: lounge.border,
-            backgroundColor: lounge.surface,
-            paddingHorizontal: EMS_LOUNGE_SPACING.screen,
-            paddingVertical: 12,
-          }}
-        >
-          <View className="flex-row items-center">
-            <Pressable className="mr-3 rounded-full p-1 active:opacity-80" onPress={onBack} hitSlop={8}>
-              <Ionicons name="chevron-back" size={24} color={lounge.text} />
-            </Pressable>
-            <View className="flex-1">
-              <Text
-                numberOfLines={1}
-                style={{
-                  fontFamily: 'Pretendard-Bold',
-                  fontSize: 16,
-                  color: lounge.text,
-                }}
-              >
-                {room.roomName}
-              </Text>
-              {headerMeta ? (
-                <Text
-                  className="mt-0.5"
-                  style={{
-                    fontFamily: 'Pretendard',
-                    fontSize: 11,
-                    color: lounge.textMuted,
-                  }}
-                >
-                  {headerMeta}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-          {room.description ? (
-            <Text
-              className="mt-2 pl-9"
-              style={{
-                fontFamily: 'Pretendard',
-                fontSize: 12,
-                color: lounge.textSecondary,
-              }}
-            >
-              {room.description}
+        <View className="flex-row items-center">
+          <Pressable className="mr-3 rounded-full p-1 active:opacity-80" onPress={onBack} hitSlop={8}>
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </Pressable>
+          <View className="flex-1">
+            <Text className="text-base font-bold" numberOfLines={1} style={{ color: colors.textPrimary }}>
+              {room.roomName}
             </Text>
-          ) : null}
-        </View>
-
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          className="flex-1"
-          contentContainerStyle={{
-            ...loungeListContentStyle,
-            flexGrow: 1,
-          }}
-          ListHeaderComponent={error ? <LoungeErrorBanner message={error} /> : null}
-          ListEmptyComponent={
-            loading ? (
-              <View className="flex-1 items-center justify-center py-16">
-                <Text
-                  style={{
-                    fontFamily: 'Pretendard',
-                    fontSize: 14,
-                    color: lounge.textSecondary,
-                  }}
-                >
-                  메시지를 불러오는 중…
-                </Text>
-              </View>
-            ) : (
-              <View className="flex-1 items-center justify-center py-16">
-                <Ionicons name="chatbubbles-outline" size={40} color={lounge.textMuted} />
-                <Text
-                  className="mt-3"
-                  style={{
-                    fontFamily: 'Pretendard',
-                    fontSize: 14,
-                    color: lounge.textSecondary,
-                  }}
-                >
-                  첫 메시지를 남겨 보세요
-                </Text>
-              </View>
-            )
-          }
-          renderItem={({ item }) => <ChatMessageBubble message={item} />}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-        />
-
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderTopColor: lounge.border,
-            backgroundColor: lounge.surface,
-            paddingHorizontal: EMS_LOUNGE_SPACING.screen,
-            paddingTop: 12,
-            paddingBottom: 12,
-          }}
-        >
-          <View className="flex-row items-end gap-2">
-            <TextInput
-              style={{
-                maxHeight: 96,
-                flex: 1,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: lounge.border,
-                backgroundColor: lounge.background,
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                fontFamily: 'Pretendard',
-                fontSize: 14,
-                color: lounge.text,
-              }}
-              placeholder="메시지 입력 (개인정보·비방 금지)"
-              placeholderTextColor={lounge.textMuted}
-              value={draft}
-              onChangeText={setDraft}
-              multiline
-              editable={!sending}
-            />
-            <Pressable
-              className="active:opacity-90"
-              style={{
-                borderRadius: 14,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                backgroundColor: sending ? lounge.surfaceElevated : lounge.accent,
-              }}
-              disabled={sending}
-              onPress={() => void handleSend()}
-            >
-              <Ionicons name="send" size={18} color="#fff" />
-            </Pressable>
+            {headerMeta ? (
+              <Text className="mt-0.5 text-[11px]" style={{ color: colors.metaText }}>
+                {headerMeta}
+              </Text>
+            ) : null}
           </View>
         </View>
-      </KeyboardAvoidingView>
-    </LoungeScreen>
+        {room.description ? (
+          <Text className="mt-2 pl-9 text-xs" style={{ color: colors.textSecondary }}>
+            {room.description}
+          </Text>
+        ) : null}
+      </View>
+
+      <FlatList
+        ref={listRef}
+        data={messages}
+        keyExtractor={(item) => item.id}
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: APP_SPACING.contentHorizontal,
+          paddingTop: 12,
+          paddingBottom: 12,
+          flexGrow: 1,
+        }}
+        ListHeaderComponent={
+          error ? (
+            <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3">
+              <Text className="text-sm text-red-700">{error}</Text>
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          loading ? (
+            <View className="flex-1 items-center justify-center py-16">
+              <Text className="text-sm" style={{ color: colors.textSecondary }}>
+                메시지를 불러오는 중…
+              </Text>
+            </View>
+          ) : (
+            <View className="flex-1 items-center justify-center py-16">
+              <Ionicons name="chatbubbles-outline" size={40} color={colors.textMuted} />
+              <Text className="mt-3 text-sm" style={{ color: colors.textSecondary }}>
+                첫 메시지를 남겨 보세요
+              </Text>
+            </View>
+          )
+        }
+        renderItem={({ item }) => <ChatMessageBubble message={item} />}
+        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+      />
+
+      <View
+        className="border-t px-4 pt-3"
+        style={{
+          borderTopColor: colors.borderLight,
+          backgroundColor: colors.surface,
+          paddingBottom: composerBottomPadding,
+        }}
+      >
+        <View className="flex-row items-end gap-2">
+          <ShortcodeComposerField
+            value={draft}
+            onChangeText={setDraft}
+            inputProps={{
+              className: 'max-h-24 flex-1 rounded-2xl border px-3 py-2.5 text-sm',
+              style: {
+                borderColor: colors.border,
+                backgroundColor: colors.background,
+                color: colors.textPrimary,
+              },
+              placeholder: '메시지 입력 (개인정보·비방 금지)',
+              placeholderTextColor: colors.textMuted,
+              multiline: true,
+              editable: !sending,
+            }}
+          />
+          <Pressable
+            className="rounded-xl px-4 py-3 active:opacity-90"
+            style={{ backgroundColor: sending ? colors.border : colors.blue }}
+            disabled={sending}
+            onPress={() => void handleSend()}
+          >
+            <Ionicons name="send" size={18} color="#fff" />
+          </Pressable>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }

@@ -1,0 +1,42 @@
+name: Sync Disaster Ticker
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Dry-run disaster ticker APIs
+        env:
+          SAFETYDATA_SERVICE_KEY_WEATHER: ${{ secrets.SAFETYDATA_SERVICE_KEY_WEATHER }}
+          SAFETYDATA_SERVICE_KEY_FOREST: ${{ secrets.SAFETYDATA_SERVICE_KEY_FOREST }}
+          SAFETYDATA_SERVICE_KEY_DISASTER: ${{ secrets.SAFETYDATA_SERVICE_KEY_DISASTER }}
+          SAFETYDATA_SERVICE_KEY: ${{ secrets.SAFETYDATA_SERVICE_KEY }}
+        run: node scripts/sync-disaster-ticker.mjs --dry-run
+
+      - name: Sync disaster ticker cache to Supabase
+        env:
+          SAFETYDATA_SERVICE_KEY_WEATHER: ${{ secrets.SAFETYDATA_SERVICE_KEY_WEATHER }}
+          SAFETYDATA_SERVICE_KEY_FOREST: ${{ secrets.SAFETYDATA_SERVICE_KEY_FOREST }}
+          SAFETYDATA_SERVICE_KEY_DISASTER: ${{ secrets.SAFETYDATA_SERVICE_KEY_DISASTER }}
+          SAFETYDATA_SERVICE_KEY: ${{ secrets.SAFETYDATA_SERVICE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/sync-disaster-ticker.mjs

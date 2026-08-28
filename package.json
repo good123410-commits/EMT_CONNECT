@@ -26,6 +26,7 @@
     "expo-image-picker": "~17.0.11",
     "expo-linking": "~8.0.12",
     "expo-location": "~19.0.8",
+    "expo-notifications": "^0.32.17",
     "expo-screen-orientation": "~9.0.9",
     "expo-status-bar": "~3.0.9",
     "expo-updates": "~29.0.19",
@@ -62,7 +63,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "postinstall": "node scripts/patch-css-interop.mjs",
+    "postinstall": "node scripts/patch-css-interop.mjs && node scripts/patch-expo-cli-cache.mjs",
     "start": "expo start",
     "start:offline": "expo start --offline",
     "android": "expo run:android",
@@ -70,6 +71,8 @@
     "web": "expo start --web",
     "build:facility-data": "node scripts/convert-facility-xlsx.mjs",
     "sync:pharmacies": "node scripts/sync-midnight-pharmacies.mjs",
+    "sync:disaster-ticker": "node scripts/sync-disaster-ticker.mjs",
+    "sync:disaster-ticker:check": "node scripts/sync-disaster-ticker.mjs --check",
     "build:medical-data": "node scripts/process_medical_data.mjs",
     "generate:icons": "node scripts/generate-app-icons.mjs",
     "build:android:preview": "npx --yes eas-cli build -p android --profile preview",

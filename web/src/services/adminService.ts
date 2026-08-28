@@ -561,6 +561,74 @@ export async function adminDeleteHomeEventBanner(id: string) {
   if (error) rpcError(error);
 }
 
+// ── Home emergency ticker notices (app home LED bar) ──
+const HOME_EMERGENCY_NOTICES_TABLE = 'kemix_home_emergency_notices';
+
+export type HomeEmergencyNoticeRow = {
+  id: string;
+  message: string;
+  is_active: boolean;
+  sort_order: number;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function adminListHomeEmergencyNotices(): Promise<HomeEmergencyNoticeRow[]> {
+  const { data, error } = await supabase
+    .from(HOME_EMERGENCY_NOTICES_TABLE)
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false });
+  if (error) rpcError(error);
+  return (data ?? []) as HomeEmergencyNoticeRow[];
+}
+
+export type UpsertHomeEmergencyNoticeInput = {
+  id?: string;
+  message: string;
+  is_active: boolean;
+  sort_order: number;
+  expires_at?: string | null;
+};
+
+export async function adminUpsertHomeEmergencyNotice(input: UpsertHomeEmergencyNoticeInput) {
+  const payload = {
+    message: input.message.trim(),
+    is_active: input.is_active,
+    sort_order: input.sort_order,
+    expires_at: input.expires_at ?? null,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (input.id) {
+    const { data, error } = await supabase
+      .from(HOME_EMERGENCY_NOTICES_TABLE)
+      .update(payload)
+      .eq('id', input.id)
+      .select('*')
+      .single();
+    if (error) rpcError(error);
+    return data as HomeEmergencyNoticeRow;
+  }
+
+  const { data, error } = await supabase
+    .from(HOME_EMERGENCY_NOTICES_TABLE)
+    .insert({
+      ...payload,
+      created_at: new Date().toISOString(),
+    })
+    .select('*')
+    .single();
+  if (error) rpcError(error);
+  return data as HomeEmergencyNoticeRow;
+}
+
+export async function adminDeleteHomeEmergencyNotice(id: string) {
+  const { error } = await supabase.from(HOME_EMERGENCY_NOTICES_TABLE).delete().eq('id', id);
+  if (error) rpcError(error);
+}
+
 // ── About pages ──
 export async function adminListAboutPages(): Promise<import('../types').KemixAboutPage[]> {
   const { data, error } = await supabase.rpc('admin_list_about_pages');

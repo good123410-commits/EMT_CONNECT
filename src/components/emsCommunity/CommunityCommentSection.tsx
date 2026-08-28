@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import { CommunityCommentEmpty, CommunityCommentRow } from '@/components/emsCommunity/CommunityCommentRow';
 import {
   LoungeInput,
   LoungePrimaryButton,
 } from '@/components/emsCommunity/loungeUi';
 import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCommunityModerator } from '@/hooks/useCommunityModerator';
 import { usePostComments } from '@/hooks/usePostComments';
 import { parseCommunityError } from '@/services/communityService';
 import type { CommunityComment } from '@/types/community';
+import { parseNicknameError, requireUserNickname } from '@/utils/userNickname';
 
 export type CommunityCommentSectionProps = {
   postId: string | null;
@@ -16,6 +20,7 @@ export type CommunityCommentSectionProps = {
   disabledMessage?: string;
   canWrite?: boolean;
   writeDeniedMessage?: string;
+  /** @deprecated 서비스에서 로그인 사용자 별명을 자동 사용합니다 */
   authorLabel?: string;
   sectionLabel?: string;
   emptyMessage?: string;
@@ -26,6 +31,8 @@ export type CommunityCommentSectionProps = {
   comments?: CommunityComment[];
   loading?: boolean;
   onSubmitComment?: (content: string) => Promise<void>;
+  onEditComment?: (commentId: string, content: string) => Promise<void>;
+  onDeleteComment?: (commentId: string) => Promise<void>;
   submitting?: boolean;
 };
 
@@ -39,7 +46,7 @@ export function CommunityCommentSection({
   disabledMessage = '이 콘텐츠에는 댓글을 달 수 없습니다.',
   canWrite = true,
   writeDeniedMessage = '댓글을 작성하려면 로그인이 필요합니다.',
-  authorLabel = '회원',
+  authorLabel: _legacyAuthorLabel,
   sectionLabel = '댓글',
   emptyMessage,
   placeholder = '댓글을 입력해 주세요',
@@ -48,15 +55,21 @@ export function CommunityCommentSection({
   comments: externalComments,
   loading: externalLoading,
   onSubmitComment,
+  onEditComment,
+  onDeleteComment,
   submitting: externalSubmitting,
 }: CommunityCommentSectionProps) {
   const { lounge } = useEmsLoungeTheme();
+  const { user, profile } = useAuth();
+  const isModerator = useCommunityModerator();
   const [draft, setDraft] = useState('');
   const internal = usePostComments(enabled ? postId : null);
 
   const comments = externalComments ?? internal.comments;
   const loading = externalLoading ?? internal.loading;
   const submitting = externalSubmitting ?? internal.submitting;
+  const handleEditComment = onEditComment ?? internal.editComment;
+  const handleDeleteComment = onDeleteComment ?? internal.deleteComment;
 
   const handleSubmit = async () => {
     if (!canWrite) {
@@ -71,17 +84,21 @@ export function CommunityCommentSection({
     }
 
     try {
+      const nickname =
+        _legacyAuthorLabel?.trim() || requireUserNickname({ profile, user });
+
       if (onSubmitComment) {
         await onSubmitComment(trimmed);
       } else {
-        await internal.submitComment(trimmed, authorLabel);
+        await internal.submitComment(trimmed, nickname);
       }
       setDraft('');
       Alert.alert('등록 완료', `${sectionLabel}이 등록되었습니다.`);
     } catch (err) {
       Alert.alert(
         '등록 실패',
-        parseCommunityError(err instanceof Error ? err.message : '다시 시도해 주세요.'),
+        parseNicknameError(err) ||
+          parseCommunityError(err instanceof Error ? err.message : '다시 시도해 주세요.'),
       );
     }
   };
@@ -137,7 +154,16 @@ export function CommunityCommentSection({
       {loading ? <ActivityIndicator color={variant === 'lounge' ? lounge.accent : '#15803d'} /> : null}
 
       {comments.map((comment) => (
-        <CommunityCommentRow key={comment.id} comment={comment} variant={variant} />
+        <CommunityCommentRow
+          key={comment.id}
+          comment={comment}
+          variant={variant}
+          currentUserId={user?.id}
+          isModerator={isModerator}
+          saving={submitting}
+          onSaveEdit={enabled ? handleEditComment : undefined}
+          onDelete={enabled ? handleDeleteComment : undefined}
+        />
       ))}
 
       {!loading && comments.length === 0 ? (
@@ -187,7 +213,7 @@ export function CommunityCommentSection({
         ) : (
           <View className="mt-4 rounded-2xl border border-green-200 bg-kemix-surface p-4">
             <Text className="mb-2 text-sm font-bold text-green-800">{sectionLabel} 작성</Text>
-            <TextInput
+            <ShortcodeTextInput
               className="min-h-[100px] rounded-xl border border-kemix-border bg-kemix-bg px-3 py-3 text-sm"
               placeholder={placeholder}
               value={draft}

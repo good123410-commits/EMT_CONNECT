@@ -1,11 +1,5 @@
 ﻿import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Modal, Text, View } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { openAuthScreen } from '@/navigation/rootNavigation';
 import { getOAuthLinkErrorMessage } from '@/services/authService';

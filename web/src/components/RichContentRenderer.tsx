@@ -71,6 +71,15 @@ export function RichContentRenderer({
           return <ShortcodeAdBanner key={`banner-${index}`} bannerId={segment.bannerId} />;
         }
 
+        if (segment.type === 'template') {
+          return (
+            <div key={`template-${index}`} className="shortcode-template-block">
+              {segment.title ? <p className="shortcode-template-title">{segment.title}</p> : null}
+              <RichTextSegment value={segment.body} variant={variant} />
+            </div>
+          );
+        }
+
         return (
           <Fragment key={`text-${index}`}>
             <RichTextSegment value={segment.value} variant={variant} />

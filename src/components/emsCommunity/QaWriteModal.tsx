@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Switch, Text, View } from 'react-native';
 import {
   EmsCommunityWriteModal,
   WriteFormField,
@@ -7,10 +7,19 @@ import {
   isWriteFormValid,
 } from '@/components/emsCommunity/EmsCommunityWriteModal';
 import { LoungeInput } from '@/components/emsCommunity/loungeUi';
+import { useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 
 export type QaWriteInput = {
   title: string;
   content: string;
+  isSecret: boolean;
+};
+
+export type QaEditingPost = {
+  id: string;
+  title: string;
+  content: string;
+  isSecret: boolean;
 };
 
 const TITLE_MIN = 2;
@@ -20,12 +29,16 @@ type QaWriteModalProps = {
   visible: boolean;
   onClose: () => void;
   onSave: (input: QaWriteInput) => Promise<void>;
+  editingPost?: QaEditingPost | null;
 };
 
-/** 질문함 탭 전용 작성 모달 — 저장·리스트 갱신은 부모 `onSave`에서 처리 */
-export function QaWriteModal({ visible, onClose, onSave }: QaWriteModalProps) {
+/** 질문함 탭 전용 작성/수정 모달 */
+export function QaWriteModal({ visible, onClose, onSave, editingPost }: QaWriteModalProps) {
+  const { lounge } = useEmsLoungeTheme();
+  const isEditing = Boolean(editingPost?.id);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isSecret, setIsSecret] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const validationRules = useMemo(
@@ -41,14 +54,23 @@ export function QaWriteModal({ visible, onClose, onSave }: QaWriteModalProps) {
   const resetForm = () => {
     setTitle('');
     setContent('');
+    setIsSecret(false);
     setSubmitting(false);
   };
 
   useEffect(() => {
     if (!visible) {
       resetForm();
+      return;
     }
-  }, [visible]);
+    if (editingPost) {
+      setTitle(editingPost.title);
+      setContent(editingPost.content);
+      setIsSecret(editingPost.isSecret);
+      return;
+    }
+    resetForm();
+  }, [visible, editingPost]);
 
   const handleClose = () => {
     if (submitting) return;
@@ -63,18 +85,19 @@ export function QaWriteModal({ visible, onClose, onSave }: QaWriteModalProps) {
       return;
     }
 
-    const trimmedTitle = title.trim();
-    const trimmedContent = content.trim();
-
     setSubmitting(true);
     try {
-      await onSave({ title: trimmedTitle, content: trimmedContent });
+      await onSave({
+        title: title.trim(),
+        content: content.trim(),
+        isSecret,
+      });
       resetForm();
       onClose();
-      Alert.alert('등록 완료', '질문이 등록되었습니다.');
+      Alert.alert('완료', isEditing ? '질문이 수정되었습니다.' : '질문이 등록되었습니다.');
     } catch (err) {
       Alert.alert(
-        '등록 실패',
+        isEditing ? '수정 실패' : '등록 실패',
         err instanceof Error ? err.message : '다시 시도해 주세요.',
       );
     } finally {
@@ -85,8 +108,8 @@ export function QaWriteModal({ visible, onClose, onSave }: QaWriteModalProps) {
   return (
     <EmsCommunityWriteModal
       visible={visible}
-      title="질문 작성"
-      submitLabel="질문 등록"
+      title={isEditing ? '질문 수정' : '질문 작성'}
+      submitLabel={isEditing ? '수정 저장' : '질문 등록'}
       submitting={submitting}
       submitReady={submitReady}
       onClose={handleClose}
@@ -105,6 +128,23 @@ export function QaWriteModal({ visible, onClose, onSave }: QaWriteModalProps) {
           minHeight={160}
         />
       </WriteFormField>
+
+      <View className="mb-2 flex-row items-center justify-between rounded-xl border px-4 py-3" style={{ borderColor: lounge.border, backgroundColor: lounge.background }}>
+        <View className="flex-1 pr-3">
+          <Text style={{ fontFamily: 'Pretendard-SemiBold', fontSize: 14, color: lounge.text }}>
+            비밀글로 작성
+          </Text>
+          <Text style={{ marginTop: 2, fontFamily: 'Pretendard', fontSize: 12, color: lounge.textMuted }}>
+            작성자와 관리자만 내용을 볼 수 있습니다
+          </Text>
+        </View>
+        <Switch
+          value={isSecret}
+          onValueChange={setIsSecret}
+          trackColor={{ false: lounge.border, true: lounge.accentMuted }}
+          thumbColor={isSecret ? lounge.accent : lounge.textMuted}
+        />
+      </View>
     </EmsCommunityWriteModal>
   );
 }

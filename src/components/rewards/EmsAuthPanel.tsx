@@ -1,15 +1,7 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, Image, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   fetchLatestVerification,

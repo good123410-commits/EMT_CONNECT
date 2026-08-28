@@ -85,7 +85,7 @@ export function AdminSchedulesPanel() {
       <div className="admin-form-card">
         <h3>{editingId ? '일정 수정' : '새 일정 등록'}</h3>
         <div className="admin-form-grid">
-          <label className="admin-span-2">
+          <label className="admin-span-full">
             일정 제목
             <input className="modal-input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </label>
@@ -101,9 +101,14 @@ export function AdminSchedulesPanel() {
             장소
             <input className="modal-input" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           </label>
-          <label className="admin-span-2">
+          <label className="admin-span-full">
             상세 설명
-            <textarea className="modal-textarea" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <textarea
+              className="modal-textarea admin-textarea--summary"
+              rows={6}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
           </label>
           <label>
             태그 색상

@@ -52,6 +52,8 @@ export function HospitalTabNavigator() {
         name="Map"
         component={MapScreen}
         options={{
+          unmountOnBlur: true,
+          freezeOnBlur: true,
           tabBarLabel: '지도',
           tabBarIcon: ({ color }) => <TabBarIcon name="map-outline" color={color} />,
         }}

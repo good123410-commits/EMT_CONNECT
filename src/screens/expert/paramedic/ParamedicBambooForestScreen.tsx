@@ -1,15 +1,7 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, Alert, FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useParamedicCommunity } from '@/contexts/ParamedicCommunityContext';
@@ -132,7 +124,7 @@ export function ParamedicBambooForestScreen() {
         {composing ? (
           <View className="border-b border-green-200 bg-kemix-surface p-4">
             <Text className="mb-2 text-xs font-semibold text-kemix-text-secondary">익명 게시 · 신원 비공개</Text>
-            <TextInput
+            <ShortcodeTextInput
               className="min-h-[100px] rounded-xl border border-green-200 bg-green-50/50 px-3 py-2 text-sm"
               placeholder="병원 ER 상황, 현장 후기, 장비 팁 등을 자유롭게..."
               value={content}

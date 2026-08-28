@@ -1,6 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, Alert, Text, useWindowDimensions, View } from 'react-native';
 import { AdminAmbulancePanel } from '@/components/admin/panels/AdminAmbulancePanel';
 import { AdminHospitalsPanel } from '@/components/admin/panels/AdminHospitalsPanel';
 import { AdminApprovalPanel } from '@/components/admin/panels/AdminApprovalPanel';
@@ -8,6 +8,8 @@ import { AdminAuthPanel } from '@/components/admin/panels/AdminAuthPanel';
 import { AdminChatRoomsPanel } from '@/components/admin/panels/AdminChatRoomsPanel';
 import { AdminCommunityModerationPanel } from '@/components/admin/panels/AdminCommunityModerationPanel';
 import { AdminContentPanel } from '@/components/admin/panels/AdminContentPanel';
+import { AdminDonationPanel } from '@/components/admin/panels/AdminDonationPanel';
+import { AdminShortcodesPanel } from '@/components/admin/panels/AdminShortcodesPanel';
 import { AdminHomeDashboardPanel } from '@/components/admin/panels/AdminHomeDashboardPanel';
 import { AdminUsersPanel } from '@/components/admin/panels/AdminUsersPanel';
 import { AdminDashboardGuard } from '@/components/guards/AdminDashboardGuard';
@@ -33,6 +35,8 @@ const ALL_TABS: Array<{
   { id: 'chat', label: '채팅방', icon: 'chatbubbles-outline', requiresDbAdmin: true },
   { id: 'ambulance', label: '구급차', icon: 'bus-outline', requiresDbAdmin: true },
   { id: 'hospitals', label: '병원', icon: 'medical-outline', requiresDbAdmin: true },
+  { id: 'donations', label: '후원 계좌', icon: 'cafe-outline', requiresDbAdmin: true },
+  { id: 'shortcodes', label: '숏코드', icon: 'code-slash-outline', requiresDbAdmin: true },
 ];
 
 function RestrictedPanel({ tabLabel }: { tabLabel: string }) {
@@ -104,6 +108,10 @@ function AdminDashboardContent() {
         return <AdminAmbulancePanel />;
       case 'hospitals':
         return <AdminHospitalsPanel />;
+      case 'donations':
+        return <AdminDonationPanel />;
+      case 'shortcodes':
+        return <AdminShortcodesPanel />;
       default:
         return null;
     }

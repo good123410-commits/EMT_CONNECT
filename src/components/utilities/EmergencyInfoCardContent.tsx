@@ -3,7 +3,7 @@
 export function EmergencyInfoCardContent() { return null; }
 
 /*
-﻿import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 import { EmergencyPublicCard } from '@/components/utilities/EmergencyPublicCard';
 import { EmergencyQrCard } from '@/components/utilities/EmergencyQrCard';

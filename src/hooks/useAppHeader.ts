@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAppHeaderContext, type AppHeaderOverride } from '@/contexts/AppHeaderContext';
 
 /**
@@ -6,9 +6,26 @@ import { useAppHeaderContext, type AppHeaderOverride } from '@/contexts/AppHeade
  */
 export function useAppHeader(override: AppHeaderOverride | null): void {
   const { setOverride } = useAppHeaderContext();
+  const onBackRef = useRef(override?.onBack);
+  onBackRef.current = override?.onBack;
+
+  const hasOverride = override != null;
+  const title = override?.title;
+  const hidden = override?.hidden;
+  const showBack = override?.showBack;
 
   useEffect(() => {
-    setOverride(override);
+    if (!hasOverride) {
+      setOverride(null);
+      return () => setOverride(null);
+    }
+
+    setOverride({
+      title,
+      hidden,
+      showBack,
+      onBack: () => onBackRef.current?.(),
+    });
     return () => setOverride(null);
-  }, [override, setOverride]);
+  }, [hasOverride, title, hidden, showBack, setOverride]);
 }

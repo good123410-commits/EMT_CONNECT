@@ -76,7 +76,7 @@ export function AboutItemFormModal({
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
       <div
-        className="modal-dialog modal-dialog--wide"
+        className="modal-dialog modal-dialog--admin"
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
@@ -90,7 +90,7 @@ export function AboutItemFormModal({
         <h2 className="modal-title">항목 {initial.title ? '수정' : '추가'}</h2>
         <p className="modal-desc">{meta.label} 개별 카드 항목을 작성합니다.</p>
 
-        <div className="poll-form">
+        <div className="admin-modal-form">
           <label className="modal-label">
             {meta.badgeLabel}
             <input
@@ -98,27 +98,6 @@ export function AboutItemFormModal({
               value={form.badge_label}
               onChange={(e) => setForm((p) => ({ ...p, badge_label: e.target.value }))}
               placeholder={meta.badgePlaceholder}
-            />
-          </label>
-
-          <label className="modal-label">
-            제목
-            <input
-              className="modal-input"
-              value={form.title}
-              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              placeholder="카드에 표시될 제목"
-            />
-          </label>
-
-          <label className="modal-label">
-            요약 (카드 미리보기)
-            <textarea
-              className="modal-input poll-form-textarea"
-              rows={3}
-              value={form.summary}
-              onChange={(e) => setForm((p) => ({ ...p, summary: e.target.value }))}
-              placeholder="카드에 노출될 짧은 설명"
             />
           </label>
 
@@ -132,7 +111,28 @@ export function AboutItemFormModal({
             />
           </label>
 
-          <label className="admin-checkbox poll-form-checkbox">
+          <label className="modal-label admin-modal-span-full">
+            제목
+            <input
+              className="modal-input"
+              value={form.title}
+              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+              placeholder="카드에 표시될 제목"
+            />
+          </label>
+
+          <label className="modal-label admin-modal-span-full">
+            요약 (카드 미리보기)
+            <textarea
+              className="modal-input poll-form-textarea"
+              rows={4}
+              value={form.summary}
+              onChange={(e) => setForm((p) => ({ ...p, summary: e.target.value }))}
+              placeholder="카드에 노출될 짧은 설명"
+            />
+          </label>
+
+          <label className="admin-checkbox poll-form-checkbox admin-modal-span-full">
             <input
               type="checkbox"
               checked={form.is_published}
@@ -141,19 +141,20 @@ export function AboutItemFormModal({
             공개
           </label>
 
-          <div>
+          <div className="admin-modal-span-full">
             <span className="image-upload-label">상세 내용</span>
             <RichTextEditor
               value={form.content}
               onChange={(content) => setForm((p) => ({ ...p, content }))}
               imageFolder="about"
               variant="article"
-              minHeight={220}
+              admin
+              minHeight={420}
               onUploadError={onUploadError}
             />
           </div>
 
-          <div className="admin-form-actions">
+          <div className="modal-footer-actions admin-modal-span-full">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>
               취소
             </button>

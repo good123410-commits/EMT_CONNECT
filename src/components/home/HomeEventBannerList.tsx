@@ -1,16 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  Pressable,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, FlatList, Image, type NativeScrollEvent, type NativeSyntheticEvent, Text, useWindowDimensions, View } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { APP_FONT, APP_RADIUS } from '@/constants/appTheme';
 import { useThemedColors } from '@/hooks/useThemedColors';
@@ -18,6 +8,8 @@ import type { HomeBanner } from '@/types/homeDashboard';
 
 type HomeEventBannerListProps = {
   banners: HomeBanner[];
+  /** HomeEventBannerSection 내부에서 사용 시 여백·빈 상태 처리 생략 */
+  embedded?: boolean;
 };
 
 /** 배너 최소 높이 — 기존 124pt 대비 약 1.6배 */
@@ -26,7 +18,7 @@ const BANNER_MIN_HEIGHT = 200;
 const BANNER_HEIGHT_RATIO = 0.52;
 const BANNER_GAP = 10;
 const HORIZONTAL_INSET = 16;
-const BANNER_BOTTOM_SPACING = 24;
+const BANNER_BOTTOM_SPACING = 20;
 
 function resolveBannerHeight(cardWidth: number): number {
   return Math.max(BANNER_MIN_HEIGHT, Math.round(cardWidth * BANNER_HEIGHT_RATIO));
@@ -234,7 +226,7 @@ function BannerSlide({
 /**
  * 홈 이벤트/공지 배너 — 가로 스와이프 캐러셀
  */
-export function HomeEventBannerList({ banners }: HomeEventBannerListProps) {
+export function HomeEventBannerList({ banners, embedded = false }: HomeEventBannerListProps) {
   const { width: screenWidth } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<HomeBanner>>(null);
@@ -259,7 +251,13 @@ export function HomeEventBannerList({ banners }: HomeEventBannerListProps) {
   const showPagination = banners.length > 1;
 
   return (
-    <View style={{ marginBottom: BANNER_BOTTOM_SPACING, marginHorizontal: -HORIZONTAL_INSET }}>
+    <View
+      style={
+        embedded
+          ? { marginHorizontal: -HORIZONTAL_INSET }
+          : { marginBottom: BANNER_BOTTOM_SPACING, marginHorizontal: -HORIZONTAL_INSET }
+      }
+    >
       <View style={{ height: bannerHeight }}>
         <FlatList
           ref={listRef}

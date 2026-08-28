@@ -52,6 +52,7 @@ export function SegmentControl<T extends string>({
               active ? APP_SHADOW.cardSoft : undefined,
             ]}
             onPress={() => onChange(option.value)}
+
           >
             <Text
               className="text-center text-sm"

@@ -30,6 +30,7 @@ function mapLegacyProfile(row: Record<string, unknown>): UserProfile {
     email: typeof row.email === 'string' ? row.email : null,
     role: mapLegacyRole(typeof row.role === 'string' ? row.role : null),
     name: typeof row.name === 'string' ? row.name : null,
+    nickname: typeof row.nickname === 'string' ? row.nickname : null,
     company_name: typeof row.company_name === 'string' ? row.company_name : null,
     invitation_code:
       typeof row.invitation_code === 'string'

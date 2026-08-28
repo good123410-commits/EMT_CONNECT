@@ -8,9 +8,55 @@ import {
 } from '@/constants/navigationHeader';
 import { useAppTheme } from '@/contexts/AppThemeContext';
 import { useAppNavigationHeaderState } from '@/hooks/useAppNavigationHeader';
+import { navigateHomeFromHeader } from '@/navigation/goHome';
 import { navigationRef } from '@/navigation/navigationRef';
 
 const SIDE_CLUSTER_WIDTH = 96;
+
+type KonBrandButtonProps = {
+  compact?: boolean;
+  onPress: () => void;
+  brandColor: string;
+  brandTextColor: string;
+  pressedColor: string;
+};
+
+function KonBrandButton({
+  compact = false,
+  onPress,
+  brandColor,
+  brandTextColor,
+  pressedColor,
+}: KonBrandButtonProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="홈으로 이동"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.brandCluster,
+        compact && styles.brandClusterCompact,
+        pressed && { backgroundColor: pressedColor, borderRadius: 10 },
+      ]}
+      hitSlop={4}
+    >
+      <View
+        style={[
+          styles.logoMark,
+          compact && styles.logoMarkCompact,
+          { backgroundColor: brandColor },
+        ]}
+      >
+        <AppIcon name="medical-bag" size={compact ? 14 : 16} color="#FFFFFF" />
+      </View>
+      {!compact ? (
+        <Text style={[styles.brandText, { color: brandTextColor }]} numberOfLines={1}>
+          {APP_HEADER_BRAND_NAME}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
 
 export function AppNavigationHeader() {
   const insets = useSafeAreaInsets();
@@ -31,6 +77,10 @@ export function AppNavigationHeader() {
     }
   };
 
+  const handleKonPress = () => {
+    navigateHomeFromHeader();
+  };
+
   return (
     <View
       style={[
@@ -43,7 +93,7 @@ export function AppNavigationHeader() {
       ]}
     >
       <View style={styles.row}>
-        <View style={styles.leftCluster}>
+        <View style={[styles.leftCluster, showBack && styles.leftClusterWithBack]}>
           {showBack ? (
             <Pressable
               accessibilityRole="button"
@@ -57,16 +107,14 @@ export function AppNavigationHeader() {
             >
               <AppIcon name="chevron-left" size={24} color={navHeader.icon} />
             </Pressable>
-          ) : (
-            <View style={styles.brandCluster}>
-              <View style={[styles.logoMark, { backgroundColor: navHeader.brand }]}>
-                <AppIcon name="medical-bag" size={16} color="#FFFFFF" />
-              </View>
-              <Text style={[styles.brandText, { color: navHeader.brandText }]} numberOfLines={1}>
-                {APP_HEADER_BRAND_NAME}
-              </Text>
-            </View>
-          )}
+          ) : null}
+          <KonBrandButton
+            compact={showBack}
+            onPress={handleKonPress}
+            brandColor={navHeader.brand}
+            brandTextColor={navHeader.brandText}
+            pressedColor={navHeader.pressed}
+          />
         </View>
 
         <Text style={[styles.title, { color: navHeader.title }]} numberOfLines={1}>
@@ -102,11 +150,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  leftClusterWithBack: {
+    width: undefined,
+    flexShrink: 0,
+    maxWidth: 120,
+    gap: 2,
+  },
   brandCluster: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     flexShrink: 1,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
+  },
+  brandClusterCompact: {
+    gap: 0,
+    paddingHorizontal: 0,
   },
   logoMark: {
     width: 28,
@@ -114,6 +174,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logoMarkCompact: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
   },
   brandText: {
     fontFamily: 'Pretendard-Bold',

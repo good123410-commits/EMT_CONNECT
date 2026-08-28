@@ -1,15 +1,11 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { useCallback } from 'react';
+import { Pressable, Modal, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmsAuthPanel } from '@/components/rewards/EmsAuthPanel';
 import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettingsMenuOptional } from '@/contexts/SettingsMenuContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
 import { navigateToMainTab } from '@/navigation/mainTabNavigation';
 import { resolveEmsAuthStatus } from '@/utils/emsAuthStatus';
@@ -21,13 +17,17 @@ type Props = {
 
 export function SettingsParamedicPortalModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const settingsMenu = useSettingsMenuOptional();
   const { user, profile, refreshProfile } = useAuth();
   const { canAccessParamedicChannel } = useUserRole();
 
-  const handleOpenCommunity = () => {
+  const handleOpenCommunity = useCallback(() => {
     onClose();
-    navigateToMainTab('Paramedic');
-  };
+    settingsMenu?.closeSettings();
+    requestAnimationFrame(() => {
+      navigateToMainTab('Paramedic');
+    });
+  }, [onClose, settingsMenu]);
 
   const showVerifiedPortal =
     canAccessParamedicChannel ||

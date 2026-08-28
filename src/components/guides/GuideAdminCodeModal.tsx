@@ -1,13 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, Alert, Modal, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserRole } from '@/contexts/UserRoleContext';
 

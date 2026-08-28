@@ -1,37 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, Switch, Text, View } from 'react-native';
+import { CommunityAuthorActions } from '@/components/emsCommunity/CommunityAuthorActions';
 import { ReportContentButton } from '@/components/community/ReportContentButton';
 import { CommunityListPagination } from '@/components/emsCommunity/CommunityListPagination';
 import { CommunityBestSection } from '@/components/emsCommunity/CommunityBestSection';
 import { CommunityCommentSection } from '@/components/emsCommunity/CommunityCommentSection';
+import { CommunityListScrollHeader } from '@/components/emsCommunity/CommunityListScrollHeader';
 import { CommunityPostDetailLayout } from '@/components/emsCommunity/CommunityPostDetailLayout';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import {
   LoungeActionRow,
   LoungeCard,
-  LoungeErrorBanner,
-  LoungeFilterPill,
-  LoungeFilterRow,
+  LoungeFab,
   LoungeInput,
   LoungeMetaText,
   LoungePrimaryButton,
   LoungeScreen,
   LoungeTitle,
-  LoungeTopSection,
-  LoungeWriteBar,
   useLoungeListContentStyle,
 } from '@/components/emsCommunity/loungeUi';
 import { ParamedicHeader } from '@/components/expert/ParamedicHeader';
@@ -43,6 +29,12 @@ import { useCommunityListScrollToTop } from '@/hooks/useCommunityListScrollToTop
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import { usePaginatedEmsPosts } from '@/hooks/usePaginatedEmsPosts';
 import { mapRowToJobPost } from '@/services/emsCommunityService';
+import {
+  deleteCommunityPostByAuthor,
+  updateCommunityPostByAuthor,
+} from '@/services/communityAuthorService';
+import { confirmDestructiveAction } from '@/utils/confirmDestructiveAction';
+import { isPostAuthor } from '@/utils/communityPostAccess';
 
 type JobWriteMode = 'choose' | 'seek' | 'hire';
 
@@ -143,14 +135,12 @@ function FieldLabel({ children }: { children: string }) {
 
 export function ParamedicJobsScreen() {
   const { lounge } = useEmsLoungeTheme();
-  const loungeListContentStyle = useLoungeListContentStyle();
+  const loungeListContentStyle = useLoungeListContentStyle(12, true);
   const { user } = useAuth();
   const { postJobSeek, postJobHire, error: feedError, reload } = useParamedicCommunity();
   const {
     items: jobPosts,
     bestItems,
-    jobType: filter,
-    setJobType: setFilter,
     currentPage,
     totalCount,
     hasMultiplePages,
@@ -174,6 +164,7 @@ export function ParamedicJobsScreen() {
     [goToPage, scrollToTop],
   );
   const [selected, setSelected] = useState<JobPost | null>(null);
+  const [editingJob, setEditingJob] = useState<JobPost | null>(null);
   const [writeMode, setWriteMode] = useState<JobWriteMode | null>(null);
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -184,10 +175,14 @@ export function ParamedicJobsScreen() {
   const [isUrgent, setIsUrgent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const openWriteChooser = useCallback(() => setWriteMode('choose'), []);
+  const openWriteChooser = useCallback(() => {
+    setEditingJob(null);
+    setWriteMode('choose');
+  }, []);
 
   const closeWriteModal = () => {
     setWriteMode(null);
+    setEditingJob(null);
     setTitle('');
     setLocation('');
     setContent('');
@@ -204,7 +199,7 @@ export function ParamedicJobsScreen() {
       return true;
     }
     if (writeMode) {
-      if (writeMode === 'choose') {
+      if (writeMode === 'choose' || editingJob) {
         closeWriteModal();
       } else {
         setWriteMode('choose');
@@ -222,14 +217,26 @@ export function ParamedicJobsScreen() {
     }
     setSubmitting(true);
     try {
-      await postJobSeek(title.trim(), content.trim(), location.trim() || '전국');
+      if (editingJob) {
+        const updated = await updateCommunityPostByAuthor(editingJob.id, {
+          title: title.trim(),
+          content: content.trim(),
+          jobLocation: location.trim() || '전국',
+        });
+        const mapped = mapRowToJobPost(updated);
+        if (selected?.id === editingJob.id) {
+          setSelected(mapped);
+        }
+      } else {
+        await postJobSeek(title.trim(), content.trim(), location.trim() || '전국');
+      }
       await reload();
       await refreshList();
       closeWriteModal();
-      Alert.alert('등록 완료', '구직 글이 등록되었습니다.');
+      Alert.alert('완료', editingJob ? '구직 글이 수정되었습니다.' : '구직 글이 등록되었습니다.');
     } catch (err) {
       Alert.alert(
-        '등록 실패',
+        editingJob ? '수정 실패' : '등록 실패',
         err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
       );
     } finally {
@@ -245,22 +252,38 @@ export function ParamedicJobsScreen() {
     }
     setSubmitting(true);
     try {
-      await postJobHire({
-        title: title.trim(),
-        company: company.trim(),
-        location: location.trim() || '미정',
-        salary: salary.trim() || '협의',
-        schedule: schedule.trim() || '협의',
-        requirements: content.trim(),
-        isUrgent,
-      });
+      if (editingJob) {
+        const updated = await updateCommunityPostByAuthor(editingJob.id, {
+          title: title.trim(),
+          content: content.trim(),
+          companyName: company.trim(),
+          jobLocation: location.trim() || '미정',
+          salary: salary.trim() || '협의',
+          schedule: schedule.trim() || '협의',
+          isUrgent,
+        });
+        const mapped = mapRowToJobPost(updated);
+        if (selected?.id === editingJob.id) {
+          setSelected(mapped);
+        }
+      } else {
+        await postJobHire({
+          title: title.trim(),
+          company: company.trim(),
+          location: location.trim() || '미정',
+          salary: salary.trim() || '협의',
+          schedule: schedule.trim() || '협의',
+          requirements: content.trim(),
+          isUrgent,
+        });
+      }
       await reload();
       await refreshList();
       closeWriteModal();
-      Alert.alert('등록 완료', '구인 글이 등록되었습니다.');
+      Alert.alert('완료', editingJob ? '구인 글이 수정되었습니다.' : '구인 글이 등록되었습니다.');
     } catch (err) {
       Alert.alert(
-        '등록 실패',
+        editingJob ? '수정 실패' : '등록 실패',
         err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
       );
     } finally {
@@ -268,8 +291,159 @@ export function ParamedicJobsScreen() {
     }
   };
 
+  const handleEditJob = () => {
+    if (!selected) return;
+    setEditingJob(selected);
+    setTitle(selected.title);
+    setLocation(selected.location);
+    setContent(selected.requirements);
+    setCompany(selected.company);
+    setSalary(selected.salary);
+    setSchedule(selected.schedule);
+    setIsUrgent(Boolean(selected.isUrgent));
+    setWriteMode(selected.type);
+  };
+
+  const handleDeleteJob = () => {
+    if (!selected) return;
+    confirmDestructiveAction(
+      '공고 삭제',
+      '삭제된 공고는 복구할 수 없습니다. 계속하시겠습니까?',
+      async () => {
+        await deleteCommunityPostByAuthor(selected.id);
+        setSelected(null);
+        await reload();
+        await refreshList();
+      },
+    );
+  };
+
+  const isSelectedAuthor = isPostAuthor(selected?.authorId, user?.id);
+
   const modalTitle =
-    writeMode === 'hire' ? '구인 글쓰기' : writeMode === 'seek' ? '구직 글쓰기' : '글 유형 선택';
+    editingJob && writeMode === 'hire'
+      ? '구인 글 수정'
+      : editingJob && writeMode === 'seek'
+        ? '구직 글 수정'
+        : writeMode === 'hire'
+          ? '구인 글쓰기'
+          : writeMode === 'seek'
+            ? '구직 글쓰기'
+            : '글 유형 선택';
+
+  const writeModal = (
+    <Modal visible={writeMode !== null} animationType="slide" transparent>
+      <KeyboardAvoidingView
+        className="flex-1 justify-end"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <Pressable className="flex-1 bg-black/40" onPress={closeWriteModal} />
+        <View
+          className="max-h-[85%] px-4 pb-8 pt-4"
+          style={{
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            backgroundColor: lounge.surface,
+          }}
+        >
+          <View className="mb-4 flex-row items-center justify-between">
+            <Text style={{ fontFamily: 'Pretendard-Bold', fontSize: 18, color: lounge.text }}>
+              {modalTitle}
+            </Text>
+            <Pressable onPress={closeWriteModal}>
+              <Ionicons name="close" size={24} color={lounge.textMuted} />
+            </Pressable>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {writeMode === 'choose' ? (
+              <View className="gap-3">
+                <LoungePrimaryButton label="구인 글쓰기" onPress={() => setWriteMode('hire')} />
+                <LoungePrimaryButton label="구직 글쓰기" onPress={() => setWriteMode('seek')} />
+              </View>
+            ) : writeMode === 'seek' ? (
+              <>
+                <FieldLabel>제목</FieldLabel>
+                <LoungeInput
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="예: 119 경력 5년 · 야간 근무 희망"
+                />
+                <FieldLabel>희망 지역</FieldLabel>
+                <LoungeInput
+                  value={location}
+                  onChangeText={setLocation}
+                  placeholder="예: 서울, 경기"
+                />
+                <FieldLabel>이력 · 자기소개</FieldLabel>
+                <LoungeInput
+                  value={content}
+                  onChangeText={setContent}
+                  placeholder="면허, 경력, 희망 근무 조건 등을 작성해 주세요"
+                  multiline
+                  minHeight={120}
+                />
+                <LoungePrimaryButton
+                  label={submitting ? '저장 중…' : editingJob ? '수정 저장' : '구직 글 등록'}
+                  disabled={submitting}
+                  onPress={() => void handleSubmitSeek()}
+                />
+              </>
+            ) : (
+              <>
+                <FieldLabel>채용 제목</FieldLabel>
+                <LoungeInput
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="예: 119 구급대원 채용 (정규직)"
+                />
+                <FieldLabel>기관명</FieldLabel>
+                <LoungeInput
+                  value={company}
+                  onChangeText={setCompany}
+                  placeholder="예: ○○소방서"
+                />
+                <FieldLabel>근무 지역</FieldLabel>
+                <LoungeInput
+                  value={location}
+                  onChangeText={setLocation}
+                  placeholder="예: 서울 강남구"
+                />
+                <FieldLabel>급여</FieldLabel>
+                <LoungeInput value={salary} onChangeText={setSalary} placeholder="예: 연봉 4,000만원" />
+                <FieldLabel>근무 형태</FieldLabel>
+                <LoungeInput value={schedule} onChangeText={setSchedule} placeholder="예: 3교대, 주 5일" />
+                <FieldLabel>채용 내용 · 자격 요건</FieldLabel>
+                <LoungeInput
+                  value={content}
+                  onChangeText={setContent}
+                  placeholder="담당 업무, 자격 요건, 지원 방법 등"
+                  multiline
+                  minHeight={120}
+                />
+                <View className="mb-3 flex-row items-center justify-between">
+                  <Text style={{ fontFamily: 'Pretendard-SemiBold', fontSize: 14, color: lounge.text }}>
+                    긴급 채용
+                  </Text>
+                  <Switch
+                    value={isUrgent}
+                    onValueChange={setIsUrgent}
+                    trackColor={{ false: lounge.border, true: lounge.accentMuted }}
+                    thumbColor={isUrgent ? lounge.accent : lounge.textMuted}
+                  />
+                </View>
+                <LoungePrimaryButton
+                  label={submitting ? '저장 중…' : editingJob ? '수정 저장' : '구인 글 등록'}
+                  disabled={submitting}
+                  onPress={() => void handleSubmitHire()}
+                />
+              </>
+            )}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
 
   if (selected) {
     return (
@@ -347,18 +521,21 @@ export function ParamedicJobsScreen() {
                 preview={selected.title}
               />
             </View>
+            {isSelectedAuthor ? (
+              <CommunityAuthorActions onEdit={handleEditJob} onDelete={handleDeleteJob} />
+            ) : null}
           </LoungeCard>
 
           <CommunityCommentSection
             postId={selected.id}
             canWrite={Boolean(user)}
             writeDeniedMessage="댓글을 작성하려면 로그인이 필요합니다."
-            authorLabel={(user?.user_metadata?.name as string | undefined) ?? '구급대원'}
             sectionLabel="댓글"
             placeholder="공고에 대한 문의나 의견을 남겨 주세요"
             submitLabel="댓글 등록"
           />
         </CommunityPostDetailLayout>
+        {writeModal}
       </LoungeScreen>
     );
   }
@@ -367,180 +544,64 @@ export function ParamedicJobsScreen() {
     <LoungeScreen>
       <ParamedicHeader />
 
-      <LoungeWriteBar
-        label="구인·구직 글쓰기"
-        onPress={openWriteChooser}
-        icon="briefcase-outline"
-      />
-
-      <LoungeTopSection>
-        <LoungeFilterRow>
-          {(['all', 'hire', 'seek'] as const).map((f) => (
-            <LoungeFilterPill
-              key={f}
-              label={f === 'all' ? '전체' : f === 'hire' ? '구인' : '구직'}
-              active={filter === f}
-              onPress={() => setFilter(f)}
+      <View className="flex-1">
+        <FlatList
+          ref={listRef}
+          data={jobPosts}
+          extraData={currentPage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={loungeListContentStyle}
+          ListHeaderComponent={
+            <CommunityListScrollHeader error={error}>
+              <CommunityBestSection
+                items={bestItems}
+                renderItem={(post) => (
+                  <JobCard post={post} onPress={() => setSelected(post)} />
+                )}
+              />
+            </CommunityListScrollHeader>
+          }
+          ListEmptyComponent={
+            loading && jobPosts.length === 0 ? (
+              <View className="items-center py-16">
+                <ActivityIndicator color={lounge.accent} />
+              </View>
+            ) : (
+              <View className="items-center py-16">
+                <Ionicons name="briefcase-outline" size={48} color={lounge.textMuted} />
+                <Text
+                  style={{
+                    marginTop: 16,
+                    fontFamily: 'Pretendard-SemiBold',
+                    fontSize: 15,
+                    color: lounge.textSecondary,
+                  }}
+                >
+                  등록된 공고가 없습니다
+                </Text>
+              </View>
+            )
+          }
+          ListFooterComponent={
+            <CommunityListPagination
+              currentPage={currentPage}
+              totalCount={totalCount}
+              hasMultiplePages={hasMultiplePages}
+              onPageChange={handlePageChange}
+              disabled={loading}
             />
-          ))}
-        </LoungeFilterRow>
-      </LoungeTopSection>
+          }
+          renderItem={({ item }) => <JobCard post={item} onPress={() => setSelected(item)} />}
+        />
 
-      <FlatList
-        ref={listRef}
-        data={jobPosts}
-        extraData={currentPage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={loungeListContentStyle}
-        ListHeaderComponent={
-          <>
-            {error ? <LoungeErrorBanner message={error} /> : null}
-            <CommunityBestSection
-              items={bestItems}
-              renderItem={(post) => (
-                <JobCard post={post} onPress={() => setSelected(post)} />
-              )}
-            />
-          </>
-        }
-        ListEmptyComponent={
-          loading && jobPosts.length === 0 ? (
-            <View className="items-center py-16">
-              <ActivityIndicator color={lounge.accent} />
-            </View>
-          ) : (
-            <View className="items-center py-16">
-              <Ionicons name="briefcase-outline" size={48} color={lounge.textMuted} />
-              <Text
-                style={{
-                  marginTop: 16,
-                  fontFamily: 'Pretendard-SemiBold',
-                  fontSize: 15,
-                  color: lounge.textSecondary,
-                }}
-              >
-                등록된 공고가 없습니다
-              </Text>
-            </View>
-          )
-        }
-        ListFooterComponent={
-          <CommunityListPagination
-            currentPage={currentPage}
-            totalCount={totalCount}
-            hasMultiplePages={hasMultiplePages}
-            onPageChange={handlePageChange}
-            disabled={loading}
-          />
-        }
-        renderItem={({ item }) => <JobCard post={item} onPress={() => setSelected(item)} />}
-      />
+        <LoungeFab
+          onPress={openWriteChooser}
+          accessibilityLabel="구인·구직 글쓰기"
+          icon="create-outline"
+        />
+      </View>
 
-      <Modal visible={writeMode !== null} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          className="flex-1 justify-end"
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <Pressable className="flex-1 bg-black/40" onPress={closeWriteModal} />
-          <View
-            className="max-h-[85%] px-4 pb-8 pt-4"
-            style={{
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              backgroundColor: lounge.surface,
-            }}
-          >
-            <View className="mb-4 flex-row items-center justify-between">
-              <Text style={{ fontFamily: 'Pretendard-Bold', fontSize: 18, color: lounge.text }}>
-                {modalTitle}
-              </Text>
-              <Pressable onPress={closeWriteModal}>
-                <Ionicons name="close" size={24} color={lounge.textMuted} />
-              </Pressable>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {writeMode === 'choose' ? (
-                <View className="gap-3">
-                  <LoungePrimaryButton
-                    label="구인 글쓰기"
-                    onPress={() => setWriteMode('hire')}
-                  />
-                  <LoungePrimaryButton
-                    label="구직 글쓰기"
-                    onPress={() => setWriteMode('seek')}
-                  />
-                </View>
-              ) : writeMode === 'seek' ? (
-                <>
-                  <FieldLabel>제목</FieldLabel>
-                  <LoungeInput
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="예: 119 경력 5년 · 야간 근무 희망"
-                  />
-                  <FieldLabel>희망 지역</FieldLabel>
-                  <LoungeInput value={location} onChangeText={setLocation} placeholder="예: 서울, 경기" />
-                  <FieldLabel>이력 · 자기소개</FieldLabel>
-                  <LoungeInput
-                    value={content}
-                    onChangeText={setContent}
-                    placeholder="면허, 경력, 희망 근무 조건 등을 작성해 주세요"
-                    multiline
-                    minHeight={120}
-                  />
-                  <LoungePrimaryButton
-                    label={submitting ? '등록 중…' : '구직 글 등록'}
-                    disabled={submitting}
-                    onPress={() => void handleSubmitSeek()}
-                  />
-                </>
-              ) : (
-                <>
-                  <FieldLabel>채용 제목</FieldLabel>
-                  <LoungeInput
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="예: 119 구급대원 채용 (정규직)"
-                  />
-                  <FieldLabel>기관명</FieldLabel>
-                  <LoungeInput value={company} onChangeText={setCompany} placeholder="예: ○○소방서" />
-                  <FieldLabel>근무 지역</FieldLabel>
-                  <LoungeInput value={location} onChangeText={setLocation} placeholder="예: 서울 강남구" />
-                  <FieldLabel>급여</FieldLabel>
-                  <LoungeInput value={salary} onChangeText={setSalary} placeholder="예: 연봉 4,000만원" />
-                  <FieldLabel>근무 형태</FieldLabel>
-                  <LoungeInput value={schedule} onChangeText={setSchedule} placeholder="예: 3교대, 주 5일" />
-                  <FieldLabel>채용 내용 · 자격 요건</FieldLabel>
-                  <LoungeInput
-                    value={content}
-                    onChangeText={setContent}
-                    placeholder="담당 업무, 자격 요건, 지원 방법 등"
-                    multiline
-                    minHeight={120}
-                  />
-                  <View className="mb-3 flex-row items-center justify-between">
-                    <Text style={{ fontFamily: 'Pretendard-SemiBold', fontSize: 14, color: lounge.text }}>
-                      긴급 채용
-                    </Text>
-                    <Switch
-                      value={isUrgent}
-                      onValueChange={setIsUrgent}
-                      trackColor={{ false: lounge.border, true: lounge.accentMuted }}
-                      thumbColor={isUrgent ? lounge.accent : lounge.textMuted}
-                    />
-                  </View>
-                  <LoungePrimaryButton
-                    label={submitting ? '등록 중…' : '구인 글 등록'}
-                    disabled={submitting}
-                    onPress={() => void handleSubmitHire()}
-                  />
-                </>
-              )}
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {writeModal}
     </LoungeScreen>
   );
 }

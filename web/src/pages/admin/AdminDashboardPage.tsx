@@ -17,6 +17,7 @@ import { AdminSchedulesPanel } from './AdminSchedulesPanel';
 import { AdminPollsPanel } from './AdminPollsPanel';
 import { AdminAppLinksPanel } from './AdminAppLinksPanel';
 import { AdminHomeBannersPanel } from './AdminHomeBannersPanel';
+import { AdminEmergencyNoticesSection } from './AdminEmergencyNoticesSection';
 import { AdminSiteSettingsPanel } from './AdminSiteSettingsPanel';
 import { AdminTrainingsPanel } from './AdminTrainingsPanel';
 import { AdminUsersPanel } from './AdminUsersPanel';
@@ -36,7 +37,7 @@ export function AdminDashboardPage() {
   useScrollToTop([tab, group]);
 
   return (
-    <div className="container page-content">
+    <div className="container page-content admin-dashboard-page">
       <PageHero
         eyebrow="Admin"
         title="KEMIX 관리자 대시보드"
@@ -67,7 +68,12 @@ export function AdminDashboardPage() {
         {tab === 'app-download' && <AdminAppDownloadPanel />}
         {tab === 'faq' && <AdminFaqPanel />}
         {tab === 'users' && <AdminUsersPanel />}
-        {tab === 'home-banners' && <AdminHomeBannersPanel />}
+        {tab === 'home-banners' && (
+          <>
+            <AdminEmergencyNoticesSection />
+            <AdminHomeBannersPanel />
+          </>
+        )}
         {tab === 'app-links' && <AdminAppLinksPanel />}
         {tab === 'site-settings' && <AdminSiteSettingsPanel />}
       </div>

@@ -26,7 +26,7 @@ export function CommunityBestSection<T>({
   }
 
   return (
-    <View style={{ marginBottom: 8 }}>
+    <View>
       <View className="mb-3 flex-row items-center gap-2">
         <View
           style={{
@@ -40,9 +40,6 @@ export function CommunityBestSection<T>({
             {title}
           </Text>
         </View>
-        <Text style={{ fontFamily: 'Pretendard', fontSize: 12, color: lounge.textMuted }}>
-          인기·추천 글
-        </Text>
       </View>
       {items.map((item) => (
         <View key={String((item as { id?: string }).id ?? Math.random())}>{renderItem(item)}</View>

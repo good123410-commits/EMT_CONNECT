@@ -4,39 +4,35 @@ import {
   fetchDailyBestBambooPosts,
   fetchEmsCommunityPostsPage,
 } from '@/services/communityListService';
+import { applyMyReactionsToRows, fetchMyPostReactions } from '@/services/communityService';
 import type { EmsCommunityPostRow, EmsCommunityPostType } from '@/services/emsCommunityService';
-import type {
-  CommunityJobTypeFilter,
-  CommunityListSort,
-  CommunitySortOption,
-} from '@/types/communityList';
+import type { CommunityListSort } from '@/types/communityList';
 import { COMMUNITY_LIST_PAGE_SIZE, getTotalPages } from '@/types/communityList';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-type UsePaginatedEmsPostsOptions<T> = {
+type UsePaginatedEmsPostsOptions<T extends { id: string }> = {
   postTypes: EmsCommunityPostType[];
   categorySlug?: string;
   mapRow: (row: EmsCommunityPostRow) => T;
-  sortOptions?: CommunitySortOption[];
   enableBest?: boolean;
   useDailyBestRpc?: boolean;
   enabled?: boolean;
+  /** 기본 `latest` — `popular`은 좋아요순 */
+  sort?: CommunityListSort;
 };
 
-export function usePaginatedEmsPosts<T>({
+export function usePaginatedEmsPosts<T extends { id: string }>({
   postTypes,
   categorySlug,
   mapRow,
-  sortOptions,
   enableBest = false,
   useDailyBestRpc = false,
   enabled = true,
+  sort = 'latest',
 }: UsePaginatedEmsPostsOptions<T>) {
-  const [sort, setSort] = useState<CommunityListSort>('latest');
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [jobType, setJobType] = useState<CommunityJobTypeFilter>('all');
 
   const [items, setItems] = useState<T[]>([]);
   const [bestItems, setBestItems] = useState<T[]>([]);
@@ -54,7 +50,6 @@ export function usePaginatedEmsPosts<T>({
   postTypesRef.current = postTypes;
   const postTypesKey = postTypes.join(',');
 
-  const availableSortOptions = useMemo(() => sortOptions ?? [], [sortOptions]);
   const totalPages = getTotalPages(totalCount, COMMUNITY_LIST_PAGE_SIZE);
   const hasMultiplePages = totalCount > COMMUNITY_LIST_PAGE_SIZE;
 
@@ -77,7 +72,9 @@ export function usePaginatedEmsPosts<T>({
           categorySlug,
         });
 
-    const mapped = rows.map((row) => mapRowRef.current(row));
+    const reactions = await fetchMyPostReactions(rows.map((row) => row.id));
+    const enriched = applyMyReactionsToRows(rows, reactions);
+    const mapped = enriched.map((row) => mapRowRef.current(row));
     const ids = rows.map((row) => row.id);
     setBestItems(mapped);
     bestIdsRef.current = ids;
@@ -93,7 +90,7 @@ export function usePaginatedEmsPosts<T>({
       const baseQuery = {
         postTypes: types,
         categorySlug,
-        jobType: types.some((t) => t === 'job_hire' || t === 'job_seek') ? jobType : undefined,
+        jobType: undefined,
         sort,
         search: debouncedSearch,
         pageSize: COMMUNITY_LIST_PAGE_SIZE,
@@ -124,9 +121,12 @@ export function usePaginatedEmsPosts<T>({
           count = retried.totalCount;
         }
 
+        const reactions = await fetchMyPostReactions(rows.map((row) => row.id));
+        const enrichedRows = applyMyReactionsToRows(rows, reactions);
+
         setTotalCount(Math.max(0, count));
         setCurrentPage(resolvedPage);
-        setItems(rows.map((row) => mapRowRef.current(row)));
+        setItems(enrichedRows.map((row) => mapRowRef.current(row)));
         setError(null);
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
@@ -138,7 +138,7 @@ export function usePaginatedEmsPosts<T>({
         }
       }
     },
-    [categorySlug, debouncedSearch, enableBest, jobType, sort],
+    [categorySlug, debouncedSearch, enableBest, sort],
   );
 
   const goToPage = useCallback(
@@ -162,6 +162,11 @@ export function usePaginatedEmsPosts<T>({
     const excludeIds = enableBest ? await loadBestIds() : [];
     await fetchPage(1, excludeIds);
   }, [enabled, enableBest, fetchPage, loadBestIds]);
+
+  const patchPost = useCallback((id: string, updater: (prev: T) => T) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? updater(item) : item)));
+    setBestItems((prev) => prev.map((item) => (item.id === id ? updater(item) : item)));
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
@@ -188,20 +193,15 @@ export function usePaginatedEmsPosts<T>({
     enableBest,
     enabled,
     fetchPage,
-    jobType,
     loadBestIds,
     postTypesKey,
     sort,
   ]);
 
   return {
-    sort,
-    setSort,
     searchInput,
     setSearchInput,
     debouncedSearch,
-    jobType,
-    setJobType,
     items,
     bestItems,
     currentPage,
@@ -212,6 +212,6 @@ export function usePaginatedEmsPosts<T>({
     error,
     goToPage,
     refresh,
-    sortOptions: availableSortOptions,
+    patchPost,
   };
 }

@@ -1,16 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  Linking,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, Alert, FlatList, Linking, Modal, ScrollView, Text, TextInput, View } from 'react-native';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import {
   formatAmbulancePhone,

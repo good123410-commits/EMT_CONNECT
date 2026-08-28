@@ -1,13 +1,14 @@
 export type ContentShortcodeSegment =
   | { type: 'text'; value: string }
   | { type: 'call_button'; phone: string; label?: string }
-  | { type: 'ad_banner'; bannerId?: string };
+  | { type: 'ad_banner'; bannerId?: string }
+  | { type: 'template'; body: string; title?: string };
 
 const CONTENT_SHORTCODE_PATTERN =
-  /\[(119_button|119_call|ad_banner)(?:\s+([^\]]*))?\]|\[(call|banner):([^\]]+)\]/gi;
+  /\[(119_button|119_call|ad_banner)(?:\s+([^\]]*))?\]|\[(call|banner|template):([^\]]+)\]/gi;
 
 const STRIP_SHORTCODE_PATTERN =
-  /\[(119_button|119_call|ad_banner)(?:\s+[^\]]*)?\]|\[(call|banner):[^\]]+\]/gi;
+  /\[(119_button|119_call|ad_banner)(?:\s+[^\]]*)?\]|\[(call|banner|template):[^\]]+\]/gi;
 
 function parseShortcodeAttrs(attrString?: string): Record<string, string> {
   if (!attrString?.trim()) return {};
@@ -47,6 +48,9 @@ function mapColonShortcode(kind: string, value: string): ContentShortcodeSegment
   }
   if (kind.toLowerCase() === 'banner') {
     return { type: 'ad_banner', bannerId: trimmed || undefined };
+  }
+  if (kind.toLowerCase() === 'template') {
+    return null;
   }
   return null;
 }

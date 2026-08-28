@@ -27,7 +27,7 @@ export function useFabDragBounds(): FabDragBounds {
   const insets = useSafeAreaInsets();
   const headerHeight = useAppNavigationHeaderHeight();
   const rootRoute = useRootRoute();
-  const mainTabBarHeight = useExpertTabBarHeight(true);
+  const mainTabBarHeight = useExpertTabBarHeight(true, { iconOnly: true });
   const expertTabBarHeight = useExpertTabBarHeight(false);
 
   return useMemo(() => {

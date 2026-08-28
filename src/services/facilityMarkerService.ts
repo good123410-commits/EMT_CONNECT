@@ -14,6 +14,19 @@ export type FacilityMarkerResult =
   | { kind: 'hospital'; items: LocalHospitalMarker[] }
   | { kind: 'pharmacy'; items: LocalPharmacyMarker[] };
 
+/** 탭 최초 진입 — 좁은 반경으로 빠르게 표시 */
+export const FACILITY_INITIAL_RADIUS: Record<FacilityMarkerKind, number> = {
+  aed: 1_000,
+  hospital: 3_000,
+  pharmacy: 5_000,
+};
+
+export const FACILITY_INITIAL_LIMIT: Record<FacilityMarkerKind, number> = {
+  aed: 40,
+  hospital: 50,
+  pharmacy: 60,
+};
+
 const DEFAULT_OPTIONS: Record<FacilityMarkerKind, UnifiedFacilitySearchOptions> = {
   aed: { limit: 80, radiusMeters: 5_000 },
   hospital: { limit: 100, radiusMeters: 20_000, erOnly: false },
@@ -24,11 +37,13 @@ export function buildFacilityMarkerQueryKey(
   kind: FacilityMarkerKind,
   params: FacilitySearchParams,
   options?: UnifiedFacilitySearchOptions,
+  phase: 'initial' | 'expanded' = 'expanded',
 ) {
   const merged = { ...DEFAULT_OPTIONS[kind], ...options };
   return [
     'facility-markers',
     kind,
+    phase,
     params.mode,
     params.textQuery,
     params.regionFilter?.stage1 ?? '',
@@ -64,4 +79,23 @@ export function searchFacilityMarkers(
     }
     return [];
   }
+}
+
+export function getFacilitySearchOptions(
+  kind: FacilityMarkerKind,
+  phase: 'initial' | 'expanded',
+  overrides?: UnifiedFacilitySearchOptions,
+): UnifiedFacilitySearchOptions {
+  if (phase === 'initial') {
+    return {
+      limit: FACILITY_INITIAL_LIMIT[kind],
+      radiusMeters: FACILITY_INITIAL_RADIUS[kind],
+      ...overrides,
+    };
+  }
+
+  return {
+    ...DEFAULT_OPTIONS[kind],
+    ...overrides,
+  };
 }

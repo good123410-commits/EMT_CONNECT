@@ -4,7 +4,7 @@ export function EmergencyOverlayToggleCard() { return null; }
 
 /*
 ﻿import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Platform, Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Platform, Switch, Text, View } from 'react-native';
 import { APP_COLORS, APP_RADIUS, APP_SHADOW } from '@/constants/appTheme';
 import { useEmergencyOverlay } from '@/hooks/useEmergencyOverlay';
 

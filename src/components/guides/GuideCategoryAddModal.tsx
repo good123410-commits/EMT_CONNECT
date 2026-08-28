@@ -1,17 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GUIDE_ICON_OPTIONS, DEFAULT_GUIDE_ICON, type GuideIconId } from '@/constants/guideIcons';
 import { createGuideCategory, type GuideCategory } from '@/services/guideCategoryService';
