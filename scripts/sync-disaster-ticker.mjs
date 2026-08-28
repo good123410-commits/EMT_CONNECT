@@ -59,11 +59,21 @@ loadBundledEnv(process.env.DISASTER_TICKER_DOTENV);
 
 const SUPABASE_URL = process.env.SUPABASE_URL?.trim();
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-const FALLBACK_SERVICE_KEY =
-  process.env.SAFETYDATA_SERVICE_KEY?.trim() ||
-  process.env.EXPO_PUBLIC_SAFETYDATA_SERVICE_KEY?.trim() ||
-  process.env.EXPO_PUBLIC_PORTAL_API_KEY?.trim() ||
-  '';
+
+function getFallbackServiceKey() {
+  return (
+    process.env.SAFETYDATA_SERVICE_KEY?.trim() ||
+    process.env.EXPO_PUBLIC_SAFETYDATA_SERVICE_KEY?.trim() ||
+    process.env.EXPO_PUBLIC_PORTAL_API_KEY?.trim() ||
+    ''
+  );
+}
+
+function shouldApplyEnvValue(key, value) {
+  if (!key || !value) return false;
+  const existing = process.env[key]?.trim();
+  return !existing;
+}
 
 function applyEnvLine(line) {
   const trimmed = line.trim();
@@ -83,7 +93,7 @@ function applyEnvLine(line) {
   if (hash > 0) {
     value = value.slice(0, hash).trim();
   }
-  if (process.env[key] === undefined) {
+  if (shouldApplyEnvValue(key, value)) {
     process.env[key] = value;
   }
 }
@@ -187,9 +197,9 @@ function resolveServiceKey(source) {
     const value = normalizeServiceKey(process.env[envKey]);
     if (value) return { value, envKey };
   }
-  if (FALLBACK_SERVICE_KEY) {
+  if (getFallbackServiceKey()) {
     return {
-      value: normalizeServiceKey(FALLBACK_SERVICE_KEY),
+      value: normalizeServiceKey(getFallbackServiceKey()),
       envKey: 'SAFETYDATA_SERVICE_KEY (fallback)',
     };
   }

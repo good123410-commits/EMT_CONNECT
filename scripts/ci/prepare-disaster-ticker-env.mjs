@@ -49,7 +49,7 @@ function applyEnvLine(line, store) {
   if (hash > 0) {
     value = value.slice(0, hash).trim();
   }
-  if (key && value && store[key] === undefined) {
+  if (key && value && !store[key]?.trim()) {
     store[key] = value;
   }
 }
@@ -57,15 +57,17 @@ function applyEnvLine(line, store) {
 function collectEnv() {
   const store = {};
 
-  for (const key of [...SAFETY_KEYS, ...SUPABASE_KEYS]) {
-    const value = process.env[key]?.trim();
-    if (value) store[key] = value;
-  }
-
   const bundled = process.env.DISASTER_TICKER_DOTENV?.trim();
   if (bundled) {
     for (const line of bundled.split(/\r?\n/)) {
       applyEnvLine(line, store);
+    }
+  }
+
+  for (const key of [...SAFETY_KEYS, ...SUPABASE_KEYS]) {
+    const value = process.env[key]?.trim();
+    if (value && !store[key]?.trim()) {
+      store[key] = value;
     }
   }
 
