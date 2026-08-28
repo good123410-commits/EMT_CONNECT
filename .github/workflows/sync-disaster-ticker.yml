@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Prepare disaster ticker credentials
+      - name: Create CI Env File
         run: |
           echo "SAFETYDATA_SERVICE_KEY_WEATHER=${{ secrets.SAFETYDATA_SERVICE_KEY_WEATHER }}" >> .env.disaster-ticker.ci
           echo "SAFETYDATA_SERVICE_KEY_FOREST=${{ secrets.SAFETYDATA_SERVICE_KEY_FOREST }}" >> .env.disaster-ticker.ci
