@@ -55,6 +55,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const CHECK_ONLY = process.argv.includes('--check');
 
 loadLocalEnv();
+loadBundledEnv(process.env.DISASTER_TICKER_DOTENV);
 
 const SUPABASE_URL = process.env.SUPABASE_URL?.trim();
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -64,33 +65,44 @@ const FALLBACK_SERVICE_KEY =
   process.env.EXPO_PUBLIC_PORTAL_API_KEY?.trim() ||
   '';
 
+function applyEnvLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#')) return;
+  const eq = trimmed.indexOf('=');
+  if (eq <= 0) return;
+  const key = trimmed.slice(0, eq).trim();
+  let value = trimmed.slice(eq + 1).trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1);
+  }
+  value = value.replace(/^\uFEFF/, '').replace(/\r$/, '').trim();
+  const hash = value.indexOf(' #');
+  if (hash > 0) {
+    value = value.slice(0, hash).trim();
+  }
+  if (process.env[key] === undefined) {
+    process.env[key] = value;
+  }
+}
+
+function loadBundledEnv(raw) {
+  if (!raw?.trim()) return;
+  for (const line of raw.split(/\r?\n/)) {
+    applyEnvLine(line);
+  }
+}
+
 function loadLocalEnv() {
-  for (const filename of ['.env.local', '.env']) {
+  for (const filename of ['.env.disaster-ticker.ci', '.env.local', '.env']) {
     const filePath = join(ROOT, filename);
     if (!existsSync(filePath)) continue;
 
     const lines = readFileSync(filePath, 'utf8').split(/\r?\n/);
     for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eq = trimmed.indexOf('=');
-      if (eq <= 0) continue;
-      const key = trimmed.slice(0, eq).trim();
-      let value = trimmed.slice(eq + 1).trim();
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1);
-      }
-      value = value.replace(/^\uFEFF/, '').replace(/\r$/, '').trim();
-      const hash = value.indexOf(' #');
-      if (hash > 0) {
-        value = value.slice(0, hash).trim();
-      }
-      if (process.env[key] === undefined) {
-        process.env[key] = value;
-      }
+      applyEnvLine(line);
     }
   }
 }
@@ -188,6 +200,42 @@ function assertAnyServiceKeyConfigured() {
   const configured = SOURCES.map((source) => resolveServiceKey(source)).filter(Boolean);
   if (configured.length > 0) return;
 
+  log('환경 변수 진단:');
+  for (const key of [
+    'SAFETYDATA_SERVICE_KEY_WEATHER',
+    'SAFETYDATA_SERVICE_KEY_FOREST',
+    'SAFETYDATA_SERVICE_KEY_DISASTER',
+    'SAFETYDATA_SERVICE_KEY',
+    'EXPO_PUBLIC_SAFETYDATA_SERVICE_KEY',
+  ]) {
+    log(`  ${key}: ${maskKey(process.env[key])}`);
+  }
+  log(`  DISASTER_TICKER_DOTENV: ${process.env.DISASTER_TICKER_DOTENV?.trim() ? '(설정됨)' : '(없음)'}`);
+  log(`  .env.disaster-ticker.ci: ${existsSync(join(ROOT, '.env.disaster-ticker.ci')) ? '(존재)' : '(없음)'}`);
+  log(`  GITHUB_ACTIONS: ${process.env.GITHUB_ACTIONS ?? 'false'}`);
+
+  const ciHints =
+    process.env.GITHUB_ACTIONS === 'true'
+      ? [
+          '',
+          'GitHub Actions 설정:',
+          '  Repository → Settings → Secrets and variables → Actions',
+          '  아래 중 한 가지 방식으로 등록하세요.',
+          '',
+          '  [권장] DISASTER_TICKER_DOTENV — .env 형식 전체를 한 번에 붙여넣기',
+          '    SAFETYDATA_SERVICE_KEY_WEATHER=...',
+          '    SAFETYDATA_SERVICE_KEY_FOREST=...',
+          '    SAFETYDATA_SERVICE_KEY_DISASTER=...',
+          '    SUPABASE_URL=https://....supabase.co',
+          '    SUPABASE_SERVICE_ROLE_KEY=sb_secret_...',
+          '',
+          '  [또는] 개별 Secret 등록:',
+          '    SAFETYDATA_SERVICE_KEY_WEATHER / _FOREST / _DISASTER',
+          '    (또는 공통 SAFETYDATA_SERVICE_KEY)',
+          '    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY',
+        ]
+      : [];
+
   throw new Error(
     [
       '재난안전 API 키가 없습니다.',
@@ -204,6 +252,7 @@ function assertAnyServiceKeyConfigured() {
       '  npm run sync:disaster-ticker',
       '',
       '주의: CMD/PowerShell에서는 VAR=value npm run 형식이 동작하지 않습니다.',
+      ...ciHints,
     ].join('\n'),
   );
 }
