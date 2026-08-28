@@ -11,7 +11,10 @@ export function useEmergencyTicker() {
     try {
       const rows = await fetchActiveEmergencyTickerItems();
       setItems(rows);
-    } catch {
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[useEmergencyTicker] refresh failed:', error);
+      }
       setItems([]);
     } finally {
       setLoading(false);

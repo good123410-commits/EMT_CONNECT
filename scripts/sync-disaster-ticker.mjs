@@ -53,12 +53,15 @@ const CACHE_TTL_MINUTES = Number(process.env.DISASTER_TICKER_CACHE_TTL_MINUTES ?
 const FETCH_TIMEOUT_MS = Number(process.env.DISASTER_TICKER_TIMEOUT_MS ?? 20_000);
 const DRY_RUN = process.argv.includes('--dry-run');
 const CHECK_ONLY = process.argv.includes('--check');
+const CI_ENV_FILE = '.env.disaster-ticker.ci';
 
-loadLocalEnv();
-loadBundledEnv(process.env.DISASTER_TICKER_DOTENV);
+function getSupabaseUrl() {
+  return process.env.SUPABASE_URL?.trim() ?? '';
+}
 
-const SUPABASE_URL = process.env.SUPABASE_URL?.trim();
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+function getSupabaseServiceRoleKey() {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? '';
+}
 
 function getFallbackServiceKey() {
   return (
@@ -69,17 +72,11 @@ function getFallbackServiceKey() {
   );
 }
 
-function shouldApplyEnvValue(key, value) {
-  if (!key || !value) return false;
-  const existing = process.env[key]?.trim();
-  return !existing;
-}
-
-function applyEnvLine(line) {
+function parseEnvLine(line) {
   const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith('#')) return;
+  if (!trimmed || trimmed.startsWith('#')) return null;
   const eq = trimmed.indexOf('=');
-  if (eq <= 0) return;
+  if (eq <= 0) return null;
   const key = trimmed.slice(0, eq).trim();
   let value = trimmed.slice(eq + 1).trim();
   if (
@@ -93,27 +90,54 @@ function applyEnvLine(line) {
   if (hash > 0) {
     value = value.slice(0, hash).trim();
   }
-  if (shouldApplyEnvValue(key, value)) {
-    process.env[key] = value;
+  if (!key || !value) return null;
+  return { key, value };
+}
+
+function applyEnvEntry(key, value, force = false) {
+  if (!key || !value) return false;
+  if (!force && process.env[key]?.trim()) return false;
+  process.env[key] = value;
+  return true;
+}
+
+function loadEnvFile(filename, { force = false } = {}) {
+  const filePath = join(ROOT, filename);
+  if (!existsSync(filePath)) return 0;
+
+  let applied = 0;
+  for (const line of readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+    const parsed = parseEnvLine(line);
+    if (parsed && applyEnvEntry(parsed.key, parsed.value, force)) {
+      applied += 1;
+    }
   }
+  return applied;
 }
 
 function loadBundledEnv(raw) {
-  if (!raw?.trim()) return;
+  if (!raw?.trim()) return 0;
+  let applied = 0;
   for (const line of raw.split(/\r?\n/)) {
-    applyEnvLine(line);
+    const parsed = parseEnvLine(line);
+    if (parsed && applyEnvEntry(parsed.key, parsed.value)) {
+      applied += 1;
+    }
   }
+  return applied;
 }
 
-function loadLocalEnv() {
-  for (const filename of ['.env.disaster-ticker.ci', '.env.local', '.env']) {
-    const filePath = join(ROOT, filename);
-    if (!existsSync(filePath)) continue;
+function bootstrapEnv() {
+  const ciApplied = loadEnvFile(CI_ENV_FILE, { force: true });
+  if (ciApplied > 0) {
+    log(`Loaded ${ciApplied} keys from ${CI_ENV_FILE}`);
+    return;
+  }
 
-    const lines = readFileSync(filePath, 'utf8').split(/\r?\n/);
-    for (const line of lines) {
-      applyEnvLine(line);
-    }
+  const localApplied =
+    loadEnvFile('.env.local') + loadEnvFile('.env') + loadBundledEnv(process.env.DISASTER_TICKER_DOTENV);
+  if (localApplied > 0) {
+    log(`Loaded ${localApplied} keys from local env sources`);
   }
 }
 
@@ -221,7 +245,7 @@ function assertAnyServiceKeyConfigured() {
     log(`  ${key}: ${maskKey(process.env[key])}`);
   }
   log(`  DISASTER_TICKER_DOTENV: ${process.env.DISASTER_TICKER_DOTENV?.trim() ? '(설정됨)' : '(없음)'}`);
-  log(`  .env.disaster-ticker.ci: ${existsSync(join(ROOT, '.env.disaster-ticker.ci')) ? '(존재)' : '(없음)'}`);
+  log(`  .env.disaster-ticker.ci: ${existsSync(join(ROOT, CI_ENV_FILE)) ? '(존재)' : '(없음)'}`);
   log(`  GITHUB_ACTIONS: ${process.env.GITHUB_ACTIONS ?? 'false'}`);
 
   const ciHints =
@@ -557,6 +581,8 @@ async function runKeyCheck() {
 }
 
 async function main() {
+  bootstrapEnv();
+
   if (CHECK_ONLY) {
     assertAnyServiceKeyConfigured();
     await runKeyCheck();
@@ -565,16 +591,19 @@ async function main() {
 
   assertAnyServiceKeyConfigured();
 
-  if (!DRY_RUN && (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY)) {
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseServiceRoleKey = getSupabaseServiceRoleKey();
+
+  if (!DRY_RUN && (!supabaseUrl || !supabaseServiceRoleKey)) {
     throw new Error(
       'SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 환경 변수가 필요합니다. (.env 파일 또는 PowerShell $env: 설정)',
     );
   }
 
   const supabase =
-    DRY_RUN || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY
+    DRY_RUN || !supabaseUrl || !supabaseServiceRoleKey
       ? null
-      : createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      : createClient(supabaseUrl, supabaseServiceRoleKey, {
           auth: { persistSession: false, autoRefreshToken: false },
         });
 

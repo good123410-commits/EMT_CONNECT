@@ -60,7 +60,8 @@ export function buildTickerDisplaySegments(items: EmergencyTickerItem[]): Ticker
     .map((item) => {
       const meta = resolveSourceMeta(item.sourceType);
       const body = sanitizeTickerMessage(item.message);
-      if (isJunkTickerMessage(body)) return null;
+      if (!body) return null;
+      if (item.sourceType !== 'admin' && isJunkTickerMessage(body)) return null;
 
       const dedupeKey = `${item.sourceType}:${body}`;
       if (seen.has(dedupeKey)) return null;
