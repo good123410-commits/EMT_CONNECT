@@ -34,12 +34,20 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/ci/prepare-disaster-ticker-env.mjs
 
+      - name: Log runner public IP
+        run: |
+          echo "GitHub Actions outbound IP (safetydata 유치아이피 등록용):"
+          curl -fsS https://api.ipify.org || true
+          echo ""
+
       - name: Dry-run disaster ticker APIs
         env:
           DISASTER_TICKER_DOTENV: ${{ secrets.DISASTER_TICKER_DOTENV }}
+          SAFETYDATA_STRICT_TLS: 'false'
         run: node scripts/sync-disaster-ticker.mjs --dry-run
 
       - name: Sync disaster ticker cache to Supabase
         env:
           DISASTER_TICKER_DOTENV: ${{ secrets.DISASTER_TICKER_DOTENV }}
+          SAFETYDATA_STRICT_TLS: 'false'
         run: node scripts/sync-disaster-ticker.mjs

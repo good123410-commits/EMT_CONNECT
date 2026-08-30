@@ -16,6 +16,7 @@
  *   또는 .env 파일에 키 저장 후 npm run sync:disaster-ticker
  */
 import { createClient } from '@supabase/supabase-js';
+import { Agent } from 'undici';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,10 +51,35 @@ const SOURCES = [
 ];
 
 const CACHE_TTL_MINUTES = Number(process.env.DISASTER_TICKER_CACHE_TTL_MINUTES ?? 30);
-const FETCH_TIMEOUT_MS = Number(process.env.DISASTER_TICKER_TIMEOUT_MS ?? 20_000);
+const FETCH_TIMEOUT_MS = Number(process.env.DISASTER_TICKER_TIMEOUT_MS ?? 30_000);
+const FETCH_CONNECT_TIMEOUT_MS = Number(process.env.DISASTER_TICKER_CONNECT_TIMEOUT_MS ?? 30_000);
+const FETCH_MAX_RETRIES = Number(process.env.DISASTER_TICKER_FETCH_RETRIES ?? 2);
 const DRY_RUN = process.argv.includes('--dry-run');
 const CHECK_ONLY = process.argv.includes('--check');
 const CI_ENV_FILE = '.env.disaster-ticker.ci';
+const SAFETYDATA_STRICT_TLS =
+  process.env.SAFETYDATA_STRICT_TLS === '1' || process.env.SAFETYDATA_STRICT_TLS === 'true';
+
+const safetydataHttpDispatcher = new Agent({
+  connect: {
+    rejectUnauthorized: SAFETYDATA_STRICT_TLS,
+    timeout: FETCH_CONNECT_TIMEOUT_MS,
+    servername: 'www.safetydata.go.kr',
+    minVersion: 'TLSv1.2',
+    maxVersion: 'TLSv1.2',
+  },
+  bodyTimeout: FETCH_TIMEOUT_MS,
+  headersTimeout: FETCH_CONNECT_TIMEOUT_MS,
+  keepAliveTimeout: 10_000,
+  keepAliveMaxTimeout: 30_000,
+});
+
+async function safetydataFetch(url, init = {}) {
+  return fetch(url, {
+    ...init,
+    dispatcher: safetydataHttpDispatcher,
+  });
+}
 
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL?.trim() ?? '';
@@ -414,6 +440,37 @@ function dedupeMessages(messages) {
   return result;
 }
 
+function describeFetchError(err, url) {
+  const parts = [];
+  if (err instanceof Error) {
+    parts.push(err.message);
+    if (err.cause instanceof Error) {
+      parts.push(`cause: ${err.cause.message}`);
+      if (err.cause.code) parts.push(`code: ${err.cause.code}`);
+    } else if (err.cause && typeof err.cause === 'object' && 'code' in err.cause) {
+      parts.push(`code: ${String(err.cause.code)}`);
+    }
+  } else {
+    parts.push(String(err));
+  }
+
+  const text = parts.join(' | ');
+  const hints = [];
+  if (/certificate|UNABLE_TO_VERIFY|SSL|TLS|fetch failed|ECONNRESET|ETIMEDOUT|abort/i.test(text)) {
+    hints.push('safetydata.go.kr TLS/네트워크 오류 — GitHub Actions에서는 SAFETYDATA_STRICT_TLS=false(기본) 사용');
+    hints.push('포털 유치아이피에 GitHub Actions 러너 공인 IP 등록 필요');
+  }
+  if (url) {
+    hints.push(`url: ${url.origin}${url.pathname}`);
+  }
+
+  return hints.length > 0 ? `${text}\n     ${hints.join('\n     ')}` : text;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function formatApiError(header) {
   const resultCode = String(header?.resultCode ?? header?.RESULT_CODE ?? '');
   const resultMsg = header?.resultMsg ?? header?.RESULT_MSG ?? header?.errorMsg ?? 'unknown error';
@@ -449,38 +506,45 @@ async function fetchSafetyDataPage(endpoint, serviceKey, pageNo, numOfRows) {
     url.searchParams.set('pageNo', String(pageNo));
     url.searchParams.set('numOfRows', String(numOfRows));
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    for (let retry = 0; retry <= FETCH_MAX_RETRIES; retry += 1) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'KEMIX-DisasterTickerSync/1.0',
-        },
-      });
+      try {
+        const response = await safetydataFetch(url, {
+          signal: controller.signal,
+          headers: {
+            Accept: 'application/json',
+            Connection: 'close',
+            'User-Agent':
+              'Mozilla/5.0 (compatible; KEMIX-DisasterTickerSync/1.1; +https://k-emix.com)',
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const header = payload.header ?? payload.response?.header;
+        const resultCode = String(header?.resultCode ?? header?.RESULT_CODE ?? '00');
+        if (resultCode && resultCode !== '00' && resultCode !== '0') {
+          throw new Error(`API ${formatApiError(header)}`);
+        }
+
+        return normalizeBody(payload);
+      } catch (err) {
+        lastError = err;
+        if (retry < FETCH_MAX_RETRIES) {
+          await wait(800 * (retry + 1));
+        }
+      } finally {
+        clearTimeout(timeout);
       }
-
-      const payload = await response.json();
-      const header = payload.header ?? payload.response?.header;
-      const resultCode = String(header?.resultCode ?? header?.RESULT_CODE ?? '00');
-      if (resultCode && resultCode !== '00' && resultCode !== '0') {
-        throw new Error(`API ${formatApiError(header)}`);
-      }
-
-      return normalizeBody(payload);
-    } catch (err) {
-      lastError = err;
-    } finally {
-      clearTimeout(timeout);
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  throw new Error(describeFetchError(lastError, new URL(`${SAFETYDATA_BASE}${endpoint}`)));
 }
 
 async function fetchSourceMessages(source) {
@@ -644,7 +708,10 @@ async function main() {
     } catch (err) {
       failureCount += 1;
       const message = err instanceof Error ? err.message : String(err);
-      log(`${source.label} 실패:`, message);
+      log(`${source.label} 실패:`);
+      for (const line of message.split('\n     ')) {
+        log(`  ${line}`);
+      }
 
       if (!DRY_RUN && supabase) {
         const { data } = await supabase
