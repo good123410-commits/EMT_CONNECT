@@ -73,11 +73,15 @@ function getFallbackServiceKey() {
 }
 
 function parseEnvLine(line) {
-  const trimmed = line.trim();
+  let trimmed = line.trim();
   if (!trimmed || trimmed.startsWith('#')) return null;
+  if (trimmed.startsWith('export ')) {
+    trimmed = trimmed.slice('export '.length).trim();
+  }
+
   const eq = trimmed.indexOf('=');
   if (eq <= 0) return null;
-  const key = trimmed.slice(0, eq).trim();
+  const key = trimmed.slice(0, eq).trim().replace(/^\uFEFF/, '');
   let value = trimmed.slice(eq + 1).trim();
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
@@ -96,7 +100,8 @@ function parseEnvLine(line) {
 
 function applyEnvEntry(key, value, force = false) {
   if (!key || !value) return false;
-  if (!force && process.env[key]?.trim()) return false;
+  const existing = process.env[key]?.trim();
+  if (!force && existing) return false;
   process.env[key] = value;
   return true;
 }
@@ -115,12 +120,12 @@ function loadEnvFile(filename, { force = false } = {}) {
   return applied;
 }
 
-function loadBundledEnv(raw) {
+function loadBundledEnv(raw, { force = false } = {}) {
   if (!raw?.trim()) return 0;
   let applied = 0;
   for (const line of raw.split(/\r?\n/)) {
     const parsed = parseEnvLine(line);
-    if (parsed && applyEnvEntry(parsed.key, parsed.value)) {
+    if (parsed && applyEnvEntry(parsed.key, parsed.value, force)) {
       applied += 1;
     }
   }
@@ -128,16 +133,18 @@ function loadBundledEnv(raw) {
 }
 
 function bootstrapEnv() {
+  const bundledApplied = loadBundledEnv(process.env.DISASTER_TICKER_DOTENV, { force: true });
   const ciApplied = loadEnvFile(CI_ENV_FILE, { force: true });
+  const localApplied = loadEnvFile('.env.local') + loadEnvFile('.env');
+
+  if (bundledApplied > 0) {
+    log(`Loaded ${bundledApplied} keys from DISASTER_TICKER_DOTENV`);
+  }
   if (ciApplied > 0) {
     log(`Loaded ${ciApplied} keys from ${CI_ENV_FILE}`);
-    return;
   }
-
-  const localApplied =
-    loadEnvFile('.env.local') + loadEnvFile('.env') + loadBundledEnv(process.env.DISASTER_TICKER_DOTENV);
   if (localApplied > 0) {
-    log(`Loaded ${localApplied} keys from local env sources`);
+    log(`Loaded ${localApplied} keys from local env files`);
   }
 }
 
@@ -231,6 +238,8 @@ function resolveServiceKey(source) {
 }
 
 function assertAnyServiceKeyConfigured() {
+  bootstrapEnv();
+
   const configured = SOURCES.map((source) => resolveServiceKey(source)).filter(Boolean);
   if (configured.length > 0) return;
 

@@ -2,7 +2,7 @@ name: Sync Disaster Ticker
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -17,22 +17,29 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Create CI Env File
-        run: |
-          echo "SAFETYDATA_SERVICE_KEY_WEATHER=${{ secrets.SAFETYDATA_SERVICE_KEY_WEATHER }}" >> .env.disaster-ticker.ci
-          echo "SAFETYDATA_SERVICE_KEY_FOREST=${{ secrets.SAFETYDATA_SERVICE_KEY_FOREST }}" >> .env.disaster-ticker.ci
-          echo "SAFETYDATA_SERVICE_KEY_DISASTER=${{ secrets.SAFETYDATA_SERVICE_KEY_DISASTER }}" >> .env.disaster-ticker.ci
-          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env.disaster-ticker.ci
-          echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env.disaster-ticker.ci
+      - name: Prepare disaster ticker credentials
+        env:
+          DISASTER_TICKER_DOTENV: ${{ secrets.DISASTER_TICKER_DOTENV }}
+          SAFETYDATA_SERVICE_KEY_WEATHER: ${{ secrets.SAFETYDATA_SERVICE_KEY_WEATHER }}
+          SAFETYDATA_SERVICE_KEY_FOREST: ${{ secrets.SAFETYDATA_SERVICE_KEY_FOREST }}
+          SAFETYDATA_SERVICE_KEY_DISASTER: ${{ secrets.SAFETYDATA_SERVICE_KEY_DISASTER }}
+          SAFETYDATA_SERVICE_KEY: ${{ secrets.SAFETYDATA_SERVICE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/ci/prepare-disaster-ticker-env.mjs
 
       - name: Dry-run disaster ticker APIs
-        run: node --env-file=.env.disaster-ticker.ci scripts/sync-disaster-ticker.mjs --dry-run
+        env:
+          DISASTER_TICKER_DOTENV: ${{ secrets.DISASTER_TICKER_DOTENV }}
+        run: node scripts/sync-disaster-ticker.mjs --dry-run
 
       - name: Sync disaster ticker cache to Supabase
-        run: node --env-file=.env.disaster-ticker.ci scripts/sync-disaster-ticker.mjs
+        env:
+          DISASTER_TICKER_DOTENV: ${{ secrets.DISASTER_TICKER_DOTENV }}
+        run: node scripts/sync-disaster-ticker.mjs

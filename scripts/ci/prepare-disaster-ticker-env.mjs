@@ -34,10 +34,14 @@ function maskKey(key) {
 function applyEnvLine(line, store) {
   const trimmed = line.trim();
   if (!trimmed || trimmed.startsWith('#')) return;
-  const eq = trimmed.indexOf('=');
+  let content = trimmed;
+  if (content.startsWith('export ')) {
+    content = content.slice('export '.length).trim();
+  }
+  const eq = content.indexOf('=');
   if (eq <= 0) return;
-  const key = trimmed.slice(0, eq).trim();
-  let value = trimmed.slice(eq + 1).trim();
+  const key = content.slice(0, eq).trim().replace(/^\uFEFF/, '');
+  let value = content.slice(eq + 1).trim();
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
     (value.startsWith("'") && value.endsWith("'"))
@@ -52,6 +56,11 @@ function applyEnvLine(line, store) {
   if (key && value && !store[key]?.trim()) {
     store[key] = value;
   }
+}
+
+function formatEnvLine(key, value) {
+  const escaped = value.replace(/'/g, `'\\''`);
+  return `${key}='${escaped}'`;
 }
 
 function collectEnv() {
@@ -110,7 +119,9 @@ function main() {
     return;
   }
 
-  const lines = Object.entries(store).map(([key, value]) => `${key}=${value}`);
+  const lines = Object.entries(store)
+    .filter(([, value]) => value?.trim())
+    .map(([key, value]) => formatEnvLine(key, value.trim()));
   writeFileSync(OUTPUT, `${lines.join('\n')}\n`, 'utf8');
   log(`Wrote ${OUTPUT} (${lines.length} keys)`);
 }
