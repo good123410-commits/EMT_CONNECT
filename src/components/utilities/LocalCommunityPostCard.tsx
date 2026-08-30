@@ -1,5 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Alert, Text, View } from 'react-native';
+import { BlockableAuthorLabel } from '@/components/community/BlockableAuthorLabel';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
 import { useAppTheme } from '@/contexts/AppThemeContext';
 import {
@@ -11,9 +12,10 @@ import { formatRemainingTtl, REPORT_BLIND_THRESHOLD } from '@/utils/localCommuni
 type LocalCommunityPostCardProps = {
   post: LocalCommunityPost;
   onReport: (postId: string) => Promise<{ alreadyReported: boolean; blinded: boolean }>;
+  onAuthorBlocked?: () => void;
 };
 
-export function LocalCommunityPostCard({ post, onReport }: LocalCommunityPostCardProps) {
+export function LocalCommunityPostCard({ post, onReport, onAuthorBlocked }: LocalCommunityPostCardProps) {
   const { colors } = useAppTheme();
 
   const handleReport = () => {
@@ -60,9 +62,7 @@ export function LocalCommunityPostCard({ post, onReport }: LocalCommunityPostCar
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-row flex-1 items-center">
-          <Text className="text-xs font-bold" style={{ color: colors.textPrimary }}>
-            {post.anonymousLabel}
-          </Text>
+          <BlockableAuthorLabel label={post.anonymousLabel} authorId={post.authorId} onBlocked={onAuthorBlocked} />
           <View
             className="mx-2 h-3 w-px"
             style={{ backgroundColor: colors.border }}

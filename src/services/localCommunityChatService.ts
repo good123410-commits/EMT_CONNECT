@@ -77,16 +77,38 @@ function mapMessageRow(row: LocalCommunityMessageRow): LocalCommunityMessage {
     roomId: row.room_id,
     content: row.content,
     anonymousLabel: row.anonymous_label,
+    authorId: row.author_id,
     createdAt: row.created_at,
     reportCount: row.report_count,
     isBlinded: row.is_blinded,
   };
 }
 
+function isMissingRpcError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('could not find the function') ||
+    normalized.includes('pgrst202') ||
+    normalized.includes('schema cache')
+  );
+}
+
 function parseServiceError(error: { message?: string; code?: string }): string {
   const message = error.message ?? '요청을 처리하지 못했습니다.';
   if (message.includes('message_not_found_or_hidden')) {
     return '메시지를 찾을 수 없거나 이미 숨김 처리되었습니다.';
+  }
+  if (message.includes('message_not_found')) {
+    return '메시지를 찾을 수 없습니다.';
+  }
+  if (message.includes('not_authorized')) {
+    return '메시지를 삭제할 권한이 없습니다.';
+  }
+  if (message.includes('not_authenticated')) {
+    return '로그인이 필요합니다.';
+  }
+  if (message.includes('row-level security')) {
+    return '메시지를 삭제할 권한이 없습니다.';
   }
   return message;
 }
@@ -212,15 +234,20 @@ export async function createLocalCommunityRoom(input: {
 export async function sendLocalCommunityMessage(input: {
   roomId: string;
   content: string;
+  authorId?: string | null;
 }): Promise<LocalCommunityMessage> {
   const trimmed = input.content.trim();
   if (!trimmed) {
     throw new LocalCommunityChatServiceError('메시지를 입력해 주세요.');
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let authorId = input.authorId ?? null;
+  if (authorId === null && input.authorId === undefined) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    authorId = user?.id ?? null;
+  }
 
   const { data, error } = await supabase
     .from(LOCAL_COMMUNITY_MESSAGES_TABLE)
@@ -228,7 +255,7 @@ export async function sendLocalCommunityMessage(input: {
       room_id: input.roomId,
       content: trimmed,
       anonymous_label: generateAnonymousLabel(),
-      author_id: user?.id ?? null,
+      author_id: authorId,
     })
     .select('*')
     .single();
@@ -263,6 +290,40 @@ export async function reportLocalCommunityMessage(messageId: string): Promise<{
   await saveReportedMessageId(messageId);
 
   return { alreadyReported: false, blinded };
+}
+
+export async function deleteLocalCommunityMessage(messageId: string): Promise<void> {
+  const trimmedId = messageId.trim();
+  if (!trimmedId) {
+    throw new LocalCommunityChatServiceError('메시지를 찾을 수 없습니다.');
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user) {
+    throw new LocalCommunityChatServiceError('로그인이 필요합니다.');
+  }
+
+  const { error: rpcError } = await supabase.rpc('delete_local_community_message', {
+    p_message_id: trimmedId,
+  });
+
+  if (!rpcError) return;
+
+  const rpcMessage = rpcError.message ?? '';
+  if (!isMissingRpcError(rpcMessage)) {
+    throw new LocalCommunityChatServiceError(parseServiceError(rpcError));
+  }
+
+  const { data, error } = await supabase
+    .from(LOCAL_COMMUNITY_MESSAGES_TABLE)
+    .update({ is_blinded: true })
+    .eq('id', trimmedId);
+
+  if (error) {
+    throw new LocalCommunityChatServiceError(parseServiceError(error));
+  }
 }
 
 export function subscribeLocalCommunityRoomList(

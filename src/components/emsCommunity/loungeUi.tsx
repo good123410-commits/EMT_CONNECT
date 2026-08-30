@@ -1,14 +1,17 @@
 import type { ReactNode } from 'react';
 import { useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Animated, Platform, ScrollView, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, Alert, Animated, Platform, ScrollView, Text, View, type ViewStyle } from 'react-native';
 import { ShortcodeTextInput } from '@/components/content/ShortcodeTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EMS_LOUNGE_SHADOW, EMS_LOUNGE_SPACING, useEmsLoungeTheme } from '@/constants/emsLoungeTheme';
 import { DRAGGABLE_FAB_SIZE } from '@/constants/fabLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { getExpertTabBarMetrics } from '@/navigation/expertTabBarOptions';
 import { useParamedicTabLayout } from '@/navigation/paramedicTabLayout';
 import { useShowGlobalMoreFab } from '@/hooks/useRootRoute';
+import { confirmBlockUser } from '@/utils/userBlockPrompt';
 
 export function LoungeScreen({ children }: { children: ReactNode }) {
   const { lounge } = useEmsLoungeTheme();
@@ -109,10 +112,20 @@ export function LoungeCard({
   );
 }
 
-export function LoungeAnonymousBadge({ label }: { label: string }) {
+export function LoungeAnonymousBadge({
+  label,
+  authorId,
+  onBlocked,
+}: {
+  label: string;
+  authorId?: string | null;
+  onBlocked?: () => void;
+}) {
   const { lounge } = useEmsLoungeTheme();
+  const { user } = useAuth();
+  const { blockAuthor, isSelf } = useBlockedUsers();
 
-  return (
+  const badge = (
     <View
       style={{
         backgroundColor: lounge.accentMuted,
@@ -133,6 +146,27 @@ export function LoungeAnonymousBadge({ label }: { label: string }) {
         {label}
       </Text>
     </View>
+  );
+
+  const handlePress = () => {
+    if (!user) {
+      Alert.alert('로그인 필요', '유저 차단은 로그인 후 이용할 수 있습니다.');
+      return;
+    }
+    if (isSelf(authorId)) {
+      return;
+    }
+
+    confirmBlockUser({ authorId, anonymousLabel: label }, async (input) => {
+      await blockAuthor(input);
+      onBlocked?.();
+    });
+  };
+
+  return (
+    <Pressable accessibilityRole="button" onPress={handlePress} hitSlop={6}>
+      {badge}
+    </Pressable>
   );
 }
 
@@ -653,20 +687,23 @@ export function LoungeFab({
   accessibilityLabel = '글쓰기',
   avoidGlobalMoreFab = false,
   icon = 'add',
+  nestedAboveMainTabBar,
 }: {
   onPress: () => void;
   accessibilityLabel?: string;
   /** 글로벌 더보기 FAB와 겹치지 않도록 왼쪽으로 밀기 */
   avoidGlobalMoreFab?: boolean;
   icon?: 'add' | 'create-outline';
+  /** 미지정 시 ParamedicTabLayout 컨텍스트 값 사용 */
+  nestedAboveMainTabBar?: boolean;
 }) {
   const { lounge } = useEmsLoungeTheme();
   const insets = useSafeAreaInsets();
-  const { nestedAboveMainTabBar } = useParamedicTabLayout();
+  const { nestedAboveMainTabBar: nestedFromContext } = useParamedicTabLayout();
   const showGlobalMoreFab = useShowGlobalMoreFab();
   const metrics = getExpertTabBarMetrics(insets.bottom, {
     compact: false,
-    nestedAboveMainTabBar,
+    nestedAboveMainTabBar: nestedAboveMainTabBar ?? nestedFromContext,
   });
 
   const rightOffset =

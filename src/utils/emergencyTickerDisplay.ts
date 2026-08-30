@@ -30,6 +30,15 @@ function resolveSourceMeta(sourceType: EmergencyTickerSource) {
   return { label: '알림', color: '#F8FAFC' };
 }
 
+export function compareEmergencyTickerItems(
+  left: EmergencyTickerItem,
+  right: EmergencyTickerItem,
+): number {
+  if (left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder;
+  if (left.priority !== right.priority) return left.priority - right.priority;
+  return left.message.localeCompare(right.message);
+}
+
 export function isJunkTickerMessage(message: string): boolean {
   const text = message.replace(/\s+/g, ' ').trim();
   if (!text) return true;
@@ -97,10 +106,11 @@ export function buildTickerDisplaySegments(items: unknown): TickerDisplaySegment
       if (seen.has(dedupeKey)) return null;
       seen.add(dedupeKey);
 
-      const text = `(${meta.label}) ${body}`;
+      const showLabel = item.sourceType !== 'admin';
+      const text = showLabel ? `(${meta.label}) ${body}` : body;
       return {
         sourceType: item.sourceType,
-        label: meta.label,
+        label: showLabel ? meta.label : '',
         color: meta.color,
         body,
         text,

@@ -38,6 +38,7 @@ function mapRow(row: LocalCommunityPostRow): LocalCommunityPost {
     category: row.category,
     content: row.content,
     anonymousLabel: row.anonymous_label,
+    authorId: row.author_id,
     createdAt: row.created_at,
     expiresAt: row.expires_at,
     reportCount: row.report_count,
@@ -162,6 +163,16 @@ export async function reportLocalCommunityPost(postId: string): Promise<{
   await saveReportedPostId(postId);
 
   return { alreadyReported: false, blinded };
+}
+
+export async function deleteLocalCommunityPost(postId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_local_community_post', {
+    p_post_id: postId,
+  });
+
+  if (error) {
+    throw new LocalCommunityServiceError(parseServiceError(error));
+  }
 }
 
 export function filterVisiblePosts(

@@ -8,7 +8,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { BedAvailabilityBar } from '@/components/ErDashboard';
 import { EmptyState } from '@/components/EmptyState';
 import { SearchBar } from '@/components/SearchBar';
 import { ErDutyContactButtons, ErHospitalSpecsPanel } from '@/components/facility/ErHospitalSpecsPanel';
@@ -29,7 +28,6 @@ import { HospitalWeeklyHours } from '@/components/facility/HospitalWeeklyHours';
 import { MoonlightHospitalBadge } from '@/components/facility/MoonlightHospitalBadge';
 import {
   MedicalDetailBody,
-  MedicalDetailCard,
   MedicalDetailInfoTile,
   MedicalDetailLocationHeader,
   MedicalDetailSectionTitle,
@@ -46,14 +44,11 @@ import {
   useFacilityMarkersQuery,
 } from '@/hooks/useFacilityMarkersQuery';
 import { warmAedSearchIndex } from '@/services/localAedStore';
-import { ER_STATUS_COLORS, ER_STATUS_LABELS } from '@/mockData/aedAndEmergency';
 import { MEDICAL_DETAIL } from '@/constants/medicalDetailTheme';
 import {
   EmergencyApiError,
-  formatCount,
   formatEmergencyUpdatedAt,
   isMoonlightChildrenHospital,
-  safeErStatus,
   type HospitalDetail,
 } from '@/services/emergencyApi';
 
@@ -990,8 +985,6 @@ function ErMarkerCard({
   onDistanceUnitModeChange: (mode: DistanceUnitMode) => void;
   onPress: () => void;
 }) {
-  const status = safeErStatus(place.status);
-  const availableErBeds = Number.isFinite(place.availableErBeds) ? place.availableErBeds : 0;
   const isMoonlight = isMoonlightChildrenHospital(place.n);
   const todayCode = getTreatmentDayCode();
   const todaySchedule = place.weeklySchedule?.find((day) => day.dayCode === todayCode) ?? null;
@@ -1028,22 +1021,12 @@ function ErMarkerCard({
       <MedicalFacilityListTitleRow
         title={place.n || '병원'}
         trailing={
-          <>
-            {place.openStatusLabel !== '확인 필요' ? (
-              <MedicalFacilityStatusPill
-                label={place.openStatusLabel}
-                tone={place.isOpenNow ? 'open' : 'closed'}
-              />
-            ) : null}
-            <View
-              className="rounded-full px-3 py-1"
-              style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
-            >
-              <Text className="text-xs font-bold" style={{ color: ER_STATUS_COLORS[status] }}>
-                {place.liveSynced ? ER_STATUS_LABELS[status] : '확인중'}
-              </Text>
-            </View>
-          </>
+          place.openStatusLabel !== '확인 필요' ? (
+            <MedicalFacilityStatusPill
+              label={place.openStatusLabel}
+              tone={place.isOpenNow ? 'open' : 'closed'}
+            />
+          ) : null
         }
       />
 
@@ -1066,9 +1049,6 @@ function ErMarkerCard({
         </Text>
       ) : null}
 
-      <View className="mt-3">
-        <BedAvailabilityBar available={availableErBeds} status={status} />
-      </View>
       {place.specs || getHospitalErOverride(place.i) ? (
         <ErHospitalSpecsPanel
           specs={mergeSpecsWithErOverride(place.specs, getHospitalErOverride(place.i))}
@@ -1081,14 +1061,7 @@ function ErMarkerCard({
         walkMin={place.walkMin}
         distanceUnitMode={distanceUnitMode}
         onDistanceUnitModeChange={onDistanceUnitModeChange}
-        hint="탭하여 주소·전화·상세 병상 확인"
-        trailing={
-          place.availablePediatricErBeds > 0 ? (
-            <Text className="text-xs font-semibold text-pink-300">
-              소아 {place.availablePediatricErBeds}병상
-            </Text>
-          ) : null
-        }
+        hint="탭하여 주소·전화·상세 정보 확인"
       />
     </MedicalFacilityListCard>
   );
@@ -1166,15 +1139,6 @@ function ErLocalDetailContent({
     };
   }, [place.i, liveApiRegion.stage1, liveApiRegion.stage2, liveApiRegion.label]);
 
-  const status = safeErStatus(detail?.status ?? place.status);
-  const availableErBeds = Number.isFinite(detail?.availableErBeds ?? place.availableErBeds)
-    ? (detail?.availableErBeds ?? place.availableErBeds)
-    : 0;
-  const availablePediatricBeds = Number.isFinite(
-    detail?.availablePediatricErBeds ?? place.availablePediatricErBeds,
-  )
-    ? (detail?.availablePediatricErBeds ?? place.availablePediatricErBeds)
-    : 0;
   const phone = (detail?.phone || place.p)?.trim();
   const erPhone = (detail?.erPhone || detail?.erDoctorPhone || place.p)?.trim();
   const callPhone =
@@ -1192,19 +1156,6 @@ function ErLocalDetailContent({
     }
     return mergeSpecsWithErOverride(place.specs, erOverride);
   })();
-
-  const bedRows = detail
-    ? [
-        { label: '응급실', value: detail.availableErBeds },
-        { label: '소아응급', value: detail.availablePediatricErBeds },
-        { label: '수술실', value: detail.availableSurgeryBeds },
-        { label: '신경중환자', value: detail.availableNeuroIcuBeds },
-        { label: '신생아중환자', value: detail.availableNeonatalIcuBeds },
-        { label: '흉부중환자', value: detail.availableChestIcuBeds },
-        { label: '일반중환자', value: detail.availableGeneralIcuBeds },
-        { label: '입원실', value: detail.availableInpatientBeds },
-      ].filter((row) => row.value > 0 || row.label === '응급실' || row.label === '소아응급')
-    : [];
 
   const hospitalName = detail?.hospitalName || place.n || '병원';
   const hospitalAddress = detail?.address?.trim() || place.a?.trim() || '주소 정보 없음';
@@ -1282,7 +1233,7 @@ function ErLocalDetailContent({
       {detailLoading ? (
         <View className="mb-3 items-center py-4">
           <ActivityIndicator size="small" color={MEDICAL_DETAIL.textMuted} />
-          <MedicalDetailText variant="muted">실시간 병상·기관 정보 불러오는 중...</MedicalDetailText>
+          <MedicalDetailText variant="muted">실시간 기관 정보 불러오는 중...</MedicalDetailText>
         </View>
       ) : null}
 
@@ -1323,42 +1274,6 @@ function ErLocalDetailContent({
         <View className="mt-4">
           <MedicalDetailSectionTitle>요일별 진료시간</MedicalDetailSectionTitle>
           <HospitalWeeklyHours schedule={weeklySchedule} appearance="light" />
-        </View>
-      ) : null}
-
-      <View className="mt-4 flex-row items-center justify-between">
-        <MedicalDetailText variant="title">응급실 병상</MedicalDetailText>
-        <View
-          className="rounded-full px-3 py-1"
-          style={{ backgroundColor: `${ER_STATUS_COLORS[status]}18` }}
-        >
-          <Text className="text-xs font-bold" style={{ color: ER_STATUS_COLORS[status] }}>
-            {place.liveSynced || detail ? ER_STATUS_LABELS[status] : '확인중'}
-          </Text>
-        </View>
-      </View>
-
-      <View className="mt-2">
-        <BedAvailabilityBar available={availableErBeds} status={status} />
-      </View>
-
-      {bedRows.length > 0 ? (
-        <MedicalDetailCard>
-          <MedicalDetailSectionTitle>가용 병상 현황</MedicalDetailSectionTitle>
-          {bedRows.map((row) => (
-            <View key={row.label} className="flex-row items-center justify-between py-1">
-              <MedicalDetailText variant="secondary">{row.label}</MedicalDetailText>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: MEDICAL_DETAIL.text }}>
-                {row.value}병상
-              </Text>
-            </View>
-          ))}
-        </MedicalDetailCard>
-      ) : availablePediatricBeds > 0 ? (
-        <View className="mt-2 rounded-lg bg-pink-50 px-3 py-2">
-          <Text className="text-xs font-semibold text-pink-700">
-            소아 응급 가용 병상: {formatCount(availablePediatricBeds, '0')}병상
-          </Text>
         </View>
       ) : null}
 

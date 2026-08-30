@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ActivityIndicator, FlatList, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
+import { BlockableAuthorLabel } from '@/components/community/BlockableAuthorLabel';
 import { RichContentRenderer } from '@/components/content/RichContentRenderer';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { supabase } from '@/lib/supabaseClient';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import type { BambooMessage, CaseStudyPost } from '@/data/paramedicMockData';
@@ -17,9 +19,11 @@ type BrowsePost =
 function BrowsePostCard({
   item,
   onPress,
+  onAuthorBlocked,
 }: {
   item: BrowsePost;
   onPress: (item: BrowsePost) => void;
+  onAuthorBlocked?: () => void;
 }) {
   const title =
     item.kind === 'case_study'
@@ -54,9 +58,15 @@ function BrowsePostCard({
       <Text className="mt-1 text-sm leading-6 text-kemix-text-secondary" numberOfLines={2}>
         {summary}
       </Text>
-      <Text className="mt-2 text-xs text-kemix-muted">
-        {item.post.anonymousLabel} · {item.post.postedAt}
-      </Text>
+      <View className="mt-2 flex-row items-center">
+        <BlockableAuthorLabel
+          label={item.post.anonymousLabel}
+          authorId={item.kind === 'case_study' ? item.post.authorId : item.post.authorId}
+          textClassName="text-xs text-kemix-muted"
+          onBlocked={onAuthorBlocked}
+        />
+        <Text className="text-xs text-kemix-muted"> · {item.post.postedAt}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -64,9 +74,11 @@ function BrowsePostCard({
 function BrowsePostDetail({
   item,
   onBack,
+  onAuthorBlocked,
 }: {
   item: BrowsePost;
   onBack: () => void;
+  onAuthorBlocked?: () => void;
 }) {
   useHardwareBackHandler(onBack, true);
 
@@ -90,9 +102,15 @@ function BrowsePostDetail({
           ) : (
             <RichContentRenderer content={item.post.content} />
           )}
-          <Text className="mt-4 text-xs text-kemix-muted">
-            {item.post.anonymousLabel} · {item.post.postedAt}
-          </Text>
+          <View className="mt-4 flex-row items-center">
+            <BlockableAuthorLabel
+              label={item.post.anonymousLabel}
+              authorId={item.kind === 'case_study' ? item.post.authorId : item.post.authorId}
+              textClassName="text-xs text-kemix-muted"
+              onBlocked={onAuthorBlocked}
+            />
+            <Text className="text-xs text-kemix-muted"> · {item.post.postedAt}</Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -110,6 +128,19 @@ export function EmsCommunityBrowseScreen() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginIntent, setLoginIntent] = useState<'question-write' | 'community-write'>(
     'question-write',
+  );
+  const { filterBlocked, reload: reloadBlockedUsers, isBlocked } = useBlockedUsers();
+
+  const visiblePosts = useMemo(
+    () =>
+      posts.filter(
+        (item) =>
+          !isBlocked({
+            authorId: item.post.authorId,
+            anonymousLabel: item.post.anonymousLabel,
+          }),
+      ),
+    [isBlocked, posts],
   );
 
   const loadFeed = useCallback(async () => {
@@ -175,7 +206,17 @@ export function EmsCommunityBrowseScreen() {
   );
 
   if (selected) {
-    return <BrowsePostDetail item={selected} onBack={() => setSelected(null)} />;
+    return (
+      <BrowsePostDetail
+        item={selected}
+        onBack={() => setSelected(null)}
+        onAuthorBlocked={() => {
+          void reloadBlockedUsers();
+          void loadFeed();
+          setSelected(null);
+        }}
+      />
+    );
   }
 
   return (
@@ -206,10 +247,17 @@ export function EmsCommunityBrowseScreen() {
 
         {!loading ? (
           <FlatList
-            data={posts}
+            data={visiblePosts}
             keyExtractor={(item) => `${item.kind}-${item.post.id}`}
             renderItem={({ item }) => (
-              <BrowsePostCard item={item} onPress={setSelected} />
+              <BrowsePostCard
+                item={item}
+                onPress={setSelected}
+                onAuthorBlocked={() => {
+                  void reloadBlockedUsers();
+                  void loadFeed();
+                }}
+              />
             )}
             ListEmptyComponent={
               <View className="items-center rounded-2xl border border-dashed border-kemix-border bg-kemix-surface py-16">

@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ActivityIndicator, Alert, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Alert, FlatList, Image, Modal, Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { SearchBar } from '@/components/SearchBar';
+import { LoungeFab } from '@/components/emsCommunity/loungeUi';
 import { GuideCategoryManageModal } from '@/components/guides/GuideCategoryManageModal';
 import { GuideCommentsSection } from '@/components/guides/GuideCommentsSection';
 import { GuideContentGate } from '@/components/guides/GuideContentGate';
@@ -17,6 +18,7 @@ import {
   DEFAULT_GUIDE_FONT_SIZE,
 } from '@/constants/guideFonts';
 import { useUserRole } from '@/contexts/UserRoleContext';
+import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import { useKemiGuideEngagement } from '@/hooks/useKemiGuideEngagement';
 import { useKemiGuides } from '@/hooks/useKemiGuides';
@@ -37,6 +39,7 @@ import { parseGuideContent } from '@/utils/guideContentFormat';
 
 export function KemiGuideSection() {
   const insets = useSafeAreaInsets();
+  const fabBottomInset = useGlobalFabBottomInset();
   const { isGuideAdmin } = useUserRole();
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
@@ -224,7 +227,9 @@ export function KemiGuideSection() {
               data={guides}
               keyExtractor={(item) => item.id}
               contentContainerClassName="px-4 pb-4"
-              contentContainerStyle={{ paddingBottom: isGuideAdmin ? insets.bottom + 88 : insets.bottom + 16 }}
+              contentContainerStyle={{
+                paddingBottom: isGuideAdmin ? fabBottomInset : insets.bottom + 16,
+              }}
               ListEmptyComponent={
                 <EmptyState
                   message="가이드가 없습니다"
@@ -238,14 +243,13 @@ export function KemiGuideSection() {
           )}
 
           {isGuideAdmin ? (
-            <Pressable
-              accessibilityLabel="가이드 글쓰기"
-              style={[fabStyles.button, { bottom: insets.bottom + 16 }]}
+            <LoungeFab
               onPress={openCreateModal}
-            >
-              <Text style={fabStyles.label}>📝</Text>
-              <Text style={fabStyles.caption}>글쓰기</Text>
-            </Pressable>
+              accessibilityLabel="가이드 글쓰기"
+              icon="create-outline"
+              avoidGlobalMoreFab
+              nestedAboveMainTabBar={false}
+            />
           ) : null}
         </View>
       )}
@@ -556,30 +560,3 @@ function GuideDetailView({
     </View>
   );
 }
-
-const fabStyles = StyleSheet.create({
-  button: {
-    position: 'absolute',
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 999,
-    backgroundColor: '#047857',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  label: {
-    fontSize: 16,
-  },
-  caption: {
-    marginLeft: 6,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-});

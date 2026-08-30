@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Pressable, ActivityIndicator, Alert, FlatList, Modal, Text, View } from 'react-native';
 
@@ -59,6 +59,7 @@ import {
 import type { CaseStudyPost } from '@/data/paramedicMockData';
 import { isPostLiked } from '@/utils/communityPostLike';
 
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { consumeAuthIntent } from '@/utils/authIntent';
 import { confirmDestructiveAction } from '@/utils/confirmDestructiveAction';
 import { isPostAuthor } from '@/utils/communityPostAccess';
@@ -75,6 +76,8 @@ function CaseStudyCard({
 
   onOpen,
 
+  onAuthorBlocked,
+
 }: {
 
   post: CaseStudyPost;
@@ -82,6 +85,8 @@ function CaseStudyCard({
   onLike: (post: CaseStudyPost) => void;
 
   onOpen: (post: CaseStudyPost) => void;
+
+  onAuthorBlocked?: () => void;
 
 }) {
 
@@ -123,7 +128,11 @@ function CaseStudyCard({
 
             <View className="mt-2 flex-row items-center gap-2">
 
-              <LoungeAnonymousBadge label={post.anonymousLabel} />
+              <LoungeAnonymousBadge
+                label={post.anonymousLabel}
+                authorId={post.authorId}
+                onBlocked={onAuthorBlocked}
+              />
 
               <LoungeMetaText>{post.postedAt}</LoungeMetaText>
 
@@ -201,6 +210,20 @@ export function EmsCaseStudyScreen() {
     sort: bestSortActive ? 'popular' : 'latest',
   });
 
+  const { isBlocked, reload: reloadBlockedUsers } = useBlockedUsers();
+
+  const visibleCaseStudies = useMemo(
+    () =>
+      caseStudies.filter(
+        (post) =>
+          !isBlocked({
+            authorId: post.authorId,
+            anonymousLabel: post.anonymousLabel,
+          }),
+      ),
+    [caseStudies, isBlocked],
+  );
+
   const error = listError ?? feedError;
 
   const { listRef, scrollToTop } = useCommunityListScrollToTop<CaseStudyPost>();
@@ -223,6 +246,12 @@ export function EmsCaseStudyScreen() {
   const [permissionOpen, setPermissionOpen] = useState(false);
 
   const [selected, setSelected] = useState<CaseStudyPost | null>(null);
+
+  const handleAuthorBlocked = useCallback(() => {
+    void reloadBlockedUsers();
+    void refreshList();
+    setSelected(null);
+  }, [refreshList, reloadBlockedUsers]);
 
   const patchPostEverywhere = useCallback(
     (id: string, updater: (prev: CaseStudyPost) => CaseStudyPost) => {
@@ -529,7 +558,11 @@ export function EmsCaseStudyScreen() {
 
             <View className="mt-2 flex-row flex-wrap items-center gap-2">
 
-              <LoungeAnonymousBadge label={selected.anonymousLabel} />
+              <LoungeAnonymousBadge
+                label={selected.anonymousLabel}
+                authorId={selected.authorId}
+                onBlocked={handleAuthorBlocked}
+              />
 
               <LoungeMetaText>{selected.postedAt}</LoungeMetaText>
 
@@ -588,7 +621,7 @@ export function EmsCaseStudyScreen() {
 
       <ParamedicHeader />
 
-      {loading && caseStudies.length === 0 ? (
+      {loading && visibleCaseStudies.length === 0 ? (
 
         <View className="flex-1 items-center justify-center py-16">
 
@@ -604,7 +637,7 @@ export function EmsCaseStudyScreen() {
 
           ref={listRef}
 
-          data={caseStudies}
+          data={visibleCaseStudies}
 
           extraData={`${currentPage}-${bestSortActive}`}
 
@@ -649,7 +682,12 @@ export function EmsCaseStudyScreen() {
 
           renderItem={({ item }) => (
 
-            <CaseStudyCard post={item} onLike={handleLike} onOpen={setSelected} />
+            <CaseStudyCard
+              post={item}
+              onLike={handleLike}
+              onOpen={setSelected}
+              onAuthorBlocked={handleAuthorBlocked}
+            />
 
           )}
 

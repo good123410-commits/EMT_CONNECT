@@ -14,6 +14,8 @@ export type RichContentRendererProps = {
   variant?: 'default' | 'guide';
   tone?: RichTextTone;
   emptyMessage?: string;
+  /** true면 텍스트 터치를 부모로 전달 (채팅 말풍선 롱프레스 등) */
+  disableTextInteraction?: boolean;
 };
 
 export function RichContentRenderer({
@@ -21,6 +23,7 @@ export function RichContentRenderer({
   variant = 'default',
   tone = 'default',
   emptyMessage = '본문이 없습니다.',
+  disableTextInteraction = false,
 }: RichContentRendererProps) {
   const { shortcodes } = useShortcodeRegistry();
   const segments = useMemo(() => {
@@ -61,7 +64,12 @@ export function RichContentRenderer({
 
         return (
           <Fragment key={`text-${index}`}>
-            <RichTextSegment value={segment.value} variant={variant} tone={tone} />
+            <RichTextSegment
+              value={segment.value}
+              variant={variant}
+              tone={tone}
+              disableTextInteraction={disableTextInteraction}
+            />
           </Fragment>
         );
       })}

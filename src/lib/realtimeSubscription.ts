@@ -167,6 +167,22 @@ export function subscribeHomeEmergencyNotices(onChange: ChangeListener): () => v
       schema: 'public',
       table: 'kemix_disaster_ticker_cache',
     },
+    {
+      event: '*',
+      schema: 'public',
+      table: 'kemix_emergency_ticker_item_settings',
+    },
+  ]);
+  return subscribe(onChange);
+}
+
+export function subscribeChatMessageReactions(onChange: ChangeListener): () => void {
+  const subscribe = createPostgresChangeSubscription('kemix_chat_message_reactions_live', [
+    {
+      event: '*',
+      schema: 'public',
+      table: 'kemix_chat_message_reactions',
+    },
   ]);
   return subscribe(onChange);
 }

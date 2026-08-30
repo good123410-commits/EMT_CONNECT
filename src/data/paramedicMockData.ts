@@ -3,6 +3,7 @@ import type { CommunityReaction } from '@/types/community';
 export type BambooMessage = {
   id: string;
   anonymousLabel: string;
+  authorId?: string | null;
   region: string;
   content: string;
   tags: string[];
@@ -28,6 +29,7 @@ export type ChatMessage = {
   id: string;
   roomId: string;
   anonymousLabel: string;
+  authorId?: string | null;
   content: string;
   postedAt: string;
   createdAt: string;

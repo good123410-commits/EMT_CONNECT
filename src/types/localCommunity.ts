@@ -10,6 +10,7 @@ export type LocalCommunityPost = {
   category: LocalCommunityCategory;
   content: string;
   anonymousLabel: string;
+  authorId?: string | null;
   createdAt: string;
   expiresAt: string;
   reportCount: number;
@@ -42,6 +43,7 @@ export type LocalCommunityMessage = {
   roomId: string;
   content: string;
   anonymousLabel: string;
+  authorId?: string | null;
   createdAt: string;
   reportCount: number;
   isBlinded: boolean;

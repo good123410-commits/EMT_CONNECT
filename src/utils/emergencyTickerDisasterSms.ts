@@ -57,6 +57,7 @@ export function extractDisasterSmsDateKey(message: string, referenceDate = new D
 
 /**
  * 재난문자는 당일(KST) 발송분만 유지합니다. admin / 기상 / 산불 항목은 그대로 유지합니다.
+ * 입력 배열의 sort_order 순서는 유지합니다.
  */
 export function applyDisasterSmsTodayFallback(
   items: EmergencyTickerItem[],
@@ -65,11 +66,10 @@ export function applyDisasterSmsTodayFallback(
   if (!Array.isArray(items) || items.length === 0) return [];
 
   const todayKey = toKstDateKey(referenceDate);
-  const nonSms = items.filter((item) => item.sourceType !== 'disaster_sms');
   const smsItems = items.filter((item) => item.sourceType === 'disaster_sms');
 
   if (smsItems.length === 0) {
-    return nonSms;
+    return items;
   }
 
   const todaySms = smsItems.filter((item) => {
@@ -81,16 +81,20 @@ export function applyDisasterSmsTodayFallback(
     (item) => extractDisasterSmsDateKey(item.message, referenceDate) == null,
   );
 
+  let allowedSms: EmergencyTickerItem[];
   if (todaySms.length > 0) {
-    const resolvedToday = mergeSmsItems(todaySms, undatedSms);
-    return [...nonSms, ...resolvedToday].sort(compareTickerItems);
+    allowedSms = mergeSmsItems(todaySms, undatedSms);
+  } else if (undatedSms.length > 0) {
+    allowedSms = undatedSms;
+  } else {
+    allowedSms = [];
   }
 
-  if (undatedSms.length > 0) {
-    return [...nonSms, ...undatedSms].sort(compareTickerItems);
-  }
+  const allowedKeys = new Set(allowedSms.map((item) => `${item.sourceType}:${item.message}`));
 
-  return nonSms;
+  return items.filter(
+    (item) => item.sourceType !== 'disaster_sms' || allowedKeys.has(`${item.sourceType}:${item.message}`),
+  );
 }
 
 function mergeSmsItems(primary: EmergencyTickerItem[], secondary: EmergencyTickerItem[]): EmergencyTickerItem[] {
@@ -105,9 +109,4 @@ function mergeSmsItems(primary: EmergencyTickerItem[], secondary: EmergencyTicke
   }
 
   return merged;
-}
-
-function compareTickerItems(left: EmergencyTickerItem, right: EmergencyTickerItem): number {
-  if (left.priority !== right.priority) return left.priority - right.priority;
-  return left.sortOrder - right.sortOrder;
 }

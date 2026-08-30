@@ -11,6 +11,8 @@ type RichTextSegmentProps = {
   value: string;
   variant?: 'default' | 'guide';
   tone?: RichTextTone;
+  /** true면 텍스트 터치를 부모(말풍선 롱프레스 등)로 전달 */
+  disableTextInteraction?: boolean;
 };
 
 function getTextClassName(tone: RichTextTone): string {
@@ -58,7 +60,12 @@ function getWebTextColor(
   return textPrimary;
 }
 
-export function RichTextSegment({ value, variant = 'default', tone = 'default' }: RichTextSegmentProps) {
+export function RichTextSegment({
+  value,
+  variant = 'default',
+  tone = 'default',
+  disableTextInteraction = false,
+}: RichTextSegmentProps) {
   const theme = useAppThemeOptional();
   const { lounge } = useEmsLoungeTheme();
   const bodyColor = theme?.colors.bodyText ?? theme?.colors.textPrimary ?? '#F3F4F6';
@@ -72,18 +79,22 @@ export function RichTextSegment({ value, variant = 'default', tone = 'default' }
 
   if (Platform.OS === 'web') {
     const isHtml = /<[a-z][\s\S]*>/i.test(trimmed);
+    const passthroughStyle = disableTextInteraction
+      ? { pointerEvents: 'none' as const, userSelect: 'none' as const }
+      : {};
+
     if (isHtml) {
       return (
         <div
           className={variant === 'guide' ? 'guide-detail-html' : 'content-detail-html'}
           dangerouslySetInnerHTML={{ __html: trimmed }}
-          style={{ lineHeight: 1.75, color: webColor, fontSize: 15 }}
+          style={{ lineHeight: 1.75, color: webColor, fontSize: 15, ...passthroughStyle }}
         />
       );
     }
 
     return (
-      <div style={{ lineHeight: 1.75, color: webColor, fontSize: 15 }}>
+      <div style={{ lineHeight: 1.75, color: webColor, fontSize: 15, ...passthroughStyle }}>
         {trimmed.split(/\n\n+/).map((block, index) => (
           <p key={index} style={{ margin: '0 0 12px' }}>
             {block}
@@ -119,7 +130,7 @@ export function RichTextSegment({ value, variant = 'default', tone = 'default' }
   const text = isHtml ? stripGuideHtml(trimmed) : trimmed;
 
   return (
-    <View>
+    <View pointerEvents={disableTextInteraction ? 'none' : 'auto'}>
       {images.map((uri) => (
         <Image
           key={uri}
@@ -129,7 +140,7 @@ export function RichTextSegment({ value, variant = 'default', tone = 'default' }
         />
       ))}
       {text.trim() ? (
-        <Text className={textClassName} style={textStyle} selectable>
+        <Text className={textClassName} style={textStyle} selectable={!disableTextInteraction}>
           {text}
         </Text>
       ) : null}

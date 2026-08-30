@@ -41,8 +41,9 @@ function TickerSegmentRow({ segments }: { segments: TickerDisplaySegment[] }) {
           key={`${segment.sourceType}-${index}-${segment.body}`}
           style={styles.segmentItem}
         >
-          <Text style={[styles.labelText, { color: segment.color }]}>({segment.label})</Text>
-          <Text style={[styles.bodyText, { color: segment.color }]}> {segment.body}</Text>
+          <Text style={[styles.bodyText, { color: segment.color }]}>
+            {segment.label ? `(${segment.label}) ${segment.body}` : segment.body}
+          </Text>
           {index < segments.length - 1 ? (
             <Text style={styles.gapText}>{SEGMENT_GAP}</Text>
           ) : null}
@@ -244,11 +245,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 0,
-  },
-  labelText: {
-    fontFamily: 'Pretendard-Bold',
-    fontSize: 13,
-    includeFontPadding: false,
   },
   bodyText: {
     fontFamily: 'Pretendard-SemiBold',

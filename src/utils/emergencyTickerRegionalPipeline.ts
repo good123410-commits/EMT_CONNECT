@@ -20,11 +20,6 @@ function hasUsableRegion(region: LocationRegion): boolean {
   return true;
 }
 
-function compareTickerItems(left: EmergencyTickerItem, right: EmergencyTickerItem): number {
-  if (left.priority !== right.priority) return left.priority - right.priority;
-  return left.sortOrder - right.sortOrder;
-}
-
 function mergeSmsItems(
   primary: EmergencyTickerItem[],
   secondary: EmergencyTickerItem[],
@@ -92,12 +87,12 @@ function resolveRegionalDisasterItems(
     resolved.push(...pickTodayItemsForSource(sourceRegional, source, referenceDate));
   }
 
-  return resolved.sort(compareTickerItems);
+  return resolved;
 }
 
 /**
  * 재난문자·기상특보·산불은 사용자 시·도(특별시/광역시) 기준 + 당일(KST)만 표시합니다.
- * 당일 재난 항목이 없으면 관리자 안내만 반환합니다.
+ * 관리자가 지정한 sort_order 순서는 유지합니다.
  */
 export function processEmergencyTickerForDisplay(
   items: EmergencyTickerItem[],
@@ -106,16 +101,19 @@ export function processEmergencyTickerForDisplay(
 ): EmergencyTickerItem[] {
   if (!Array.isArray(items) || items.length === 0) return [];
 
-  const adminItems = items.filter((item) => item.sourceType === 'admin');
-
   if (!hasUsableRegion(region)) {
-    return [...adminItems].sort(compareTickerItems);
+    return items.filter((item) => item.sourceType === 'admin');
   }
 
-  const disasterItems = resolveRegionalDisasterItems(items, region, referenceDate);
-  if (disasterItems.length === 0) {
-    return [...adminItems].sort(compareTickerItems);
-  }
+  const allowedDisasterKeys = new Set(
+    resolveRegionalDisasterItems(items, region, referenceDate).map(
+      (item) => `${item.sourceType}:${item.message}`,
+    ),
+  );
 
-  return [...adminItems, ...disasterItems].sort(compareTickerItems);
+  return items.filter((item) => {
+    if (item.sourceType === 'admin') return true;
+    if (!isDisasterSource(item.sourceType)) return true;
+    return allowedDisasterKeys.has(`${item.sourceType}:${item.message}`);
+  });
 }

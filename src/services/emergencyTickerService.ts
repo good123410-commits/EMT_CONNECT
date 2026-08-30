@@ -88,9 +88,17 @@ function mergeTickerItems(groups: EmergencyTickerItem[][]): EmergencyTickerItem[
   }
 
   return merged.sort((left, right) => {
+    if (left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder;
     if (left.priority !== right.priority) return left.priority - right.priority;
-    return left.sortOrder - right.sortOrder;
+    return left.message.localeCompare(right.message);
   });
+}
+
+function stampTickerSequence(items: EmergencyTickerItem[]): EmergencyTickerItem[] {
+  return items.map((item, index) => ({
+    ...item,
+    sortOrder: index,
+  }));
 }
 
 async function fetchViaRpc(): Promise<EmergencyTickerItem[]> {
@@ -107,9 +115,12 @@ async function fetchViaRpc(): Promise<EmergencyTickerItem[]> {
       return [];
     }
 
-    return ((data ?? []) as TickerRow[])
+    const mapped = ((data ?? []) as TickerRow[])
       .map((row) => mapTickerRow(row))
       .filter((item): item is EmergencyTickerItem => item !== null);
+
+    // RPC는 ORDER BY sort_order로 정렬된 배열을 반환 — 배열 순서를 그대로 사용합니다.
+    return stampTickerSequence(mapped);
   } catch (error) {
     if (__DEV__) {
       console.warn('[emergencyTicker] rpc exception:', error);
@@ -199,14 +210,20 @@ async function ensureDisasterSmsFallback(items: EmergencyTickerItem[]): Promise<
 
 export async function fetchActiveEmergencyTickerItems(): Promise<EmergencyTickerItem[]> {
   try {
-    const [rpcItems, adminItems, cacheItems] = await Promise.all([
-      fetchViaRpc(),
+    const rpcItems = await fetchViaRpc();
+
+    // RPC가 설정 테이블 sort_order를 반영한 단일 정렬 목록을 반환합니다.
+    if (rpcItems.length > 0) {
+      return await ensureDisasterSmsFallback(rpcItems);
+    }
+
+    const [adminItems, cacheItems] = await Promise.all([
       fetchAdminNoticesDirect(),
       fetchDisasterCacheDirect(),
     ]);
 
-    const merged = mergeTickerItems([rpcItems, adminItems, cacheItems]);
-    return await ensureDisasterSmsFallback(merged);
+    const merged = mergeTickerItems([adminItems, cacheItems]);
+    return stampTickerSequence(await ensureDisasterSmsFallback(merged));
   } catch (error) {
     if (__DEV__) {
       console.warn('[emergencyTicker] fetch failed:', error);

@@ -159,6 +159,18 @@ function parseServiceError(message: string): string {
   if (message.includes('post_not_found')) {
     return '게시글을 찾을 수 없습니다.';
   }
+  if (message.includes('message_not_found')) {
+    return '메시지를 찾을 수 없습니다.';
+  }
+  if (message.includes('not_authorized')) {
+    return '메시지를 삭제할 권한이 없습니다.';
+  }
+  if (message.includes('not_authenticated')) {
+    return '로그인이 필요합니다.';
+  }
+  if (message.includes('row-level security')) {
+    return '메시지를 삭제할 권한이 없습니다.';
+  }
   if (message.includes('relation') && message.includes('ems_community_posts')) {
     return '커뮤니티 DB가 설치되지 않았습니다. migration_v8_ems_community_posts.sql을 실행해 주세요.';
   }
@@ -172,6 +184,7 @@ export function mapRowToBamboo(row: EmsCommunityPostRow): BambooMessage {
   return {
     id: row.id,
     anonymousLabel: row.anonymous_label,
+    authorId: row.author_id,
     region: row.region ?? '전국',
     content: row.content,
     tags: normalizeTags(row.tags),
@@ -202,6 +215,7 @@ export function mapRowToChat(row: EmsCommunityPostRow): ChatMessage {
     id: row.id,
     roomId: row.room_id ?? 'all',
     anonymousLabel: row.anonymous_label,
+    authorId: row.author_id,
     content: row.content,
     postedAt: formatRelativeTimeKo(row.created_at),
     createdAt: row.created_at,
@@ -762,5 +776,71 @@ export function moderationPostTypeLabel(postType: EmsCommunityPostType): string 
       return '구인';
     default:
       return postType;
+  }
+}
+
+function isMissingRpcError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('could not find the function') ||
+    normalized.includes('pgrst202') ||
+    normalized.includes('schema cache')
+  );
+}
+
+export async function hideEmsCommunityPost(postId: string): Promise<void> {
+  const trimmedId = postId.trim();
+  if (!trimmedId) {
+    throw new EmsCommunityServiceError('게시글을 찾을 수 없습니다.');
+  }
+
+  const { error } = await supabase
+    .from(EMS_COMMUNITY_POSTS_TABLE)
+    .update({
+      is_hidden: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', trimmedId);
+
+  if (error) {
+    throw new EmsCommunityServiceError(parseServiceError(error.message));
+  }
+}
+
+export async function hideEmsChatMessage(messageId: string): Promise<void> {
+  const trimmedId = messageId.trim();
+  if (!trimmedId) {
+    throw new EmsCommunityServiceError('메시지를 찾을 수 없습니다.');
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user) {
+    throw new EmsCommunityServiceError('로그인이 필요합니다.');
+  }
+
+  const { error: rpcError } = await supabase.rpc('hide_ems_chat_message', {
+    p_message_id: trimmedId,
+  });
+
+  if (!rpcError) return;
+
+  const rpcMessage = rpcError.message ?? '';
+  if (!isMissingRpcError(rpcMessage)) {
+    throw new EmsCommunityServiceError(parseServiceError(rpcMessage));
+  }
+
+  const { error } = await supabase
+    .from(EMS_COMMUNITY_POSTS_TABLE)
+    .update({
+      is_hidden: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', trimmedId)
+    .eq('post_type', 'chat');
+
+  if (error) {
+    throw new EmsCommunityServiceError(parseServiceError(error.message));
   }
 }
