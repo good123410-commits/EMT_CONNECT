@@ -9,6 +9,7 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import type { EmergencyTickerItem } from '@/types/emergencyTicker';
 import {
   buildTickerDisplaySegments,
+  normalizeTickerItems,
   SEGMENT_GAP,
   type TickerDisplaySegment,
 } from '@/utils/emergencyTickerDisplay';
@@ -20,10 +21,14 @@ const MIN_SCROLL_DISTANCE = 320;
 const CHAR_WIDTH_ESTIMATE = 11;
 
 type HomeEmergencyTickerProps = {
-  items: EmergencyTickerItem[];
+  items?: EmergencyTickerItem[] | null | unknown;
 };
 
 function TickerSegmentRow({ segments }: { segments: TickerDisplaySegment[] }) {
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.segmentRow}>
       {segments.map((segment, index) => (
@@ -43,7 +48,7 @@ function TickerSegmentRow({ segments }: { segments: TickerDisplaySegment[] }) {
 }
 
 function buildLoopSegments(segments: TickerDisplaySegment[]): TickerDisplaySegment[] {
-  if (segments.length === 0) return segments;
+  if (!Array.isArray(segments) || segments.length === 0) return [];
 
   let loop = [...segments];
   let guard = 0;
@@ -57,12 +62,14 @@ function buildLoopSegments(segments: TickerDisplaySegment[]): TickerDisplaySegme
 }
 
 function estimateSegmentWidth(segments: TickerDisplaySegment[]): number {
+  if (!Array.isArray(segments) || segments.length === 0) return MIN_SCROLL_DISTANCE;
   const textWidth = segments.reduce((sum, segment) => sum + segment.text.length * CHAR_WIDTH_ESTIMATE, 0);
   return Math.ceil(textWidth + 40);
 }
 
 export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
-  const segments = useMemo(() => buildTickerDisplaySegments(items), [items]);
+  const safeItems = useMemo(() => normalizeTickerItems(items), [items]);
+  const segments = useMemo(() => buildTickerDisplaySegments(safeItems), [safeItems]);
   const loopSegments = useMemo(() => buildLoopSegments(segments), [segments]);
   const estimatedWidth = useMemo(() => estimateSegmentWidth(loopSegments), [loopSegments]);
   const [measuredWidth, setMeasuredWidth] = useState(0);
@@ -75,7 +82,7 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
   const resolvedLoopDistance = Math.max(measuredWidth, estimatedWidth, MIN_SCROLL_DISTANCE);
 
   const accessibilityLabel = useMemo(
-    () => segments.map((segment) => segment.text).join(' '),
+    () => (Array.isArray(segments) ? segments.map((segment) => segment.text).join(' ') : ''),
     [segments],
   );
 
@@ -125,7 +132,7 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
     setPaused(false);
   };
 
-  if (segments.length === 0) {
+  if (!Array.isArray(segments) || segments.length === 0) {
     return null;
   }
 

@@ -1,8 +1,10 @@
 import { supabase } from '@/lib/supabaseClient';
 import type { EmergencyTickerItem, EmergencyTickerSource } from '@/types/emergencyTicker';
+import { applyDisasterSmsTodayFallback } from '@/utils/emergencyTickerDisasterSms';
 
 export const EMERGENCY_NOTICES_TABLE = 'kemix_home_emergency_notices';
 const DISASTER_CACHE_TABLE = 'kemix_disaster_ticker_cache';
+const DISASTER_SMS_SOURCE = 'disaster_sms';
 
 const SOURCE_PRIORITY: Record<string, number> = {
   admin: 0,
@@ -31,6 +33,7 @@ type DisasterCacheRow = {
   source_code: string;
   messages: unknown;
   expires_at: string;
+  fetched_at?: string;
 };
 
 export class EmergencyTickerServiceError extends Error {
@@ -141,34 +144,70 @@ function parseCacheMessages(raw: unknown): string[] {
     .filter(Boolean);
 }
 
+function mapCacheRowToItems(row: DisasterCacheRow): EmergencyTickerItem[] {
+  const sourceType = normalizeSourceType(row.source_code);
+  const priority = SOURCE_PRIORITY[sourceType] ?? 400;
+  const messages = parseCacheMessages(row.messages);
+
+  return messages.map((message, index) => ({
+    message,
+    sourceType,
+    priority,
+    sortOrder: index,
+  }));
+}
+
+async function fetchDisasterCacheRows(activeOnly: boolean): Promise<DisasterCacheRow[]> {
+  let query = supabase
+    .from(DISASTER_CACHE_TABLE)
+    .select('source_code, messages, expires_at, fetched_at');
+
+  if (activeOnly) {
+    const nowIso = new Date().toISOString();
+    query = query.gt('expires_at', nowIso);
+  }
+
+  const { data, error } = await query;
+  if (error) return [];
+  return (data ?? []) as DisasterCacheRow[];
+}
+
 async function fetchDisasterCacheDirect(): Promise<EmergencyTickerItem[]> {
-  const nowIso = new Date().toISOString();
+  const rows = await fetchDisasterCacheRows(true);
+  return rows.flatMap((row) => mapCacheRowToItems(row));
+}
+
+/** 만료된 캐시에서도 재난문자 최신 배치를 가져옵니다 (오늘 데이터 없을 때 fallback) */
+async function fetchDisasterSmsStaleFallback(): Promise<EmergencyTickerItem[]> {
   const { data, error } = await supabase
     .from(DISASTER_CACHE_TABLE)
-    .select('source_code, messages, expires_at')
-    .gt('expires_at', nowIso);
+    .select('source_code, messages, expires_at, fetched_at')
+    .eq('source_code', DISASTER_SMS_SOURCE)
+    .order('fetched_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (error) {
-    return [];
+  if (error || !data) return [];
+  return mapCacheRowToItems(data as DisasterCacheRow);
+}
+
+function hasDisasterSmsItems(items: EmergencyTickerItem[]): boolean {
+  return items.some((item) => item.sourceType === DISASTER_SMS_SOURCE);
+}
+
+async function ensureDisasterSmsFallback(items: EmergencyTickerItem[]): Promise<EmergencyTickerItem[]> {
+  const withTodayLogic = applyDisasterSmsTodayFallback(items);
+  if (hasDisasterSmsItems(withTodayLogic)) {
+    return withTodayLogic;
   }
 
-  const items: EmergencyTickerItem[] = [];
-  for (const row of (data ?? []) as DisasterCacheRow[]) {
-    const sourceType = normalizeSourceType(row.source_code);
-    const priority = SOURCE_PRIORITY[sourceType] ?? 400;
-    const messages = parseCacheMessages(row.messages);
-
-    messages.forEach((message, index) => {
-      items.push({
-        message,
-        sourceType,
-        priority,
-        sortOrder: index,
-      });
-    });
+  const staleSms = await fetchDisasterSmsStaleFallback();
+  if (staleSms.length === 0) {
+    return withTodayLogic;
   }
 
-  return items;
+  const withoutSms = withTodayLogic.filter((item) => item.sourceType !== DISASTER_SMS_SOURCE);
+  return applyDisasterSmsTodayFallback(mergeTickerItems([withoutSms, staleSms]));
 }
 
 export async function fetchActiveEmergencyTickerItems(): Promise<EmergencyTickerItem[]> {
@@ -178,5 +217,6 @@ export async function fetchActiveEmergencyTickerItems(): Promise<EmergencyTicker
     fetchDisasterCacheDirect(),
   ]);
 
-  return mergeTickerItems([rpcItems, adminItems, cacheItems]);
+  const merged = mergeTickerItems([rpcItems, adminItems, cacheItems]);
+  return ensureDisasterSmsFallback(merged);
 }

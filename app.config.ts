@@ -79,8 +79,12 @@ const expoConfig: ExpoConfig = {
     eas: {
       projectId: 'a9b6166d-0e75-49b8-9438-f7e1ae573e72',
     },
-    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    // Expo Go·실기기: EXPO_PUBLIC_* 가 번들에 없을 때 manifest extra로 폴백
+    supabaseUrl:
+      process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://cdkyoeskhrwrpxgbmpqu.supabase.co',
+    supabaseAnonKey:
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+      'sb_publishable_2QyLq5Vz-bkp0gMhpPjo9w_wvgIEzMV',
     portalApiKey: process.env.EXPO_PUBLIC_PORTAL_API_KEY,
     kemixWebUrl: process.env.EXPO_PUBLIC_KEMIX_WEB_URL,
     kakaoJsKey: process.env.EXPO_PUBLIC_KAKAO_JS_KEY,

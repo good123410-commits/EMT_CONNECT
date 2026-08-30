@@ -1,7 +1,29 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/constants/env';
+import {
+  getSupabaseEnvDiagnostics,
+  SUPABASE_ANON_KEY,
+  SUPABASE_URL,
+} from '@/constants/env';
+
+if (__DEV__) {
+  const diagnostics = getSupabaseEnvDiagnostics();
+  console.log('[supabase] init', {
+    url: diagnostics.url,
+    source: diagnostics.source,
+    anonKeyLength: diagnostics.anonKeyLength,
+    rejectedLocalhost: diagnostics.rejectedLocalhost,
+  });
+  if (diagnostics.rejectedLocalhost) {
+    console.warn(
+      '[supabase] localhost/사설 IP URL은 Expo Go에서 동작하지 않습니다. EXPO_PUBLIC_SUPABASE_URL을 공인 HTTPS로 설정하세요.',
+    );
+  }
+  if (!diagnostics.anonKeyConfigured) {
+    console.warn('[supabase] EXPO_PUBLIC_SUPABASE_ANON_KEY가 비어 있습니다.');
+  }
+}
 
 /** 웹에서는 localStorage, 네이티브에서는 AsyncStorage */
 const authStorage =

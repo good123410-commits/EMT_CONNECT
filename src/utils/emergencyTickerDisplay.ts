@@ -41,6 +41,7 @@ export function isJunkTickerMessage(message: string): boolean {
 }
 
 export function sanitizeTickerMessage(message: string): string {
+  if (typeof message !== 'string') return '';
   let text = message.replace(/\s+/g, ' ').trim();
 
   text = text
@@ -53,10 +54,39 @@ export function sanitizeTickerMessage(message: string): string {
   return text;
 }
 
-export function buildTickerDisplaySegments(items: EmergencyTickerItem[]): TickerDisplaySegment[] {
+export function normalizeTickerItems(input: unknown): EmergencyTickerItem[] {
+  if (!Array.isArray(input)) return [];
+
+  const normalized: EmergencyTickerItem[] = [];
+
+  for (const entry of input) {
+    if (!entry || typeof entry !== 'object') continue;
+
+    const record = entry as Partial<EmergencyTickerItem>;
+    const message = typeof record.message === 'string' ? record.message.trim() : '';
+    if (!message) continue;
+
+    const sourceType =
+      typeof record.sourceType === 'string' && record.sourceType.trim()
+        ? record.sourceType.trim()
+        : 'admin';
+
+    normalized.push({
+      message,
+      sourceType,
+      priority: Number.isFinite(record.priority) ? Number(record.priority) : 400,
+      sortOrder: Number.isFinite(record.sortOrder) ? Number(record.sortOrder) : 0,
+    });
+  }
+
+  return normalized;
+}
+
+export function buildTickerDisplaySegments(items: unknown): TickerDisplaySegment[] {
+  const safeItems = normalizeTickerItems(items);
   const seen = new Set<string>();
 
-  return items
+  return safeItems
     .map((item) => {
       const meta = resolveSourceMeta(item.sourceType);
       const body = sanitizeTickerMessage(item.message);
@@ -79,8 +109,18 @@ export function buildTickerDisplaySegments(items: EmergencyTickerItem[]): Ticker
     .filter((segment): segment is TickerDisplaySegment => segment !== null);
 }
 
-export function joinTickerSegments(segments: TickerDisplaySegment[]): string {
-  return segments.map((segment) => segment.text).join(SEGMENT_GAP);
+export function joinTickerSegments(segments: unknown): string {
+  if (!Array.isArray(segments)) return '';
+  return segments
+    .filter((segment): segment is TickerDisplaySegment => {
+      return (
+        segment != null &&
+        typeof segment === 'object' &&
+        typeof (segment as TickerDisplaySegment).text === 'string'
+      );
+    })
+    .map((segment) => segment.text)
+    .join(SEGMENT_GAP);
 }
 
 export { SEGMENT_GAP };
