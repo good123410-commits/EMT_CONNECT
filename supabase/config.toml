@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.send-resource-email]
 verify_jwt = false
+
+[functions.sync-disaster-ticker]
+verify_jwt = false

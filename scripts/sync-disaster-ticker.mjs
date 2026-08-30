@@ -11,9 +11,14 @@
  *   SAFETYDATA_SERVICE_KEY_DISASTER
  *   (또는 공통 SAFETYDATA_SERVICE_KEY)
  *
- * 로컬 실행 (PowerShell):
- *   $env:SAFETYDATA_SERVICE_KEY_WEATHER="..."; npm run sync:disaster-ticker
- *   또는 .env 파일에 키 저장 후 npm run sync:disaster-ticker
+ * 로컬 실행 (권장 — safetydata 유치아이피 등록 PC, 예: 1.214.117.34):
+ *   npm run sync:disaster-ticker:check
+ *   npm run sync:disaster-ticker:dry-run
+ *   npm run sync:disaster-ticker
+ *   .\scripts\register-disaster-ticker-task.ps1
+ *
+ * Edge Function (선택): supabase/functions/sync-disaster-ticker
+ *   scripts/deploy-sync-disaster-ticker.ps1
  */
 import { createClient } from '@supabase/supabase-js';
 import { Agent } from 'undici';
@@ -217,17 +222,80 @@ async function resolveOutboundPublicIp() {
   return null;
 }
 
-function ipWhitelistHint(registeredIpExample = '192.168.x.x') {
+function getRegisteredIpHint() {
+  return process.env.SAFETYDATA_REGISTERED_IP?.trim() || null;
+}
+
+function isIpWhitelistApiError(message) {
+  return /SERVICE KEY IS NOT REGISTERED|NOT REGISTERED|UNREGISTERED IP|오류.?30|resultCode.?30/i.test(
+    message,
+  );
+}
+
+function ipWhitelistHint() {
+  const registered = getRegisteredIpHint();
   return [
-    'safetydata.go.kr API키의 "유치아이피"가 사설 IP(예: 192.168.10.58)로 등록된 경우',
-    '외부 호출은 공인 IP로 나가므로 인증이 거절될 수 있습니다 (오류 30).',
-    `포털 → 마이페이지 → 데이터 이용 내역 → 각 API키의 유치아이피를`,
-    '지금 PC/서버의 공인 IP로 변경하세요. (변경신청 버튼)',
-    'GitHub Actions는 IP가 매번 달라지므로, 고정 IP 서버 또는 포털 IP 정책 확인이 필요합니다.',
-    registeredIpExample ? `현재 포털 등록 예시: ${registeredIpExample}` : '',
+    'safetydata.go.kr API키의 "유치아이피"가 요청 출발 IP와 다르면 오류 30이 납니다.',
+    registered
+      ? `포털 등록 유치아이피: ${registered} (이 값을 바꿀 필요 없음 — 요청 IP가 같아야 함)`
+      : '포털 → 마이페이지 → 데이터 이용 내역 → 유치아이피를 이 PC/서버 공인 IP로 등록',
+    '사설 IP(192.168.x.x)로 등록하면 외부 API 호출이 거절됩니다.',
+    'GitHub 공용 러너(ubuntu-latest)는 IP가 매 실행마다 달라집니다 → self-hosted runner 또는 로컬 스케줄 사용',
   ]
     .filter(Boolean)
     .join('\n     ');
+}
+
+function logOutboundIpGuidance(outboundIp) {
+  const registered = getRegisteredIpHint();
+  if (!outboundIp) {
+    log('공인 IP 자동 조회 실패 — 브라우저에서 "내 아이피" 검색 후 포털 유치아이피와 비교하세요.');
+    return;
+  }
+
+  log(`현재 API 요청 공인 IP: ${outboundIp}`);
+  if (registered) {
+    log(`포털 등록 유치아이피: ${registered}`);
+    if (outboundIp === registered) {
+      log('  → IP 일치. 오류 30이면 키 승인·변경 반영 대기(10~30분)를 확인하세요.');
+    } else {
+      log(`  → IP 불일치. 포털 유치아이피를 ${outboundIp}(현재 요청 IP)로 변경신청하세요.`);
+      log('     또는 등록 IP에서 나가는 네트워크/PC에서만 이 스크립트를 실행하세요.');
+    }
+  } else {
+    log('  → safetydata 포털 "유치아이피"와 동일해야 합니다. (SAFETYDATA_REGISTERED_IP 로 등록값 기록 가능)');
+  }
+}
+
+function logIpWhitelistResolution(outboundIp, ipWhitelistFailureCount, failureCount) {
+  if (ipWhitelistFailureCount === 0 || ipWhitelistFailureCount !== failureCount) {
+    return;
+  }
+
+  const registered = getRegisteredIpHint() ?? '(포털 등록값)';
+  log('');
+  log('=== 유치아이피 불일치 (오류 30) ===');
+  log(`요청 IP: ${outboundIp ?? '알 수 없음'} / 포털 등록: ${registered}`);
+  if (outboundIp && registered !== '(포털 등록값)' && outboundIp !== registered) {
+    log(`포털 유치아이피를 ${outboundIp} 로 변경신청하거나,`);
+    log(`${registered} 에서 나가는 PC/서버에서만 동기화를 실행하세요.`);
+  } else if (outboundIp) {
+    log(`포털 유치아이피를 ${outboundIp} 로 등록(변경신청)하세요.`);
+  } else {
+    log('포털 유치아이피를 이 PC의 공인 IP로 등록하세요.');
+  }
+
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    log('');
+    log('GitHub 공용 러너에서는 매번 다른 IP로 요청되어 API 30이 납니다.');
+    log('해결 1) 이 PC(유치아이피 등록 PC)에 self-hosted runner 설치 → 워크플로우가 여기서 실행');
+    log('해결 2) scripts/register-disaster-ticker-task.ps1 로 로컬 30분 스케줄 등록');
+    log('       (GitHub Actions schedule은 self-hosted 없이는 동작하지 않습니다)');
+  } else {
+    log('');
+    log('이 PC에서 npm run sync:disaster-ticker 를 실행하거나,');
+    log('고정 공인 IP 서버에서 스크립트를 돌리세요.');
+  }
 }
 
 function maskKey(key) {
@@ -595,17 +663,7 @@ async function upsertCache(supabase, sourceCode, messages, lastError = null) {
 async function runKeyCheck() {
   log('=== 재난안전 API 키 진단 (--check) ===');
   const publicIp = await resolveOutboundPublicIp();
-  if (publicIp) {
-    log(`현재 이 PC에서 API로 나가는 공인 IP: ${publicIp}`);
-    if (isPrivateIp(publicIp)) {
-      log('  (사설 IP로 보입니다. 포털 유치아이피 등록값을 다시 확인하세요.)');
-    } else {
-      log('  → safetydata 마이페이지 "유치아이피"가 이 IP와 동일해야 합니다.');
-      log('  → 지금 192.168.10.58 같은 사설 IP로 등록돼 있으면 반드시 변경하세요.');
-    }
-  } else {
-    log('공인 IP 자동 조회 실패 — 브라우저에서 "내 아이피" 검색 후 포털에 등록하세요.');
-  }
+  logOutboundIpGuidance(publicIp);
   log('');
 
   let okCount = 0;
@@ -664,6 +722,10 @@ async function main() {
 
   assertAnyServiceKeyConfigured();
 
+  const outboundIp = await resolveOutboundPublicIp();
+  logOutboundIpGuidance(outboundIp);
+  log('');
+
   const supabaseUrl = getSupabaseUrl();
   const supabaseServiceRoleKey = getSupabaseServiceRoleKey();
 
@@ -682,6 +744,7 @@ async function main() {
 
   let successCount = 0;
   let failureCount = 0;
+  let ipWhitelistFailureCount = 0;
 
   for (const source of SOURCES) {
     const keyInfo = resolveServiceKey(source);
@@ -708,6 +771,9 @@ async function main() {
     } catch (err) {
       failureCount += 1;
       const message = err instanceof Error ? err.message : String(err);
+      if (isIpWhitelistApiError(message)) {
+        ipWhitelistFailureCount += 1;
+      }
       log(`${source.label} 실패:`);
       for (const line of message.split('\n     ')) {
         log(`  ${line}`);
@@ -737,6 +803,7 @@ async function main() {
   log(`완료 (성공 ${successCount}, 실패/건너뜀 ${failureCount})`);
 
   if (successCount === 0) {
+    logIpWhitelistResolution(outboundIp, ipWhitelistFailureCount, failureCount);
     process.exitCode = 1;
   }
 }
