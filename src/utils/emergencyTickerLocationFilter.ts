@@ -28,29 +28,13 @@ function hasUsableRegion(region: LocationRegion): boolean {
   return true;
 }
 
-function buildLocationNeedles(region: LocationRegion): string[] {
+function buildSidoNeedles(stage1: string): string[] {
   const needles = new Set<string>();
-  const stage1 = region.stage1.trim();
-  const stage2 = region.stage2.trim();
-
   if (stage1) {
     needles.add(stage1);
     needles.add(stripAdministrativeSuffix(stage1));
     needles.add(sidoShortLabel(stage1));
   }
-
-  if (stage2) {
-    needles.add(stage2);
-    const stage2Base = stripAdministrativeSuffix(stage2);
-    if (stage2Base) needles.add(stage2Base);
-  }
-
-  if (stage1 && stage2) {
-    needles.add(`${stripAdministrativeSuffix(stage1)} ${stage2}`);
-    needles.add(`${sidoShortLabel(stage1)} ${stripAdministrativeSuffix(stage2)}`);
-    needles.add(`${stage1} ${stage2}`);
-  }
-
   return [...needles].filter((value) => value.length >= 2);
 }
 
@@ -67,47 +51,50 @@ function mentionsOtherSido(message: string, userStage1: string): boolean {
   return false;
 }
 
-export function messageMatchesUserRegion(message: string, region: LocationRegion): boolean {
+/** 시·도(특별시/광역시/도) 단위로 메시지가 사용자 지역과 일치하는지 판별합니다. */
+export function messageMatchesUserSido(message: string, region: LocationRegion): boolean {
   const text = message.replace(/\s+/g, ' ').trim();
   if (!text) return false;
-  if (NATIONWIDE_PATTERN.test(text)) return true;
 
   const stage1 = region.stage1.trim();
-  const stage2 = region.stage2.trim();
   if (!stage1) return false;
 
-  const needles = buildLocationNeedles(region);
+  const needles = buildSidoNeedles(stage1);
   const matched = needles.some((needle) => text.includes(needle));
   if (!matched) return false;
 
-  if (stage2) {
-    const stage2Base = stripAdministrativeSuffix(stage2);
-    const sigunguMatched =
-      text.includes(stage2) || (stage2Base.length >= 2 && text.includes(stage2Base));
-
-    if (sigunguMatched && stage2Base.length <= 2) {
-      return text.includes(stage1) || text.includes(sidoShortLabel(stage1));
-    }
+  if (
+    mentionsOtherSido(text, stage1) &&
+    !text.includes(stage1) &&
+    !text.includes(sidoShortLabel(stage1))
+  ) {
+    return false;
   }
 
-  if (mentionsOtherSido(text, stage1) && !text.includes(stage1) && !text.includes(sidoShortLabel(stage1))) {
+  if (NATIONWIDE_PATTERN.test(text) && !matched) {
     return false;
   }
 
   return true;
 }
 
+/** @deprecated messageMatchesUserSido 사용 */
+export function messageMatchesUserRegion(message: string, region: LocationRegion): boolean {
+  return messageMatchesUserSido(message, region);
+}
+
 export function filterTickerItemsByLocation(
   items: EmergencyTickerItem[],
   region: LocationRegion,
 ): EmergencyTickerItem[] {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
   const regionReady = hasUsableRegion(region);
 
   return items.filter((item) => {
     if (item.sourceType === 'admin') return true;
     if (!isDisasterSource(item.sourceType)) return true;
-    // GPS 확정 전에는 Supabase 데이터를 그대로 표시 (Expo Go 초기 로딩 시 빈 티커 방지)
-    if (!regionReady) return true;
-    return messageMatchesUserRegion(item.message, region);
+    if (!regionReady) return false;
+    return messageMatchesUserSido(item.message, region);
   });
 }

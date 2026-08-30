@@ -13,8 +13,10 @@ const PORTAL_KEY_PLACEHOLDER_PATTERN = /your_.*key|_here$/i;
 type ExtraBag = Record<string, unknown> | undefined;
 
 function readExtraString(...keys: string[]): string {
+  const expoGoExtra = (Constants as { expoGoConfig?: { extra?: ExtraBag } }).expoGoConfig?.extra;
   const bags: ExtraBag[] = [
     Constants.expoConfig?.extra as Record<string, unknown> | undefined,
+    expoGoExtra,
     (Constants as { manifest2?: { extra?: ExtraBag } }).manifest2?.extra,
     (Constants as { manifest?: { extra?: ExtraBag } }).manifest?.extra,
   ];
@@ -75,11 +77,12 @@ function resolveSupabaseUrl(): string {
 }
 
 function resolveSupabaseAnonKey(): string {
-  return pickNonEmpty(
+  const key = pickNonEmpty(
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     readExtraString('supabaseAnonKey', 'EXPO_PUBLIC_SUPABASE_ANON_KEY'),
     DEFAULT_SUPABASE_ANON_KEY,
   );
+  return key || DEFAULT_SUPABASE_ANON_KEY;
 }
 
 export const SUPABASE_URL = resolveSupabaseUrl();

@@ -12,7 +12,7 @@ const SOURCE_META: Record<
   'admin' | 'weather' | 'forest_fire' | 'disaster_sms',
   { label: string; color: string }
 > = {
-  admin: { label: '긴급공지', color: '#F8FAFC' },
+  admin: { label: '안내', color: '#F8FAFC' },
   weather: { label: '기상특보', color: '#60A5FA' },
   forest_fire: { label: '산불안내', color: '#F87171' },
   disaster_sms: { label: '재난문자', color: '#FACC15' },

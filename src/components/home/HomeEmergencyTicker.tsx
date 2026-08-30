@@ -15,6 +15,11 @@ import {
 } from '@/utils/emergencyTickerDisplay';
 
 const TICKER_HEIGHT = 36;
+const TICKER_BG = '#111827';
+const TICKER_BORDER = 'rgba(148, 163, 184, 0.18)';
+const TICKER_ICON_COLOR = '#94A3B8';
+const TICKER_LIVE_DOT = '#64748B';
+
 const SCROLL_SPEED_PX_PER_SEC = 48;
 const MIN_LOOP_WIDTH = 720;
 const MIN_SCROLL_DISTANCE = 320;
@@ -138,9 +143,8 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.accentRail} />
       <View style={styles.iconWrap}>
-        <AppIcon name="alert-circle" size={15} color="#FF6B4A" />
+        <AppIcon name="alert-circle" size={15} color={TICKER_ICON_COLOR} />
       </View>
 
       <Pressable
@@ -179,26 +183,22 @@ const styles = StyleSheet.create({
     height: TICKER_HEIGHT,
     marginBottom: 12,
     borderRadius: 10,
-    backgroundColor: '#111827',
+    backgroundColor: TICKER_BG,
     borderWidth: 1,
-    borderColor: 'rgba(255, 107, 74, 0.45)',
+    borderColor: TICKER_BORDER,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
-    shadowColor: '#FF6B4A',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
+    shadowColor: '#000000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  accentRail: {
-    width: 3,
-    alignSelf: 'stretch',
-    backgroundColor: '#FF6B4A',
+    elevation: 2,
   },
   iconWrap: {
-    paddingLeft: 8,
-    paddingRight: 4,
+    paddingLeft: 10,
+    paddingRight: 6,
+    backgroundColor: TICKER_BG,
   },
   trackPressable: {
     flex: 1,
@@ -266,10 +266,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.12)',
   },
   liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#FF6B4A',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: TICKER_LIVE_DOT,
     marginRight: 10,
     marginLeft: 6,
   },

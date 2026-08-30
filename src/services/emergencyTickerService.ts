@@ -4,7 +4,6 @@ import { applyDisasterSmsTodayFallback } from '@/utils/emergencyTickerDisasterSm
 
 export const EMERGENCY_NOTICES_TABLE = 'kemix_home_emergency_notices';
 const DISASTER_CACHE_TABLE = 'kemix_disaster_ticker_cache';
-const DISASTER_SMS_SOURCE = 'disaster_sms';
 
 const SOURCE_PRIORITY: Record<string, number> = {
   admin: 0,
@@ -95,25 +94,35 @@ function mergeTickerItems(groups: EmergencyTickerItem[][]): EmergencyTickerItem[
 }
 
 async function fetchViaRpc(): Promise<EmergencyTickerItem[]> {
-  const { data, error } = await supabase.rpc('list_active_emergency_ticker_messages');
+  try {
+    const { data, error } = await supabase.rpc('list_active_emergency_ticker_messages');
 
-  if (error) {
-    if (isMissingRpcError(error.message)) {
+    if (error) {
+      if (isMissingRpcError(error.message)) {
+        return [];
+      }
+      if (__DEV__) {
+        console.warn('[emergencyTicker] rpc failed:', error.message);
+      }
       return [];
     }
-    throw new EmergencyTickerServiceError(error.message);
-  }
 
-  return ((data ?? []) as TickerRow[])
-    .map((row) => mapTickerRow(row))
-    .filter((item): item is EmergencyTickerItem => item !== null);
+    return ((data ?? []) as TickerRow[])
+      .map((row) => mapTickerRow(row))
+      .filter((item): item is EmergencyTickerItem => item !== null);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[emergencyTicker] rpc exception:', error);
+    }
+    return [];
+  }
 }
 
 async function fetchAdminNoticesDirect(): Promise<EmergencyTickerItem[]> {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from(EMERGENCY_NOTICES_TABLE)
-    .select('message, sort_order, expires_at, is_active')
+    .select('message, sort_order, expires_at, is_active, created_at')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
@@ -177,46 +186,31 @@ async function fetchDisasterCacheDirect(): Promise<EmergencyTickerItem[]> {
   return rows.flatMap((row) => mapCacheRowToItems(row));
 }
 
-/** 만료된 캐시에서도 재난문자 최신 배치를 가져옵니다 (오늘 데이터 없을 때 fallback) */
-async function fetchDisasterSmsStaleFallback(): Promise<EmergencyTickerItem[]> {
-  const { data, error } = await supabase
-    .from(DISASTER_CACHE_TABLE)
-    .select('source_code, messages, expires_at, fetched_at')
-    .eq('source_code', DISASTER_SMS_SOURCE)
-    .order('fetched_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data) return [];
-  return mapCacheRowToItems(data as DisasterCacheRow);
-}
-
-function hasDisasterSmsItems(items: EmergencyTickerItem[]): boolean {
-  return items.some((item) => item.sourceType === DISASTER_SMS_SOURCE);
-}
-
 async function ensureDisasterSmsFallback(items: EmergencyTickerItem[]): Promise<EmergencyTickerItem[]> {
-  const withTodayLogic = applyDisasterSmsTodayFallback(items);
-  if (hasDisasterSmsItems(withTodayLogic)) {
-    return withTodayLogic;
+  try {
+    return applyDisasterSmsTodayFallback(items);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[emergencyTicker] disaster sms fallback failed:', error);
+    }
+    return items;
   }
-
-  const staleSms = await fetchDisasterSmsStaleFallback();
-  if (staleSms.length === 0) {
-    return withTodayLogic;
-  }
-
-  const withoutSms = withTodayLogic.filter((item) => item.sourceType !== DISASTER_SMS_SOURCE);
-  return applyDisasterSmsTodayFallback(mergeTickerItems([withoutSms, staleSms]));
 }
 
 export async function fetchActiveEmergencyTickerItems(): Promise<EmergencyTickerItem[]> {
-  const [rpcItems, adminItems, cacheItems] = await Promise.all([
-    fetchViaRpc().catch(() => [] as EmergencyTickerItem[]),
-    fetchAdminNoticesDirect(),
-    fetchDisasterCacheDirect(),
-  ]);
+  try {
+    const [rpcItems, adminItems, cacheItems] = await Promise.all([
+      fetchViaRpc(),
+      fetchAdminNoticesDirect(),
+      fetchDisasterCacheDirect(),
+    ]);
 
-  const merged = mergeTickerItems([rpcItems, adminItems, cacheItems]);
-  return ensureDisasterSmsFallback(merged);
+    const merged = mergeTickerItems([rpcItems, adminItems, cacheItems]);
+    return await ensureDisasterSmsFallback(merged);
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[emergencyTicker] fetch failed:', error);
+    }
+    return [];
+  }
 }

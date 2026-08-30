@@ -7,7 +7,7 @@ import {
   type LocationSnapshot,
 } from '@/services/locationService';
 import type { EmergencyTickerItem } from '@/types/emergencyTicker';
-import { filterTickerItemsByLocation } from '@/utils/emergencyTickerLocationFilter';
+import { processEmergencyTickerForDisplay } from '@/utils/emergencyTickerRegionalPipeline';
 import { normalizeTickerItems } from '@/utils/emergencyTickerDisplay';
 
 export function useEmergencyTicker() {
@@ -19,13 +19,17 @@ export function useEmergencyTicker() {
 
   const refresh = useCallback(async () => {
     try {
-      const rows = await fetchActiveEmergencyTickerItems();
+      const rows = await Promise.race([
+        fetchActiveEmergencyTickerItems(),
+        new Promise<EmergencyTickerItem[]>((resolve) => {
+          setTimeout(() => resolve([]), 20_000);
+        }),
+      ]);
       setItems(normalizeTickerItems(rows));
     } catch (error) {
       if (__DEV__) {
         console.warn('[useEmergencyTicker] refresh failed:', error);
       }
-      // 네트워크 일시 오류 시 기존 목록 유지 (Expo Go에서 빈 티커로 보이는 현상 완화)
       setItems((prev) => (prev.length > 0 ? prev : []));
     } finally {
       setLoading(false);
@@ -45,7 +49,7 @@ export function useEmergencyTicker() {
   }, [refresh]);
 
   const locationFilteredItems = useMemo(
-    () => filterTickerItemsByLocation(items, locationSnapshot.region),
+    () => processEmergencyTickerForDisplay(items, locationSnapshot.region),
     [items, locationSnapshot.region],
   );
 

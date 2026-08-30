@@ -6,6 +6,7 @@ import { HomeSectionHeader } from '@/components/home/HomeSectionHeader';
 import { APP_FONT, APP_RADIUS } from '@/constants/appTheme';
 import { useBookmarks } from '@/contexts/BookmarkContext';
 import { useThemedColors } from '@/hooks/useThemedColors';
+import { navigateToMainTab } from '@/navigation/mainTabNavigation';
 import { navigateToBookmarkTarget } from '@/utils/bookmarkNavigation';
 import { KEMIX_TOUCH_MIN_HEIGHT } from '@/theme/kemixSemantic';
 import type { BookmarkItem } from '@/types/bookmark';
@@ -102,6 +103,8 @@ export function HomeBookmarksSection() {
         <HomeEmptyStateBox
           message="등록된 즐겨찾기가 없습니다. 메뉴의 별 아이콘으로 추가해 보세요."
           icon="star-outline"
+          iconAccessibilityLabel="전체 메뉴로 이동하여 즐겨찾기 추가"
+          onIconPress={() => navigateToMainTab('All')}
         />
       )}
     </View>

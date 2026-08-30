@@ -1,7 +1,5 @@
 import type { EmergencyTickerItem } from '@/types/emergencyTicker';
 
-const KST_TIME_ZONE = 'Asia/Seoul';
-
 const YMD_SEPARATED_RE = /(\d{4})[-./년\s](\d{1,2})[-./월\s](\d{1,2})/;
 const YMD_COMPACT_RE = /(?:^|[^\d])(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(?:[^\d]|$)/;
 const KOREAN_MD_RE = /(\d{1,2})월\s*(\d{1,2})일/;
@@ -11,7 +9,10 @@ function pad2(value: number): string {
 }
 
 export function toKstDateKey(date: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE }).format(date);
+  // Hermes/Expo Go — Intl timeZone 미지원 환경 대비 (UTC+9 수동 계산)
+  const kstMs = date.getTime() + 9 * 60 * 60 * 1000;
+  const kst = new Date(kstMs);
+  return `${kst.getUTCFullYear()}-${pad2(kst.getUTCMonth() + 1)}-${pad2(kst.getUTCDate())}`;
 }
 
 function buildDateKey(year: number, month: number, day: number): string | null {
@@ -53,30 +54,9 @@ export function extractDisasterSmsDateKey(message: string, referenceDate = new D
   return null;
 }
 
-function disasterSmsRecencyScore(message: string, sortOrder: number, referenceDate: Date): number {
-  const dateKey = extractDisasterSmsDateKey(message, referenceDate);
-  if (dateKey) {
-    const compact = dateKey.replace(/-/g, '');
-    return Number(compact) * 1000 + (1000 - sortOrder);
-  }
-  return 1000 - sortOrder;
-}
-
-function sortDisasterSmsByRecency(
-  items: EmergencyTickerItem[],
-  referenceDate: Date,
-): EmergencyTickerItem[] {
-  return [...items].sort((left, right) => {
-    const rightScore = disasterSmsRecencyScore(right.message, right.sortOrder, referenceDate);
-    const leftScore = disasterSmsRecencyScore(left.message, left.sortOrder, referenceDate);
-    if (rightScore !== leftScore) return rightScore - leftScore;
-    return left.sortOrder - right.sortOrder;
-  });
-}
 
 /**
- * 오늘(KST) 재난문자가 없으면 가장 최근 발송 목록으로 대체합니다.
- * admin / 기상 / 산불 항목은 그대로 유지합니다.
+ * 재난문자는 당일(KST) 발송분만 유지합니다. admin / 기상 / 산불 항목은 그대로 유지합니다.
  */
 export function applyDisasterSmsTodayFallback(
   items: EmergencyTickerItem[],
@@ -106,8 +86,11 @@ export function applyDisasterSmsTodayFallback(
     return [...nonSms, ...resolvedToday].sort(compareTickerItems);
   }
 
-  const resolvedSms = sortDisasterSmsByRecency(smsItems, referenceDate);
-  return [...nonSms, ...resolvedSms].sort(compareTickerItems);
+  if (undatedSms.length > 0) {
+    return [...nonSms, ...undatedSms].sort(compareTickerItems);
+  }
+
+  return nonSms;
 }
 
 function mergeSmsItems(primary: EmergencyTickerItem[], secondary: EmergencyTickerItem[]): EmergencyTickerItem[] {

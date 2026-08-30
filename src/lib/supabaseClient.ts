@@ -2,10 +2,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import {
+  DEFAULT_SUPABASE_ANON_KEY,
+  DEFAULT_SUPABASE_URL,
   getSupabaseEnvDiagnostics,
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
 } from '@/constants/env';
+import { supabaseMobileFetch } from '@/lib/supabaseFetch';
+
+const resolvedSupabaseUrl = SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const resolvedSupabaseAnonKey = SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
 if (__DEV__) {
   const diagnostics = getSupabaseEnvDiagnostics();
@@ -14,6 +20,7 @@ if (__DEV__) {
     source: diagnostics.source,
     anonKeyLength: diagnostics.anonKeyLength,
     rejectedLocalhost: diagnostics.rejectedLocalhost,
+    platform: Platform.OS,
   });
   if (diagnostics.rejectedLocalhost) {
     console.warn(
@@ -21,7 +28,7 @@ if (__DEV__) {
     );
   }
   if (!diagnostics.anonKeyConfigured) {
-    console.warn('[supabase] EXPO_PUBLIC_SUPABASE_ANON_KEY가 비어 있습니다.');
+    console.warn('[supabase] EXPO_PUBLIC_SUPABASE_ANON_KEY가 비어 있습니다. 기본 키로 폴백합니다.');
   }
 }
 
@@ -63,12 +70,15 @@ const authStorage =
       }
     : AsyncStorage;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const supabase = createClient(resolvedSupabaseUrl, resolvedSupabaseAnonKey, {
   auth: {
     storage: authStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: Platform.OS === 'web',
+  },
+  global: {
+    fetch: supabaseMobileFetch,
   },
 });
 
