@@ -14,8 +14,10 @@ import {
   MedicalDetailSectionTitle,
   MedicalDetailText,
 } from '@/components/map/MedicalDetailPrimitives';
+import { PlaceVoteButtons } from '@/components/map/PlaceVoteButtons';
 import { MEDICAL_DETAIL } from '@/constants/medicalDetailTheme';
 import type { HospitalFinderItem } from '@/services/hospitalFinderService';
+import { getPediatricPlaceId } from '@/types/placeVote';
 import type { DistanceUnitMode } from '@/utils/formatDistance';
 import { formatDistanceMeters } from '@/utils/formatDistance';
 
@@ -121,6 +123,12 @@ export function PediatricLocalDetailContent({
         {hospital.isLocalBundled ? '로컬 내장 데이터 · ' : hospital.isCustomRecord ? '관리자 등록 · ' : ''}
         방문 전 전화로 진료 가능 여부를 확인해 주세요
       </MedicalDetailText>
+
+      <PlaceVoteButtons
+        placeKind="pediatric"
+        placeId={getPediatricPlaceId(hospital)}
+        className="mt-4"
+      />
     </MedicalDetailBody>
   );
 }

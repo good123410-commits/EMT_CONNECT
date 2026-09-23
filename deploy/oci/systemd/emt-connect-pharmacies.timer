@@ -1,0 +1,11 @@
+[Unit]
+Description=EMT Connect — pharmacy sync daily at 00:00 KST
+
+[Timer]
+OnCalendar=*-*-* 00:00:00
+Timezone=Asia/Seoul
+Persistent=true
+Unit=emt-connect-pharmacies.service
+
+[Install]
+WantedBy=timers.target

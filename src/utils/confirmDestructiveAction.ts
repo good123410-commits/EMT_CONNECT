@@ -4,6 +4,7 @@ export function confirmDestructiveAction(
   title: string,
   message: string,
   onConfirm: () => void | Promise<void>,
+  confirmLabel = '삭제',
 ): void {
   if (Platform.OS === 'web') {
     if (window.confirm(`${title}\n\n${message}`)) {
@@ -15,7 +16,7 @@ export function confirmDestructiveAction(
   Alert.alert(title, message, [
     { text: '취소', style: 'cancel' },
     {
-      text: '삭제',
+      text: confirmLabel,
       style: 'destructive',
       onPress: () => void onConfirm(),
     },

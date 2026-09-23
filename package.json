@@ -74,6 +74,7 @@
     "sync:disaster-ticker": "node scripts/sync-disaster-ticker.mjs",
     "sync:disaster-ticker:check": "node scripts/sync-disaster-ticker.mjs --check",
     "sync:disaster-ticker:dry-run": "node scripts/sync-disaster-ticker.mjs --dry-run",
+    "unregister:local-sync": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/unregister-local-sync-tasks.ps1 -StopRunningSyncProcesses",
     "build:medical-data": "node scripts/process_medical_data.mjs",
     "generate:icons": "node scripts/generate-app-icons.mjs",
     "build:android:preview": "npx --yes eas-cli build -p android --profile preview",

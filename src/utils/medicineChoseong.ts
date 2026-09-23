@@ -129,6 +129,32 @@ function findFirstHangulChar(name: string): string | null {
   return null;
 }
 
+/** 제품명 첫 글자 기준 UI 초성 필터 버킷 (인덱스 빌드용) */
+export function getMedicineChoseongBucket(
+  itemName: string | null | undefined,
+): MedicineChoseongFilter | null {
+  const name = itemName?.trim() ?? '';
+  if (!name) return null;
+
+  if (/^[a-zA-Z]/.test(name)) return 'A-Z';
+
+  const firstChar = findFirstHangulChar(name);
+  if (!firstChar) return null;
+
+  if (/[a-zA-Z]/.test(firstChar)) return 'A-Z';
+
+  const firstIndex = getChoseongIndex(firstChar);
+  if (firstIndex === null) return null;
+
+  for (const [filterKey, indices] of Object.entries(FILTER_TO_CHOSEONG_INDICES)) {
+    if (indices.includes(firstIndex)) {
+      return filterKey as MedicineChoseongFilter;
+    }
+  }
+
+  return null;
+}
+
 /** 반드시 itemName(제품명) 필드만 검사 */
 export function filterMedicinesByChoseong<T extends { itemName?: string | null }>(
   items: T[],

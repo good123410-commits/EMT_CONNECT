@@ -6,7 +6,8 @@ import {
 } from '@/constants/emergencyMedicines';
 import type { MedicineInfo } from '@/services/emergencyApi';
 import {
-  matchesMedicineChoseong,
+  getMedicineChoseongBucket,
+  MEDICINE_CHOSEONG_FILTERS,
   type MedicineChoseongFilter,
 } from '@/utils/medicineChoseong';
 
@@ -29,10 +30,14 @@ type RawMedicineRecord = {
 type IndexedMedicine = MedicineInfo & {
   searchKey: string;
   entpSearchKey: string;
+  listSummary: string;
 };
+
+type ChoseongBuckets = Record<MedicineChoseongFilter, IndexedMedicine[]>;
 
 type MedicineIndex = {
   all: IndexedMedicine[];
+  choseongBuckets: ChoseongBuckets;
   emergencyItems: EmergencyMedicineQuickItem[];
 };
 
@@ -107,12 +112,42 @@ function dedupeMedicines(items: MedicineInfo[]): MedicineInfo[] {
   return [...bySeq.values(), ...withoutSeq];
 }
 
+function stripHtml(value: string): string {
+  return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function toListSummary(efficacy: string): string {
+  const text = stripHtml(efficacy);
+  if (!text) return '효능 정보를 확인하려면 탭하세요';
+  return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+}
+
 function toIndexedMedicine(item: MedicineInfo): IndexedMedicine {
   return {
     ...item,
     searchKey: normalizeSearchText(item.itemName),
     entpSearchKey: normalizeSearchText(item.entpName),
+    listSummary: toListSummary(item.efficacy),
   };
+}
+
+function createEmptyChoseongBuckets(): ChoseongBuckets {
+  const buckets = {} as ChoseongBuckets;
+  for (const filter of MEDICINE_CHOSEONG_FILTERS) {
+    buckets[filter] = [];
+  }
+  return buckets;
+}
+
+function buildChoseongBuckets(items: IndexedMedicine[]): ChoseongBuckets {
+  const buckets = createEmptyChoseongBuckets();
+  for (const item of items) {
+    const bucket = getMedicineChoseongBucket(item.itemName);
+    if (bucket && bucket !== '전체') {
+      buckets[bucket].push(item);
+    }
+  }
+  return buckets;
 }
 
 function scoreMedicineMatch(item: IndexedMedicine, normalizedQuery: string): number {
@@ -160,12 +195,13 @@ function buildMedicineIndex(): MedicineIndex {
     .sort((a, b) => a.itemName.localeCompare(b.itemName, 'ko'));
 
   const all = deduped.map(toIndexedMedicine);
+  const choseongBuckets = buildChoseongBuckets(all);
   const emergencyItems = EMERGENCY_MEDICINE_DEFINITIONS.map((definition) => ({
     definition,
     medicine: resolveEmergencyMedicine(definition, all),
   }));
 
-  return { all, emergencyItems };
+  return { all, choseongBuckets, emergencyItems };
 }
 
 function getMedicineIndex(): MedicineIndex {
@@ -187,30 +223,57 @@ export function searchLocalMedicines(query: string, limit = SEARCH_RESULT_LIMIT)
   const normalizedQuery = normalizeSearchText(query.trim());
   if (!normalizedQuery) return [];
 
-  const ranked = getMedicineIndex()
-    .all
-    .map((item) => ({ item, score: scoreMedicineMatch(item, normalizedQuery) }))
-    .filter(({ score }) => score < Number.MAX_SAFE_INTEGER)
-    .sort((a, b) => {
-      if (a.score !== b.score) return a.score - b.score;
-      return a.item.itemName.localeCompare(b.item.itemName, 'ko');
-    });
+  const { all } = getMedicineIndex();
+  const prefixMatches: IndexedMedicine[] = [];
+  const nameContains: IndexedMedicine[] = [];
+  const entpContains: IndexedMedicine[] = [];
 
-  return ranked.slice(0, limit).map(({ item }) => item);
+  for (const item of all) {
+    if (item.searchKey.startsWith(normalizedQuery)) {
+      prefixMatches.push(item);
+      continue;
+    }
+    if (item.searchKey.includes(normalizedQuery)) {
+      nameContains.push(item);
+      continue;
+    }
+    if (item.entpSearchKey.includes(normalizedQuery)) {
+      entpContains.push(item);
+    }
+  }
+
+  const sortByName = (a: IndexedMedicine, b: IndexedMedicine) =>
+    a.itemName.localeCompare(b.itemName, 'ko');
+
+  if (prefixMatches.length > 0) prefixMatches.sort(sortByName);
+  if (nameContains.length > 0) nameContains.sort(sortByName);
+  if (entpContains.length > 0) entpContains.sort(sortByName);
+
+  const merged: IndexedMedicine[] = [];
+  for (const group of [prefixMatches, nameContains, entpContains]) {
+    for (const item of group) {
+      merged.push(item);
+      if (merged.length >= limit) return merged;
+    }
+  }
+
+  return merged;
+}
+
+export function getBrowseMedicineCount(filter: MedicineChoseongFilter): number {
+  const index = getMedicineIndex();
+  if (filter === '전체') return index.all.length;
+  return index.choseongBuckets[filter]?.length ?? 0;
 }
 
 export function browseLocalMedicinesByChoseong(
   filter: MedicineChoseongFilter,
   limit = BROWSE_RESULT_LIMIT,
+  offset = 0,
 ): MedicineInfo[] {
-  if (filter === '전체') {
-    return getMedicineIndex().all.slice(0, limit);
-  }
-
-  const filtered = getMedicineIndex().all.filter((item) =>
-    matchesMedicineChoseong(item.itemName, filter),
-  );
-  return filtered.slice(0, limit);
+  const index = getMedicineIndex();
+  const source = filter === '전체' ? index.all : (index.choseongBuckets[filter] ?? []);
+  return source.slice(offset, offset + limit);
 }
 
 export function getEmergencyMedicineQuickItems(): EmergencyMedicineQuickItem[] {

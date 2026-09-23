@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { PharmacyNightPharmacyBadge } from '@/components/facility/PharmacyNightPharmacyBadge';
 import { PharmacyOpenBadge } from '@/components/map/PharmacyOpenBadge';
 import { PharmacyWeeklyHoursTable } from '@/components/facility/PharmacyWeeklyHoursTable';
+import { PlaceVoteButtons } from '@/components/map/PlaceVoteButtons';
 import {
   MedicalDetailBody,
   MedicalDetailInfoTile,
@@ -80,6 +81,8 @@ export function PharmacyLocalDetailContent({
       <MedicalDetailText variant="muted">
         E-Gen 심야약국 데이터 · 방문 전 전화로 운영 여부를 확인해 주세요
       </MedicalDetailText>
+
+      <PlaceVoteButtons placeKind="pharmacy" placeId={place.i} className="mt-4" />
     </MedicalDetailBody>
   );
 }

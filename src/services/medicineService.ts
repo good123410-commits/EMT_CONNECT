@@ -4,6 +4,7 @@ import {
   getDefaultBrowseMedicines,
   getEmergencyMedicineQuickItems,
   getEmergencyMedicineQuickItemsBySection,
+  getBrowseMedicineCount,
   getLocalMedicineCount,
   searchLocalMedicines,
 } from '@/services/medicineStore';
@@ -14,6 +15,7 @@ import {
 
 export const SEARCH_RESULT_LIMIT = 100;
 export const BROWSE_RESULT_LIMIT = 300;
+export const BROWSE_PAGE_SIZE = 48;
 export const DEFAULT_BROWSE_COUNT = 40;
 
 export function getMedicineDataNotice(): string | null {
@@ -28,8 +30,12 @@ export function searchMedicinesByName(query: string): MedicineInfo[] {
   return searchLocalMedicines(query, SEARCH_RESULT_LIMIT);
 }
 
-export function loadMedicinesForChoseong(filter: MedicineChoseongFilter): MedicineInfo[] {
-  return browseLocalMedicinesByChoseong(filter, BROWSE_RESULT_LIMIT);
+export function loadMedicinesForChoseong(
+  filter: MedicineChoseongFilter,
+  limit = BROWSE_PAGE_SIZE,
+  offset = 0,
+): MedicineInfo[] {
+  return browseLocalMedicinesByChoseong(filter, limit, offset);
 }
 
 export function applyChoseongFilter(
@@ -48,6 +54,7 @@ export function filterMedicineListByChoseong(
 
 export {
   browseLocalMedicinesByChoseong,
+  getBrowseMedicineCount,
   getEmergencyMedicineQuickItems,
   getEmergencyMedicineQuickItemsBySection,
   getLocalMedicineCount,

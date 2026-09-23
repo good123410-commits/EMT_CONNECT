@@ -1,10 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import { memo } from 'react';
 import { Pressable, ActivityIndicator, Text, View } from 'react-native';
 import { MedicineImage } from '@/components/medicine/MedicineImage';
 import type { MedicineInfo } from '@/services/emergencyApi';
 
+type MedicineListItem = MedicineInfo & { listSummary?: string };
+
 type Props = {
-  item: MedicineInfo;
+  item: MedicineListItem;
   onPress: () => void;
   isFavorite?: boolean;
   favoriteLoading?: boolean;
@@ -15,14 +18,17 @@ function stripText(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
 
-export function MedicineListCard({
+export const MedicineListCard = memo(function MedicineListCard({
   item,
   onPress,
   isFavorite = false,
   favoriteLoading = false,
   onToggleFavorite,
 }: Props) {
-  const summary = stripText(item.efficacy) || '효능 정보를 확인하려면 탭하세요';
+  const summary =
+    item.listSummary?.trim() ||
+    stripText(item.efficacy) ||
+    '효능 정보를 확인하려면 탭하세요';
 
   return (
     <Pressable
@@ -73,4 +79,4 @@ export function MedicineListCard({
       </View>
     </Pressable>
   );
-}
+});

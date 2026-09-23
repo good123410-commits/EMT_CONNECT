@@ -51,31 +51,70 @@ function mentionsOtherSido(message: string, userStage1: string): boolean {
   return false;
 }
 
+/** 문구에 시·도명이 하나라도 포함되어 있는지 판별합니다. */
+export function messageMentionsAnySido(message: string): boolean {
+  const text = message.replace(/\s+/g, ' ').trim();
+  if (!text) return false;
+
+  for (const sido of SIDO_LIST) {
+    const needles = buildSidoNeedles(sido);
+    if (needles.some((needle) => text.includes(needle))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * 전국 송출 대상 문구인지 판별합니다.
+ * '전국' 키워드가 있거나, 시·도명이 없는 해상·광역 특보 등은 전국으로 취급합니다.
+ */
+export function isNationwideTickerMessage(message: string): boolean {
+  const text = message.replace(/\s+/g, ' ').trim();
+  if (!text) return false;
+  if (NATIONWIDE_PATTERN.test(text)) return true;
+  return !messageMentionsAnySido(text);
+}
+
+function matchesUserAdministrativeArea(text: string, region: LocationRegion): boolean {
+  const stage1 = region.stage1.trim();
+  if (!stage1) return false;
+
+  const needles = buildSidoNeedles(stage1);
+  const matchedSido = needles.some((needle) => text.includes(needle));
+  if (matchedSido) {
+    if (
+      mentionsOtherSido(text, stage1) &&
+      !text.includes(stage1) &&
+      !text.includes(sidoShortLabel(stage1))
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  const stage2 = region.stage2.trim();
+  if (stage2.length >= 2 && text.includes(stage2)) {
+    if (mentionsOtherSido(text, stage1)) {
+      return false;
+    }
+    return true;
+  }
+
+  return false;
+}
+
 /** 시·도(특별시/광역시/도) 단위로 메시지가 사용자 지역과 일치하는지 판별합니다. */
 export function messageMatchesUserSido(message: string, region: LocationRegion): boolean {
   const text = message.replace(/\s+/g, ' ').trim();
   if (!text) return false;
 
-  const stage1 = region.stage1.trim();
-  if (!stage1) return false;
-
-  const needles = buildSidoNeedles(stage1);
-  const matched = needles.some((needle) => text.includes(needle));
-  if (!matched) return false;
-
-  if (
-    mentionsOtherSido(text, stage1) &&
-    !text.includes(stage1) &&
-    !text.includes(sidoShortLabel(stage1))
-  ) {
-    return false;
+  if (isNationwideTickerMessage(text)) {
+    return true;
   }
 
-  if (NATIONWIDE_PATTERN.test(text) && !matched) {
-    return false;
-  }
-
-  return true;
+  return matchesUserAdministrativeArea(text, region);
 }
 
 /** @deprecated messageMatchesUserSido 사용 */

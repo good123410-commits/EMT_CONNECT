@@ -4,6 +4,7 @@ import {
   extractDisasterSmsDateKey,
   toKstDateKey,
 } from '@/utils/emergencyTickerDisasterSms';
+import { logTickerPipeline } from '@/utils/emergencyTickerDebug';
 import { messageMatchesUserSido } from '@/utils/emergencyTickerLocationFilter';
 
 const DISASTER_SOURCES: EmergencyTickerSource[] = ['weather', 'forest_fire', 'disaster_sms'];
@@ -43,6 +44,11 @@ function pickTodayItemsForSource(
   referenceDate: Date,
 ): EmergencyTickerItem[] {
   if (items.length === 0) return [];
+
+  // 기상특보·산불은 동기화 시점의 최신 목록을 그대로 사용합니다.
+  if (source === 'weather' || source === 'forest_fire') {
+    return items;
+  }
 
   const todayKey = toKstDateKey(referenceDate);
 
@@ -91,7 +97,8 @@ function resolveRegionalDisasterItems(
 }
 
 /**
- * 재난문자·기상특보·산불은 사용자 시·도(특별시/광역시) 기준 + 당일(KST)만 표시합니다.
+ * 재난문자는 사용자 시·도(특별시/광역시) + 당일(KST) 기준으로 필터합니다.
+ * 기상특보·산불은 지역 일치 시 최신 동기화 목록을 그대로 표시합니다.
  * 관리자가 지정한 sort_order 순서는 유지합니다.
  */
 export function processEmergencyTickerForDisplay(
@@ -102,18 +109,33 @@ export function processEmergencyTickerForDisplay(
   if (!Array.isArray(items) || items.length === 0) return [];
 
   if (!hasUsableRegion(region)) {
-    return items.filter((item) => item.sourceType === 'admin');
+    const adminOnly = items.filter((item) => item.sourceType === 'admin');
+    logTickerPipeline('region-unavailable', items, adminOnly, {
+      regionStage1: region.stage1,
+    });
+    return adminOnly;
   }
 
+  const regionalCandidates = items.filter(
+    (item) => isDisasterSource(item.sourceType) && messageMatchesUserSido(item.message, region),
+  );
   const allowedDisasterKeys = new Set(
     resolveRegionalDisasterItems(items, region, referenceDate).map(
       (item) => `${item.sourceType}:${item.message}`,
     ),
   );
 
-  return items.filter((item) => {
+  const result = items.filter((item) => {
     if (item.sourceType === 'admin') return true;
     if (!isDisasterSource(item.sourceType)) return true;
     return allowedDisasterKeys.has(`${item.sourceType}:${item.message}`);
   });
+
+  logTickerPipeline('regional+date', items, result, {
+    region: { stage1: region.stage1, stage2: region.stage2 },
+    regionalCandidates: regionalCandidates.length,
+    todayKey: toKstDateKey(referenceDate),
+  });
+
+  return result;
 }

@@ -127,3 +127,41 @@ export async function showLocalPushNotification(payload: LocalPushPayload): Prom
     trigger: null,
   });
 }
+
+export async function scheduleLocalPushNotificationAt(
+  triggerDate: Date,
+  payload: LocalPushPayload,
+  identifier: string,
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  if (triggerDate.getTime() <= Date.now()) return;
+
+  const Notifications = getNotificationsModule();
+  if (!Notifications) return;
+
+  configurePushNotificationHandler();
+  await ensureAndroidChannel(Notifications);
+  await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => undefined);
+
+  await Notifications.scheduleNotificationAsync({
+    identifier,
+    content: {
+      title: payload.title,
+      body: payload.body,
+      data: payload.data,
+      sound: true,
+    },
+    trigger: {
+      date: triggerDate,
+    },
+  });
+}
+
+export async function cancelScheduledLocalPushNotification(identifier: string): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  const Notifications = getNotificationsModule();
+  if (!Notifications) return;
+
+  await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => undefined);
+}

@@ -1,8 +1,8 @@
 name: Sync Night Pharmacies
 
+# 정기 심야약국 동기화는 OCI systemd(emt-connect-pharmacies.timer)에서 실행합니다.
+# GitHub Actions cron 은 비활성화 — 필요 시 workflow_dispatch 로만 수동 실행.
 on:
-  schedule:
-    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:

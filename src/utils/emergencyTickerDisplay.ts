@@ -1,4 +1,5 @@
 import type { EmergencyTickerItem, EmergencyTickerSource } from '@/types/emergencyTicker';
+import { logTickerStage } from '@/utils/emergencyTickerDebug';
 
 export type TickerDisplaySegment = {
   sourceType: EmergencyTickerSource;
@@ -94,16 +95,38 @@ export function normalizeTickerItems(input: unknown): EmergencyTickerItem[] {
 export function buildTickerDisplaySegments(items: unknown): TickerDisplaySegment[] {
   const safeItems = normalizeTickerItems(items);
   const seen = new Set<string>();
+  const dropped: Array<{ reason: string; sourceType: string; message: string }> = [];
 
-  return safeItems
+  const segments = safeItems
     .map((item) => {
       const meta = resolveSourceMeta(item.sourceType);
       const body = sanitizeTickerMessage(item.message);
-      if (!body) return null;
-      if (item.sourceType !== 'admin' && isJunkTickerMessage(body)) return null;
+      if (!body) {
+        dropped.push({
+          reason: 'empty_body',
+          sourceType: item.sourceType,
+          message: item.message.slice(0, 80),
+        });
+        return null;
+      }
+      if (item.sourceType !== 'admin' && isJunkTickerMessage(body)) {
+        dropped.push({
+          reason: 'junk',
+          sourceType: item.sourceType,
+          message: body.slice(0, 80),
+        });
+        return null;
+      }
 
       const dedupeKey = `${item.sourceType}:${body}`;
-      if (seen.has(dedupeKey)) return null;
+      if (seen.has(dedupeKey)) {
+        dropped.push({
+          reason: 'duplicate',
+          sourceType: item.sourceType,
+          message: body.slice(0, 80),
+        });
+        return null;
+      }
       seen.add(dedupeKey);
 
       const showLabel = item.sourceType !== 'admin';
@@ -117,6 +140,16 @@ export function buildTickerDisplaySegments(items: unknown): TickerDisplaySegment
       };
     })
     .filter((segment): segment is TickerDisplaySegment => segment !== null);
+
+  if (__DEV__ && (dropped.length > 0 || segments.length === 0)) {
+    logTickerStage('display:segments', {
+      inputCount: safeItems.length,
+      segmentCount: segments.length,
+      dropped,
+    });
+  }
+
+  return segments;
 }
 
 export function joinTickerSegments(segments: unknown): string {

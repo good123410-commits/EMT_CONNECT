@@ -11,11 +11,13 @@
  *   SAFETYDATA_SERVICE_KEY_DISASTER
  *   (또는 공통 SAFETYDATA_SERVICE_KEY)
  *
- * 로컬 실행 (권장 — safetydata 유치아이피 등록 PC, 예: 1.214.117.34):
+ * 로컬/OCI 실행 (권장 — safetydata 유치아이피 등록 IP, 예: OCI 132.145.126.224):
  *   npm run sync:disaster-ticker:check
  *   npm run sync:disaster-ticker:dry-run
- *   npm run sync:disaster-ticker
- *   .\scripts\register-disaster-ticker-task.ps1
+ *   npm run sync:disaster-ticker          (수동 1회 — 노트북 정기 실행 금지)
+ *
+ * 정기 10분: OCI systemd — deploy/oci/README.md
+ * 로컬 스케줄 해제: .\scripts\unregister-local-sync-tasks.ps1
  *
  * Edge Function (선택): supabase/functions/sync-disaster-ticker
  *   scripts/deploy-sync-disaster-ticker.ps1
@@ -25,6 +27,12 @@ import { Agent } from 'undici';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  extractMessagesFromRecord,
+  FETCH_ROW_BUFFER,
+  isJunkSyncedMessage,
+  MAX_TICKER_ITEMS_PER_SOURCE,
+} from './lib/disaster-ticker-parse.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -36,21 +44,21 @@ const SOURCES = [
     sourceCode: 'weather',
     endpoint: '/V2/api/DSSP-IF-00045',
     label: '기상특보',
-    maxItems: 8,
+    maxItems: MAX_TICKER_ITEMS_PER_SOURCE,
     envKeys: ['SAFETYDATA_SERVICE_KEY_WEATHER', 'SAFETYDATA_SERVICE_KEY'],
   },
   {
     sourceCode: 'forest_fire',
     endpoint: '/V2/api/DSSP-IF-10346',
     label: '산불정보',
-    maxItems: 6,
+    maxItems: MAX_TICKER_ITEMS_PER_SOURCE,
     envKeys: ['SAFETYDATA_SERVICE_KEY_FOREST', 'SAFETYDATA_SERVICE_KEY'],
   },
   {
     sourceCode: 'disaster_sms',
     endpoint: '/V2/api/DSSP-IF-00247',
     label: '긴급재난문자',
-    maxItems: 10,
+    maxItems: MAX_TICKER_ITEMS_PER_SOURCE,
     envKeys: ['SAFETYDATA_SERVICE_KEY_DISASTER', 'SAFETYDATA_SERVICE_KEY'],
   },
 ];
@@ -289,11 +297,11 @@ function logIpWhitelistResolution(outboundIp, ipWhitelistFailureCount, failureCo
     log('');
     log('GitHub 공용 러너에서는 매번 다른 IP로 요청되어 API 30이 납니다.');
     log('해결 1) 이 PC(유치아이피 등록 PC)에 self-hosted runner 설치 → 워크플로우가 여기서 실행');
-    log('해결 2) scripts/register-disaster-ticker-task.ps1 로 로컬 30분 스케줄 등록');
+    log('해결 2) OCI systemd 타이머(deploy/oci) — 유치 IP를 OCI 공인 IP로 등록');
     log('       (GitHub Actions schedule은 self-hosted 없이는 동작하지 않습니다)');
   } else {
     log('');
-    log('이 PC에서 npm run sync:disaster-ticker 를 실행하거나,');
+    log('OCI 서버에서 systemd 동기화가 동작 중인지 확인하거나,');
     log('고정 공인 IP 서버에서 스크립트를 돌리세요.');
   }
 }
@@ -398,78 +406,6 @@ function asArray(value) {
   if (Array.isArray(value)) return value;
   if (value && typeof value === 'object') return [value];
   return [];
-}
-
-function pickString(record, keys) {
-  if (!record || typeof record !== 'object') return '';
-  for (const key of keys) {
-    const raw = record[key];
-    if (typeof raw === 'string' && raw.trim()) return raw.trim();
-    if (typeof raw === 'number' && Number.isFinite(raw)) return String(raw);
-  }
-  return '';
-}
-
-function isJunkSyncedMessage(message) {
-  const text = message.replace(/\s+/g, ' ').trim();
-  if (!text || text.length < 8) return true;
-  if (/^\d{4}[-./]\d{1,2}[-./]\d{1,2}(?:일)?$/.test(text)) return true;
-  if (/^\d{8,14}$/.test(text)) return true;
-  if (/^[\d\s·.,:/-]+$/.test(text)) return true;
-  return false;
-}
-
-function extractMessagesFromRecord(record, sourceCode) {
-  if (sourceCode === 'weather') {
-    const message = pickString(record, [
-      'WRN_MSG',
-      'SPCL_WRN',
-      'WRN',
-      'WRN_KO',
-      'T1',
-      'T2',
-      'TITLE',
-      'SUBJECT',
-      'MSG_CN',
-      'CONTENT',
-    ]);
-    const region = pickString(record, ['STN_KO', 'STN_NM', 'AREA_NAME', 'REG_KO', 'REG_NAME']);
-    if (!message) return '';
-    return [region, message].filter(Boolean).join(' · ');
-  }
-
-  if (sourceCode === 'forest_fire') {
-    const message = pickString(record, [
-      'FRFR_STT_CN',
-      'FRFR_INFO',
-      'MSG_CN',
-      'MSG',
-      'CONTENT',
-      'TITLE',
-      'FRFR_STEP_NM',
-      'STATUS',
-    ]);
-    const region = pickString(record, ['ADDR', 'ADDR_NM', 'AREA_NM', 'SGG_NM', 'FRFR_LCTN']);
-    if (!message && !region) return '';
-    return [region, message].filter(Boolean).join(' · ');
-  }
-
-  if (sourceCode === 'disaster_sms') {
-    const message = pickString(record, [
-      'MSG_CN',
-      'MSG',
-      'MSG_CONTENT',
-      'EMRG_MSG',
-      'DST_MSG',
-      'CONTENT',
-      'CN',
-    ]);
-    const region = pickString(record, ['RCPTN_RGN_NM', 'DST_SE_NM', 'AREA_NAME', 'SGG_NM', 'EMRG_AREA']);
-    if (!message) return '';
-    return region ? `${region} · ${message}` : message;
-  }
-
-  return pickString(record, ['MSG_CN', 'MSG', 'CONTENT', 'TITLE']);
 }
 
 function normalizeBody(payload) {
@@ -625,7 +561,7 @@ async function fetchSourceMessages(source) {
     source.endpoint,
     keyInfo.value,
     1,
-    Math.max(source.maxItems, 10),
+    Math.max(source.maxItems, FETCH_ROW_BUFFER),
   );
 
   return dedupeMessages(

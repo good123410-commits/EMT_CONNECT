@@ -7,7 +7,8 @@
  * 로컬 실행:
  *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run sync:pharmacies
  *
- * GitHub Actions: .github/workflows/sync-pharmacies.yml
+ * 정기 실행: OCI systemd emt-connect-pharmacies.timer (deploy/oci)
+ * 수동/CI: workflow_dispatch — .github/workflows/sync-pharmacies.yml
  */
 import { createClient } from '@supabase/supabase-js';
 import { Agent } from 'undici';

@@ -7,8 +7,12 @@ import {
   type LocationSnapshot,
 } from '@/services/locationService';
 import type { EmergencyTickerItem } from '@/types/emergencyTicker';
+import { countBySource, logTickerPipeline, logTickerStage } from '@/utils/emergencyTickerDebug';
+import {
+  buildTickerDisplaySegments,
+  normalizeTickerItems,
+} from '@/utils/emergencyTickerDisplay';
 import { processEmergencyTickerForDisplay } from '@/utils/emergencyTickerRegionalPipeline';
-import { normalizeTickerItems } from '@/utils/emergencyTickerDisplay';
 
 export function useEmergencyTicker() {
   const [items, setItems] = useState<EmergencyTickerItem[]>([]);
@@ -25,11 +29,15 @@ export function useEmergencyTicker() {
           setTimeout(() => resolve([]), 20_000);
         }),
       ]);
-      setItems(normalizeTickerItems(rows));
+      const normalized = normalizeTickerItems(rows);
+      logTickerStage('hook:refresh', {
+        fetched: rows.length,
+        normalized: normalized.length,
+        bySource: countBySource(normalized),
+      });
+      setItems(normalized);
     } catch (error) {
-      if (__DEV__) {
-        console.warn('[useEmergencyTicker] refresh failed:', error);
-      }
+      logTickerStage('hook:refresh:error', { error });
       setItems((prev) => (prev.length > 0 ? prev : []));
     } finally {
       setLoading(false);
@@ -53,10 +61,22 @@ export function useEmergencyTicker() {
     [items, locationSnapshot.region],
   );
 
-  const displayItems = useMemo(
-    () => locationFilteredItems.filter((item) => item.message.trim().length > 0),
-    [locationFilteredItems],
-  );
+  const displayItems = useMemo(() => {
+    const trimmed = locationFilteredItems.filter((item) => item.message.trim().length > 0);
+    logTickerPipeline('hook:trim-empty', locationFilteredItems, trimmed);
+    return trimmed;
+  }, [locationFilteredItems]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    const segments = buildTickerDisplaySegments(displayItems);
+    logTickerStage('hook:display-ready', {
+      displayItems: displayItems.length,
+      segments: segments.length,
+      region: locationSnapshot.region,
+      bySource: countBySource(displayItems),
+    });
+  }, [displayItems, locationSnapshot.region]);
 
   return {
     items: displayItems,

@@ -1,8 +1,8 @@
 #Requires -Version 5.1
 <#
-  재난 전광판 API → Supabase 동기화 (로컬 1회 실행)
+  재난 전광판 API → Supabase 동기화 (로컬 수동 1회 실행 — 정기 실행은 OCI systemd)
   .env 에 SAFETYDATA_* / SUPABASE_* 가 설정되어 있어야 합니다.
-  safetydata 유치아이피: 이 PC 공인 IP(예: 1.214.117.34)와 포털 등록값이 일치해야 합니다.
+  정기 10분 동기화: deploy/oci (유치 IP = OCI 공인 IP). 노트북 스케줄 등록 금지.
 
   사용:
     .\scripts\run-disaster-ticker-sync.ps1 -Check

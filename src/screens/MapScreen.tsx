@@ -36,6 +36,8 @@ import {
 import { PharmacyOpenBadge } from '@/components/map/PharmacyOpenBadge';
 import { MedicalMapCategoryBar } from '@/components/map/MedicalMapCategoryBar';
 import { MapListFadeIn } from '@/components/map/MapListFadeIn';
+import { PlaceVoteButtons } from '@/components/map/PlaceVoteButtons';
+import { PlaceVoteProvider } from '@/components/map/PlaceVoteContext';
 import { useFacilitySearchMode } from '@/hooks/useFacilitySearchMode';
 import { usePediatricHospitalsQuery } from '@/hooks/usePediatricHospitalsQuery';
 import { useShelterMarkersQuery } from '@/hooks/useShelterMarkersQuery';
@@ -44,6 +46,7 @@ import {
   useFacilityMarkersQuery,
 } from '@/hooks/useFacilityMarkersQuery';
 import { warmAedSearchIndex } from '@/services/localAedStore';
+import { getPediatricPlaceId } from '@/types/placeVote';
 import { MEDICAL_DETAIL } from '@/constants/medicalDetailTheme';
 import {
   EmergencyApiError,
@@ -212,6 +215,11 @@ function AedModule({
   );
   const listMarkers = useDeferredValue(markers);
 
+  const voteRequests = useMemo(
+    () => listMarkers.map((item) => ({ place_kind: 'aed' as const, place_id: item.id })),
+    [listMarkers],
+  );
+
   const handleItemPress = (marker: LocalAedMarker) => {
     setSelectedAED(marker);
   };
@@ -221,6 +229,7 @@ function AedModule({
   };
 
   return (
+    <PlaceVoteProvider requests={voteRequests}>
     <View className="flex-1">
       <View className={MAP_FILTER_BAR_CLASS}>
         <FacilitySearchBarComponent
@@ -285,6 +294,9 @@ function AedModule({
                 distanceUnitMode={distanceUnitMode}
                 onDistanceUnitModeChange={onDistanceUnitModeChange}
                 hint="탭하여 상세 정보 보기"
+                trailing={
+                  <PlaceVoteButtons placeKind="aed" placeId={item.id} compact />
+                }
               />
             </MedicalFacilityListCard>
           )}
@@ -302,6 +314,7 @@ function AedModule({
         ) : null}
       </MapMarkerDetailSheet>
     </View>
+    </PlaceVoteProvider>
   );
 }
 
@@ -346,6 +359,7 @@ function AedDetailContent({
         distanceBlock={distanceBlock}
       />
       <MedicalDetailText variant="muted">로컬 내장 데이터 · 즉시 표시</MedicalDetailText>
+      <PlaceVoteButtons placeKind="aed" placeId={aed.id} className="mt-4" />
     </MedicalDetailBody>
   );
 }
@@ -376,6 +390,11 @@ function ShelterModule({
     active,
   );
 
+  const voteRequests = useMemo(
+    () => listMarkers.map((item) => ({ place_kind: 'shelter' as const, place_id: item.id })),
+    [listMarkers],
+  );
+
   const handleMarkerPress = (shelter: LocalShelterMarker) => {
     setSelectedShelter(shelter);
   };
@@ -385,6 +404,7 @@ function ShelterModule({
   };
 
   return (
+    <PlaceVoteProvider requests={voteRequests}>
     <View className="flex-1">
       <View className={MAP_FILTER_BAR_CLASS}>
         <FacilitySearchBarComponent
@@ -444,6 +464,9 @@ function ShelterModule({
                 distanceUnitMode={distanceUnitMode}
                 onDistanceUnitModeChange={onDistanceUnitModeChange}
                 hint="탭하여 상세 정보 보기"
+                trailing={
+                  <PlaceVoteButtons placeKind="shelter" placeId={item.id} compact />
+                }
               />
             </MedicalFacilityListCard>
           )}
@@ -467,6 +490,7 @@ function ShelterModule({
         ) : null}
       </MapMarkerDetailSheet>
     </View>
+    </PlaceVoteProvider>
   );
 }
 
@@ -502,6 +526,7 @@ function ShelterDetailContent({
         distanceBlock={distanceBlock}
       />
       <MedicalDetailText variant="muted">무더위·한파 쉼터 · 오프라인 데이터</MedicalDetailText>
+      <PlaceVoteButtons placeKind="shelter" placeId={shelter.id} className="mt-4" />
     </MedicalDetailBody>
   );
 }
@@ -546,6 +571,15 @@ function PediatricModule({
     return filterPediatricHospitals(base, searchQuery);
   }, [data?.items, searchQuery]);
 
+  const voteRequests = useMemo(
+    () =>
+      hospitals.map((item) => ({
+        place_kind: 'pediatric' as const,
+        place_id: getPediatricPlaceId(item),
+      })),
+    [hospitals],
+  );
+
   const handleMarkerPress = (hospital: HospitalFinderItem) => {
     setSelectedHospital(hospital);
   };
@@ -565,6 +599,7 @@ function PediatricModule({
   }, [searchParams.regionFilter, searchQuery, statusLabel]);
 
   return (
+    <PlaceVoteProvider requests={voteRequests}>
     <View className="flex-1">
       <View className={MAP_FILTER_BAR_CLASS}>
         <FacilitySearchBarComponent
@@ -648,6 +683,7 @@ function PediatricModule({
         ) : null}
       </MapMarkerDetailSheet>
     </View>
+    </PlaceVoteProvider>
   );
 }
 
@@ -691,6 +727,15 @@ function PharmacyModule({
     }
   }, [markers, pharmacyListViewMode]);
 
+  const voteRequests = useMemo(
+    () =>
+      displayMarkers.map((item) => ({
+        place_kind: 'pharmacy' as const,
+        place_id: item.i,
+      })),
+    [displayMarkers],
+  );
+
   const handleMarkerPress = (place: LocalPharmacyMarker) => {
     setSelectedPlace(place);
   };
@@ -700,6 +745,7 @@ function PharmacyModule({
   };
 
   return (
+    <PlaceVoteProvider requests={voteRequests}>
     <View className="flex-1">
       <View className={MAP_FILTER_BAR_CLASS}>
         <FacilitySearchBarComponent
@@ -802,6 +848,9 @@ function PharmacyModule({
                   distanceUnitMode={distanceUnitMode}
                   onDistanceUnitModeChange={onDistanceUnitModeChange}
                   hint="탭하여 상세 정보 보기"
+                  trailing={
+                    <PlaceVoteButtons placeKind="pharmacy" placeId={item.i} compact />
+                  }
                 />
               </MedicalFacilityListCard>
             );
@@ -826,6 +875,7 @@ function PharmacyModule({
         ) : null}
       </MapMarkerDetailSheet>
     </View>
+    </PlaceVoteProvider>
   );
 }
 
@@ -871,6 +921,14 @@ function ErModule({
     return sortErTabHospitals(enriched);
   }, [baseMarkers, metadataIndex]);
 
+  const voteRequests = useMemo(
+    () =>
+      allMarkers
+        .filter((item) => item.i?.trim())
+        .map((item) => ({ place_kind: 'er' as const, place_id: item.i })),
+    [allMarkers],
+  );
+
   useEffect(() => {
     if (!active) return undefined;
 
@@ -902,6 +960,7 @@ function ErModule({
   };
 
   return (
+    <PlaceVoteProvider requests={voteRequests}>
     <View className="flex-1">
       <View className={MAP_FILTER_BAR_CLASS}>
         <FacilitySearchBarComponent
@@ -969,6 +1028,7 @@ function ErModule({
         ) : null}
       </MapMarkerDetailSheet>
     </View>
+    </PlaceVoteProvider>
   );
 }
 
@@ -1062,6 +1122,9 @@ function ErMarkerCard({
         distanceUnitMode={distanceUnitMode}
         onDistanceUnitModeChange={onDistanceUnitModeChange}
         hint="탭하여 주소·전화·상세 정보 확인"
+        trailing={
+          place.i ? <PlaceVoteButtons placeKind="er" placeId={place.i} compact /> : null
+        }
       />
     </MedicalFacilityListCard>
   );
@@ -1296,6 +1359,10 @@ function ErLocalDetailContent({
           <Text className="text-xs font-semibold text-amber-800">안내</Text>
           <Text className="mt-1 text-xs leading-5 text-amber-900">{place.customMemo}</Text>
         </View>
+      ) : null}
+
+      {place.i ? (
+        <PlaceVoteButtons placeKind="er" placeId={place.i} className="mt-4" />
       ) : null}
     </MedicalDetailBody>
   );

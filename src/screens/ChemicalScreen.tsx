@@ -1,6 +1,7 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
-import { Pressable, Alert, FlatList, ScrollView, Text, View } from 'react-native';
+﻿import { FlashList } from '@shopify/flash-list';
+import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { Pressable, Alert, ScrollView, Text, View } from 'react-native';
 import { GuestLoginPromptModal } from '@/components/auth/GuestLoginPromptModal';
 import { EmptyState } from '@/components/EmptyState';
 import { ChoseongFilterPanel } from '@/components/medicine/ChoseongFilterPanel';
@@ -8,17 +9,24 @@ import { MedicineImage } from '@/components/medicine/MedicineImage';
 import { MedicineListCard } from '@/components/medicine/MedicineListCard';
 import { SearchBar } from '@/components/SearchBar';
 import { useAppHeader } from '@/hooks/useAppHeader';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import { useMedicineFavorites } from '@/hooks/useMedicineFavorites';
 import { navigationRef } from '@/navigation/navigationRef';
 import type { MedicineInfo } from '@/services/emergencyApi';
 import {
+  BROWSE_PAGE_SIZE,
+  SEARCH_RESULT_LIMIT,
   browseLocalMedicinesByChoseong,
+  getBrowseMedicineCount,
   getLocalMedicineCount,
   searchLocalMedicines,
 } from '@/services/medicineService';
 import type { MedicineChoseongFilter } from '@/utils/medicineChoseong';
+
+const MEDICINE_SEARCH_DEBOUNCE_MS = 280;
+const MEDICINE_LIST_ESTIMATED_ITEM_SIZE = 132;
 
 type MedicineViewMode = 'all' | 'favorites';
 
@@ -57,33 +65,57 @@ function DrugModule() {
       : null,
   );
 
-  const trimmedQuery = query.trim();
-  const isSearchMode = trimmedQuery.length >= 1;
+  const [browseVisibleCount, setBrowseVisibleCount] = useState(BROWSE_PAGE_SIZE);
+
+  const debouncedQuery = useDebouncedValue(query.trim(), MEDICINE_SEARCH_DEBOUNCE_MS);
+  const deferredQuery = useDeferredValue(debouncedQuery);
+  const isSearchPending = query.trim() !== debouncedQuery;
+  const isSearchMode = deferredQuery.length >= 1;
   const totalCount = useMemo(() => getLocalMedicineCount(), []);
+
+  useEffect(() => {
+    setBrowseVisibleCount(BROWSE_PAGE_SIZE);
+  }, [choseong, deferredQuery, viewMode]);
 
   const searchResults = useMemo(() => {
     if (!isSearchMode) return [];
-    return searchLocalMedicines(trimmedQuery);
-  }, [isSearchMode, trimmedQuery]);
+    return searchLocalMedicines(deferredQuery, SEARCH_RESULT_LIMIT);
+  }, [deferredQuery, isSearchMode]);
+
+  const browseTotalCount = useMemo(
+    () => (isSearchMode ? 0 : getBrowseMedicineCount(choseong)),
+    [choseong, isSearchMode],
+  );
 
   const browseResults = useMemo(() => {
     if (isSearchMode) return [];
-    return browseLocalMedicinesByChoseong(choseong);
-  }, [isSearchMode, choseong]);
+    return browseLocalMedicinesByChoseong(choseong, browseVisibleCount, 0);
+  }, [browseVisibleCount, choseong, isSearchMode]);
 
   const allListData = isSearchMode ? searchResults : browseResults;
 
   const favoritesListData = useMemo(() => {
     if (!isSearchMode) return favoriteMedicines;
-    const normalized = trimmedQuery.toLowerCase();
+    const normalized = deferredQuery.replace(/\s+/g, '').toLowerCase();
+    if (!normalized) return favoriteMedicines;
     return favoriteMedicines.filter((item) => {
-      const name = item.itemName?.toLowerCase() ?? '';
-      const entp = item.entpName?.toLowerCase() ?? '';
+      const name = item.itemName?.replace(/\s+/g, '').toLowerCase() ?? '';
+      const entp = item.entpName?.replace(/\s+/g, '').toLowerCase() ?? '';
       return name.includes(normalized) || entp.includes(normalized);
     });
-  }, [favoriteMedicines, isSearchMode, trimmedQuery]);
+  }, [deferredQuery, favoriteMedicines, isSearchMode]);
 
   const listData = viewMode === 'favorites' ? favoritesListData : allListData;
+
+  const canLoadMoreBrowse =
+    viewMode === 'all' && !isSearchMode && browseVisibleCount < browseTotalCount;
+
+  const handleLoadMoreBrowse = useCallback(() => {
+    if (!canLoadMoreBrowse) return;
+    setBrowseVisibleCount((current) =>
+      Math.min(current + BROWSE_PAGE_SIZE, browseTotalCount),
+    );
+  }, [browseTotalCount, canLoadMoreBrowse]);
 
   const handleViewModeChange = (mode: MedicineViewMode) => {
     if (mode === 'favorites' && !user) {
@@ -93,21 +125,42 @@ function DrugModule() {
     setViewMode(mode);
   };
 
-  const handleToggleFavorite = async (medicine: MedicineInfo) => {
-    if (!user) {
-      setLoginPromptOpen(true);
-      return;
-    }
+  const handleToggleFavorite = useCallback(
+    async (medicine: MedicineInfo) => {
+      if (!user) {
+        setLoginPromptOpen(true);
+        return;
+      }
 
-    try {
-      await toggleFavorite(medicine);
-    } catch (err) {
-      Alert.alert(
-        '즐겨찾기 실패',
-        err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
-      );
-    }
-  };
+      try {
+        await toggleFavorite(medicine);
+      } catch (err) {
+        Alert.alert(
+          '즐겨찾기 실패',
+          err instanceof Error ? err.message : '잠시 후 다시 시도해 주세요.',
+        );
+      }
+    },
+    [toggleFavorite, user],
+  );
+
+  const keyExtractor = useCallback(
+    (item: MedicineInfo) => item.itemSeq?.trim() || item.itemName?.trim() || 'medicine',
+    [],
+  );
+
+  const renderMedicineItem = useCallback(
+    ({ item }: { item: MedicineInfo }) => (
+      <MedicineListCard
+        item={item}
+        isFavorite={isFavorite(item.itemSeq)}
+        favoriteLoading={togglingSeq === item.itemSeq?.trim()}
+        onToggleFavorite={() => void handleToggleFavorite(item)}
+        onPress={() => setSelected(item)}
+      />
+    ),
+    [handleToggleFavorite, isFavorite, togglingSeq],
+  );
 
   useHardwareBackHandler(() => {
     if (selected) {
@@ -168,17 +221,19 @@ function DrugModule() {
         </View>
 
         <Text className="mt-2 text-xs text-kemix-muted">
-          {viewMode === 'favorites'
-            ? isSearchMode
-              ? `즐겨찾기 검색 · ${listData.length}건`
-              : favoritesLoading
-                ? '즐겨찾기 동기화 중…'
-                : `즐겨찾기 ${listData.length}건`
-            : isSearchMode
-              ? `'${trimmedQuery}' 검색 · ${listData.length}건`
-              : choseong === '전체'
-                ? `전체 목록 ${listData.length}건 · 초성 필터 또는 검색어 입력`
-                : `초성 '${choseong}' · ${listData.length}건`}
+          {isSearchPending
+            ? '검색 준비 중…'
+            : viewMode === 'favorites'
+              ? isSearchMode
+                ? `즐겨찾기 검색 · ${listData.length}건`
+                : favoritesLoading
+                  ? '즐겨찾기 동기화 중…'
+                  : `즐겨찾기 ${listData.length}건`
+              : isSearchMode
+                ? `'${deferredQuery}' 검색 · ${listData.length}건 (최대 ${SEARCH_RESULT_LIMIT}건)`
+                : choseong === '전체'
+                  ? `전체 ${browseTotalCount.toLocaleString('ko-KR')}건 중 ${listData.length}건 표시 · 아래로 더 불러오기`
+                  : `초성 '${choseong}' · ${browseTotalCount.toLocaleString('ko-KR')}건 중 ${listData.length}건 표시`}
         </Text>
 
         {favoritesError && viewMode === 'favorites' ? (
@@ -186,17 +241,17 @@ function DrugModule() {
         ) : null}
       </View>
 
-      <FlatList
+      <FlashList
         data={listData}
-        keyExtractor={(item, index) =>
-          `${item.itemSeq?.trim() || 'no-seq'}::${item.itemName?.trim() || 'no-name'}::${index}`
-        }
-        contentContainerClassName="px-4 pb-8 pt-3 gap-3"
+        estimatedItemSize={MEDICINE_LIST_ESTIMATED_ITEM_SIZE}
+        keyExtractor={keyExtractor}
+        renderItem={renderMedicineItem}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 }}
+        ItemSeparatorComponent={ListSeparator}
         keyboardShouldPersistTaps="handled"
-        initialNumToRender={14}
-        maxToRenderPerBatch={20}
-        windowSize={8}
-        removeClippedSubviews
+        onEndReached={handleLoadMoreBrowse}
+        onEndReachedThreshold={0.4}
+        drawDistance={480}
         ListEmptyComponent={
           viewMode === 'favorites' ? (
             favoritesLoading ? (
@@ -224,15 +279,6 @@ function DrugModule() {
             />
           )
         }
-        renderItem={({ item }) => (
-          <MedicineListCard
-            item={item}
-            isFavorite={isFavorite(item.itemSeq)}
-            favoriteLoading={togglingSeq === item.itemSeq?.trim()}
-            onToggleFavorite={() => void handleToggleFavorite(item)}
-            onPress={() => setSelected(item)}
-          />
-        )}
       />
 
       <GuestLoginPromptModal
@@ -244,6 +290,10 @@ function DrugModule() {
       />
     </View>
   );
+}
+
+function ListSeparator() {
+  return <View className="h-3" />;
 }
 
 function MedicineViewModeBar({

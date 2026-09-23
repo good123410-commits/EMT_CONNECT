@@ -1,4 +1,5 @@
 import type { EmergencyTickerItem } from '@/types/emergencyTicker';
+import { logTickerPipeline } from '@/utils/emergencyTickerDebug';
 
 const YMD_SEPARATED_RE = /(\d{4})[-./년\s](\d{1,2})[-./월\s](\d{1,2})/;
 const YMD_COMPACT_RE = /(?:^|[^\d])(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(?:[^\d]|$)/;
@@ -92,9 +93,18 @@ export function applyDisasterSmsTodayFallback(
 
   const allowedKeys = new Set(allowedSms.map((item) => `${item.sourceType}:${item.message}`));
 
-  return items.filter(
+  const result = items.filter(
     (item) => item.sourceType !== 'disaster_sms' || allowedKeys.has(`${item.sourceType}:${item.message}`),
   );
+
+  logTickerPipeline('disaster-sms-today', items, result, {
+    todayKey,
+    smsTotal: smsItems.length,
+    todaySms: todaySms.length,
+    undatedSms: undatedSms.length,
+  });
+
+  return result;
 }
 
 function mergeSmsItems(primary: EmergencyTickerItem[], secondary: EmergencyTickerItem[]): EmergencyTickerItem[] {

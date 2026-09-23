@@ -12,6 +12,8 @@ const SAFETYDATA_BASE = "https://www.safetydata.go.kr";
 const CACHE_TTL_MINUTES = Number(Deno.env.get("DISASTER_TICKER_CACHE_TTL_MINUTES") ?? "30");
 const FETCH_TIMEOUT_MS = Number(Deno.env.get("DISASTER_TICKER_TIMEOUT_MS") ?? "30000");
 const FETCH_MAX_RETRIES = Number(Deno.env.get("DISASTER_TICKER_FETCH_RETRIES") ?? "2");
+const MAX_TICKER_ITEMS_PER_SOURCE = 10;
+const FETCH_ROW_BUFFER = 20;
 
 type SourceCode = "weather" | "forest_fire" | "disaster_sms";
 
@@ -43,21 +45,21 @@ const SOURCES: SourceConfig[] = [
     sourceCode: "weather",
     endpoint: "/V2/api/DSSP-IF-00045",
     label: "기상특보",
-    maxItems: 8,
+    maxItems: MAX_TICKER_ITEMS_PER_SOURCE,
     envKeys: ["SAFETYDATA_SERVICE_KEY_WEATHER", "SAFETYDATA_SERVICE_KEY"],
   },
   {
     sourceCode: "forest_fire",
     endpoint: "/V2/api/DSSP-IF-10346",
     label: "산불정보",
-    maxItems: 6,
+    maxItems: MAX_TICKER_ITEMS_PER_SOURCE,
     envKeys: ["SAFETYDATA_SERVICE_KEY_FOREST", "SAFETYDATA_SERVICE_KEY"],
   },
   {
     sourceCode: "disaster_sms",
     endpoint: "/V2/api/DSSP-IF-00247",
     label: "긴급재난문자",
-    maxItems: 10,
+    maxItems: MAX_TICKER_ITEMS_PER_SOURCE,
     envKeys: ["SAFETYDATA_SERVICE_KEY_DISASTER", "SAFETYDATA_SERVICE_KEY"],
   },
 ];
@@ -140,13 +142,136 @@ function asArray(value: unknown): Record<string, unknown>[] {
   return [];
 }
 
+const WEATHER_WARNING_TYPES: Record<string, string> = {
+  W: "강풍",
+  R: "호우",
+  C: "한파",
+  D: "건조",
+  O: "해일",
+  N: "지진해일",
+  V: "풍랑",
+  T: "태풍",
+  S: "대설",
+  Y: "황사",
+  H: "폭염",
+  F: "안개",
+};
+
+const WEATHER_WARNING_LEVELS: Record<string, string> = {
+  "1": "예비특보",
+  "2": "주의보",
+  "3": "경보",
+};
+
 function pickString(record: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
     const raw = record[key];
     if (typeof raw === "string" && raw.trim()) return raw.trim();
     if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
   }
+
+  for (const key of keys) {
+    const lower = key.toLowerCase();
+    for (const [entryKey, value] of Object.entries(record)) {
+      if (entryKey.toLowerCase() !== lower) continue;
+      if (typeof value === "string" && value.trim()) return value.trim();
+      if (typeof value === "number" && Number.isFinite(value)) return String(value);
+    }
+  }
+
   return "";
+}
+
+function collapseText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function firstMeaningfulLine(value: string): string {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[o○•\-]\s*/, "").trim())
+    .filter(Boolean);
+  return lines[0] ?? collapseText(value);
+}
+
+function composeWeatherWarningText(record: Record<string, unknown>): string {
+  const direct = pickString(record, [
+    "TTL",
+    "ttl",
+    "PRSNTN_CN",
+    "prsntnCn",
+    "WRN_MSG",
+    "wrnMsg",
+    "SPCL_WRN",
+    "spclWrn",
+    "WRN",
+    "WRN_KO",
+    "wrnKo",
+    "T1",
+    "T2",
+    "TITLE",
+    "SUBJECT",
+    "MSG_CN",
+    "msgCn",
+    "CONTENT",
+    "content",
+    "WRN_CN",
+    "wrnCn",
+  ]);
+  if (direct) return collapseText(direct);
+
+  const bulletin = pickString(record, ["SPNE_FRMNT_PRCON_CN", "spneFrmntPrconCn"]);
+  if (bulletin) return firstMeaningfulLine(bulletin);
+
+  const typeCode = pickString(record, ["WRN_TP", "wrnTp"]);
+  const levelCode = pickString(record, ["WRN_LVL", "wrnLvl"]);
+  const typeName = WEATHER_WARNING_TYPES[typeCode] ?? typeCode;
+  const levelName = WEATHER_WARNING_LEVELS[levelCode] ?? "";
+
+  if (!typeName && !levelName) return "";
+  if (typeName && levelName) return `${typeName}${levelName}`;
+  return typeName || levelName;
+}
+
+function composeForestFireText(record: Record<string, unknown>): string {
+  const direct = pickString(record, [
+    "FRSTFR_GRNDS_OPER_RSLT",
+    "frstfrGrndsOperRslt",
+    "FTRXTNGSH_ACTN_MTTR",
+    "ftrxtngshActnMttr",
+    "FRSTFR_OCRN_HONU_NM",
+    "frstfrOcrnHonuNm",
+    "FRFR_STT_CN",
+    "frfrSttCn",
+    "FRFR_INFO",
+    "frfrInfo",
+    "MSG_CN",
+    "msgCn",
+    "MSG",
+    "msg",
+    "CONTENT",
+    "content",
+    "TITLE",
+    "title",
+  ]);
+  if (direct) return collapseText(direct);
+
+  const status = pickString(record, [
+    "frfrPrgrsStcdNm",
+    "FRFR_PRGRS_STCD_NM",
+    "FRFR_STEP_NM",
+    "frfrStepIssuNm",
+    "FRFR_STEP_ISSU_NM",
+    "STATUS",
+    "status",
+  ]);
+  const rate = pickString(record, ["frfrPotfrRt", "FRFR_POTFR_RT"]);
+  const ignitedAt = pickString(record, ["FRSTFR_GNT_DT", "frstfrGntDt"]);
+  const parts: string[] = [];
+  if (status) parts.push(status);
+  if (rate) parts.push(`진화율 ${rate}%`);
+  if (parts.length === 0 && ignitedAt) parts.push(`산불 발생 ${collapseText(ignitedAt)}`);
+  return parts.join(" ");
 }
 
 function isJunkSyncedMessage(message: string): boolean {
@@ -160,35 +285,51 @@ function isJunkSyncedMessage(message: string): boolean {
 
 function extractMessagesFromRecord(record: Record<string, unknown>, sourceCode: SourceCode): string {
   if (sourceCode === "weather") {
-    const message = pickString(record, [
-      "WRN_MSG",
-      "SPCL_WRN",
-      "WRN",
-      "WRN_KO",
-      "T1",
-      "T2",
-      "TITLE",
-      "SUBJECT",
-      "MSG_CN",
-      "CONTENT",
+    const message = composeWeatherWarningText(record);
+    const region = pickString(record, [
+      "RLVT_ZONE",
+      "rlvtZone",
+      "SPNE_FRMNT_TM_TXT",
+      "spneFrmntTmTxt",
+      "STN_KO",
+      "stnKo",
+      "STN_NM",
+      "stnNm",
+      "REG_KO",
+      "regKo",
+      "REG_NAME",
+      "regName",
+      "AREA_NAME",
+      "areaName",
+      "REG_ID",
+      "regId",
     ]);
-    const region = pickString(record, ["STN_KO", "STN_NM", "AREA_NAME", "REG_KO", "REG_NAME"]);
     if (!message) return "";
     return [region, message].filter(Boolean).join(" · ");
   }
 
   if (sourceCode === "forest_fire") {
-    const message = pickString(record, [
-      "FRFR_STT_CN",
-      "FRFR_INFO",
-      "MSG_CN",
-      "MSG",
-      "CONTENT",
-      "TITLE",
-      "FRFR_STEP_NM",
-      "STATUS",
+    const message = composeForestFireText(record);
+    const region = pickString(record, [
+      "FRSTFR_DCLR_ADDR",
+      "frstfrDclrAddr",
+      "FRSTFR_GNT_PLC",
+      "frstfrGntPlc",
+      "frfrSttmnAddr",
+      "FRFR_STTMN_ADDR",
+      "frfrSttmnAddrDe",
+      "FRFR_STTMN_ADDR_DE",
+      "ADDR",
+      "addr",
+      "ADDR_NM",
+      "addrNm",
+      "AREA_NM",
+      "areaNm",
+      "SGG_NM",
+      "sggNm",
+      "FRFR_LCTN",
+      "frfrLctn",
     ]);
-    const region = pickString(record, ["ADDR", "ADDR_NM", "AREA_NM", "SGG_NM", "FRFR_LCTN"]);
     if (!message && !region) return "";
     return [region, message].filter(Boolean).join(" · ");
   }
@@ -196,19 +337,37 @@ function extractMessagesFromRecord(record: Record<string, unknown>, sourceCode: 
   if (sourceCode === "disaster_sms") {
     const message = pickString(record, [
       "MSG_CN",
+      "msgCn",
       "MSG",
+      "msg",
       "MSG_CONTENT",
+      "msgContent",
       "EMRG_MSG",
+      "emrgMsg",
       "DST_MSG",
+      "dstMsg",
       "CONTENT",
+      "content",
       "CN",
+      "cn",
     ]);
-    const region = pickString(record, ["RCPTN_RGN_NM", "DST_SE_NM", "AREA_NAME", "SGG_NM", "EMRG_AREA"]);
+    const region = pickString(record, [
+      "RCPTN_RGN_NM",
+      "rcptnRgnNm",
+      "DST_SE_NM",
+      "dstSeNm",
+      "AREA_NAME",
+      "areaName",
+      "SGG_NM",
+      "sggNm",
+      "EMRG_AREA",
+      "emrgArea",
+    ]);
     if (!message) return "";
     return region ? `${region} · ${message}` : message;
   }
 
-  return pickString(record, ["MSG_CN", "MSG", "CONTENT", "TITLE"]);
+  return pickString(record, ["MSG_CN", "msgCn", "MSG", "msg", "CONTENT", "content", "TITLE", "title"]);
 }
 
 function normalizeBody(payload: Record<string, unknown>): Record<string, unknown>[] {
@@ -344,7 +503,7 @@ async function fetchSourceMessages(source: SourceConfig): Promise<string[]> {
     source.endpoint,
     keyInfo.value,
     1,
-    Math.max(source.maxItems, 10),
+    Math.max(source.maxItems, FETCH_ROW_BUFFER),
   );
 
   return dedupeMessages(

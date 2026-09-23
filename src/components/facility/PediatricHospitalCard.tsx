@@ -10,7 +10,9 @@ import {
 } from '@/components/facility/MedicalFacilityListCard';
 import { MoonlightHospitalBadge } from '@/components/facility/MoonlightHospitalBadge';
 import { PartnerHospitalBadge } from '@/components/facility/PartnerHospitalBadge';
+import { PlaceVoteButtons } from '@/components/map/PlaceVoteButtons';
 import type { HospitalFinderItem } from '@/services/hospitalFinderService';
+import { getPediatricPlaceId } from '@/types/placeVote';
 import type { DistanceUnitMode } from '@/utils/formatDistance';
 import { DUTY_DAY_FULL_LABELS, getTreatmentDayCode } from '@/utils/hospitalHours';
 
@@ -108,8 +110,23 @@ export function PediatricHospitalCard({
           walkMin={hospital.walkMin}
           distanceUnitMode={distanceUnitMode}
           onDistanceUnitModeChange={onDistanceUnitModeChange}
+          trailing={
+            <PlaceVoteButtons
+              placeKind="pediatric"
+              placeId={getPediatricPlaceId(hospital)}
+              compact
+            />
+          }
         />
-      ) : null}
+      ) : (
+        <View className="mt-3">
+          <PlaceVoteButtons
+            placeKind="pediatric"
+            placeId={getPediatricPlaceId(hospital)}
+            compact
+          />
+        </View>
+      )}
     </MedicalFacilityListCard>
   );
 }

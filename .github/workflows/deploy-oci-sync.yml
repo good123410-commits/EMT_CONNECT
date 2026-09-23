@@ -1,0 +1,55 @@
+name: Deploy OCI sync jobs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'scripts/lib/**'
+      - 'deploy/oci/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-oci-sync.yml'
+
+concurrency:
+  group: deploy-oci-sync
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout (deploy metadata only)
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.OCI_SSH_HOST }}
+          username: ${{ secrets.OCI_SSH_USER }}
+          key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          port: 22
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            cd /opt/emt-connect
+            export EMT_CONNECT_APP_DIR=/opt/emt-connect
+            bash deploy/oci/remote-update.sh
+
+      - name: Smoke check — disaster ticker dry-run
+        uses: appleboy/ssh-action@v1.2.0
+        if: ${{ vars.OCI_RUN_SMOKE_CHECK == 'true' }}
+        with:
+          host: ${{ secrets.OCI_SSH_HOST }}
+          username: ${{ secrets.OCI_SSH_USER }}
+          key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            set -a
+            source /opt/emt-connect/.env
+            set +a
+            cd /opt/emt-connect
+            npm run sync:disaster-ticker:check

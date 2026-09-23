@@ -1,6 +1,12 @@
 import { supabase } from '@/lib/supabaseClient';
 import type { EmergencyTickerItem, EmergencyTickerSource } from '@/types/emergencyTicker';
 import { applyDisasterSmsTodayFallback } from '@/utils/emergencyTickerDisasterSms';
+import {
+  countBySource,
+  EMERGENCY_TICKER_DEBUG,
+  logTickerFetchSummary,
+  logTickerStage,
+} from '@/utils/emergencyTickerDebug';
 
 export const EMERGENCY_NOTICES_TABLE = 'kemix_home_emergency_notices';
 const DISASTER_CACHE_TABLE = 'kemix_disaster_ticker_cache';
@@ -33,6 +39,7 @@ type DisasterCacheRow = {
   messages: unknown;
   expires_at: string;
   fetched_at?: string;
+  last_error?: string | null;
 };
 
 export class EmergencyTickerServiceError extends Error {
@@ -107,24 +114,30 @@ async function fetchViaRpc(): Promise<EmergencyTickerItem[]> {
 
     if (error) {
       if (isMissingRpcError(error.message)) {
+        logTickerStage('fetch:rpc', { status: 'missing_rpc', message: error.message });
         return [];
       }
-      if (__DEV__) {
-        console.warn('[emergencyTicker] rpc failed:', error.message);
-      }
+      logTickerStage('fetch:rpc', { status: 'error', message: error.message });
       return [];
     }
 
-    const mapped = ((data ?? []) as TickerRow[])
+    const rows = (data ?? []) as TickerRow[];
+    const mapped = rows
       .map((row) => mapTickerRow(row))
       .filter((item): item is EmergencyTickerItem => item !== null);
+
+    logTickerStage('fetch:rpc', {
+      status: 'ok',
+      rowCount: rows.length,
+      mappedCount: mapped.length,
+      bySource: countBySource(mapped),
+      sampleRow: rows[0] ?? null,
+    });
 
     // RPC는 ORDER BY sort_order로 정렬된 배열을 반환 — 배열 순서를 그대로 사용합니다.
     return stampTickerSequence(mapped);
   } catch (error) {
-    if (__DEV__) {
-      console.warn('[emergencyTicker] rpc exception:', error);
-    }
+    logTickerStage('fetch:rpc', { status: 'exception', error });
     return [];
   }
 }
@@ -180,7 +193,7 @@ function mapCacheRowToItems(row: DisasterCacheRow): EmergencyTickerItem[] {
 async function fetchDisasterCacheRows(activeOnly: boolean): Promise<DisasterCacheRow[]> {
   let query = supabase
     .from(DISASTER_CACHE_TABLE)
-    .select('source_code, messages, expires_at, fetched_at');
+    .select('source_code, messages, expires_at, fetched_at, last_error');
 
   if (activeOnly) {
     const nowIso = new Date().toISOString();
@@ -188,7 +201,10 @@ async function fetchDisasterCacheRows(activeOnly: boolean): Promise<DisasterCach
   }
 
   const { data, error } = await query;
-  if (error) return [];
+  if (error) {
+    logTickerStage('fetch:cache', { status: 'error', message: error.message, activeOnly });
+    return [];
+  }
   return (data ?? []) as DisasterCacheRow[];
 }
 
@@ -210,24 +226,45 @@ async function ensureDisasterSmsFallback(items: EmergencyTickerItem[]): Promise<
 
 export async function fetchActiveEmergencyTickerItems(): Promise<EmergencyTickerItem[]> {
   try {
-    const rpcItems = await fetchViaRpc();
-
-    // RPC가 설정 테이블 sort_order를 반영한 단일 정렬 목록을 반환합니다.
-    if (rpcItems.length > 0) {
-      return await ensureDisasterSmsFallback(rpcItems);
-    }
-
-    const [adminItems, cacheItems] = await Promise.all([
+    const [rpcItems, adminItems, cacheItems, cacheRowsAll] = await Promise.all([
+      fetchViaRpc(),
       fetchAdminNoticesDirect(),
       fetchDisasterCacheDirect(),
+      EMERGENCY_TICKER_DEBUG ? fetchDisasterCacheRows(false) : Promise.resolve([]),
     ]);
 
-    const merged = mergeTickerItems([adminItems, cacheItems]);
-    return stampTickerSequence(await ensureDisasterSmsFallback(merged));
-  } catch (error) {
-    if (__DEV__) {
-      console.warn('[emergencyTicker] fetch failed:', error);
+    if (EMERGENCY_TICKER_DEBUG) {
+      logTickerFetchSummary({
+        rpcItems,
+        adminItems,
+        cacheItems,
+        cacheRows: cacheRowsAll,
+      });
     }
+
+    let result: EmergencyTickerItem[];
+
+    if (rpcItems.length > 0) {
+      result = await ensureDisasterSmsFallback(rpcItems);
+    } else {
+      const merged = mergeTickerItems([adminItems, cacheItems]);
+      result = stampTickerSequence(await ensureDisasterSmsFallback(merged));
+    }
+
+    logTickerStage('fetch:result', {
+      total: result.length,
+      bySource: countBySource(result),
+      order: result.map((item, index) => ({
+        index,
+        sourceType: item.sourceType,
+        sortOrder: item.sortOrder,
+        message: item.message.slice(0, 60),
+      })),
+    });
+
+    return result;
+  } catch (error) {
+    logTickerStage('fetch:failed', { error });
     return [];
   }
 }

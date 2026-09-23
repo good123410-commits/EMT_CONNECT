@@ -1,0 +1,17 @@
+[Unit]
+Description=EMT Connect — midnight pharmacy CSV sync (E-Gen → Supabase)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=@APP_USER@
+Group=@APP_USER@
+WorkingDirectory=@APP_DIR@
+EnvironmentFile=-@APP_DIR@/.env
+ExecStart=@NODE_BIN@ scripts/sync-midnight-pharmacies.mjs
+Nice=10
+IOSchedulingClass=best-effort
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+# ~/.ssh/config 에 붙여 넣기 (경로·키 파일명은 로컬 환경에 맞게 수정)
+Host emt-oci
+  HostName 132.145.126.224
+  User opc
+  IdentityFile ~/.ssh/oci_emt_connect
+  IdentitiesOnly yes
+
+# 사용: ssh emt-oci
