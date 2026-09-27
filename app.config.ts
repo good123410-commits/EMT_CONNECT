@@ -29,11 +29,20 @@ const expoConfig: ExpoConfig = {
     supportsTablet: true,
     bundleIdentifier: 'com.anonymous.kon',
     infoPlist: {
-      LSApplicationQueriesSchemes: ['kakaoMap', 'kakaomap', 'kakaonavi-sdk', 'kakaonavi', 'tmap'],
+      LSApplicationQueriesSchemes: [
+        'kakaoMap',
+        'kakaomap',
+        'kakaonavi-sdk',
+        'kakaonavi',
+        'tmap',
+        'kakaotalk',
+        'kakaokompassauth',
+      ],
     },
   },
   android: {
     package: 'com.anonymous.kon',
+    softwareKeyboardLayoutMode: 'resize',
     adaptiveIcon: {
       backgroundColor: '#121212',
       foregroundImage: './assets/ic_launcher.png',
@@ -54,6 +63,7 @@ const expoConfig: ExpoConfig = {
     // './plugins/withLockScreenEmergencyActivity.js',
     'expo-screen-orientation',
     'expo-web-browser',
+    'expo-video',
     [
       'expo-image-picker',
       {

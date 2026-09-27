@@ -517,6 +517,8 @@ export type UpsertHomeEventBannerInput = {
   title: string;
   description: string;
   image_url?: string | null;
+  video_url?: string | null;
+  media_type?: 'image' | 'video' | 'gif';
   link_url: string;
   is_active: boolean;
   sort_order: number;
@@ -527,6 +529,8 @@ export async function adminUpsertHomeEventBanner(input: UpsertHomeEventBannerInp
     title: input.title.trim(),
     description: input.description.trim(),
     image_url: input.image_url?.trim() || null,
+    video_url: input.video_url?.trim() || null,
+    media_type: input.media_type ?? 'image',
     link_url: input.link_url.trim(),
     is_active: input.is_active,
     sort_order: input.sort_order,

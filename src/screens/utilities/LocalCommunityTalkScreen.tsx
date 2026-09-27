@@ -194,11 +194,13 @@ export function LocalCommunityTalkScreen({ embedded = false }: { embedded?: bool
 
   if (selectedRoom) {
     return (
-      <LocalCommunityChatRoomView
-        room={selectedRoom}
-        embedded={embedded}
-        onBack={() => setSelectedRoom(null)}
-      />
+      <View className="min-h-0 flex-1">
+        <LocalCommunityChatRoomView
+          room={selectedRoom}
+          embedded={embedded}
+          onBack={() => setSelectedRoom(null)}
+        />
+      </View>
     );
   }
 

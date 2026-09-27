@@ -2,9 +2,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ActivityIndicator, Alert, Platform, ScrollView, Share, Text, View } from 'react-native';
 import { SegmentControl } from '@/components/SegmentControl';
+import { AdminConfirmModal } from '@/components/admin/AdminConfirmModal';
 import { AdminFormField } from '@/components/admin/AdminFormField';
 import {
   adminCreateInvitationCodeAndSendEmail,
+  adminDeleteInvitationCode,
   adminListInvitationCodes,
   adminListPendingVerifications,
   adminReviewVerification,
@@ -34,6 +36,8 @@ export function AdminAuthPanel() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [creatingCode, setCreatingCode] = useState(false);
   const [sendingCodeId, setSendingCodeId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminInvitationCode | null>(null);
+  const [deletingCode, setDeletingCode] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
   const reload = useCallback(async () => {
@@ -86,6 +90,26 @@ export function AdminAuthPanel() {
       showAlert('전송 실패', message);
     } finally {
       setCreatingCode(false);
+    }
+  };
+
+  const handleDeleteCode = async () => {
+    if (!deleteTarget) return;
+    const codeId = deleteTarget.id;
+    const codeLabel = deleteTarget.code;
+
+    setDeletingCode(true);
+    setDeleteTarget(null);
+    setCodes((prev) => prev.filter((item) => item.id !== codeId));
+
+    try {
+      await adminDeleteInvitationCode(codeId);
+      showAlert('삭제 완료', `코드 ${codeLabel}을(를) 삭제했습니다.`);
+    } catch (error) {
+      showAlert('삭제 실패', formatErrorMessage(error));
+      await reload();
+    } finally {
+      setDeletingCode(false);
     }
   };
 
@@ -213,7 +237,7 @@ export function AdminAuthPanel() {
                 className={`flex-row items-center rounded-lg px-2.5 py-1.5 ${
                   sendingCodeId === item.id ? 'bg-blue-200' : 'bg-blue-100'
                 }`}
-                disabled={sendingCodeId === item.id}
+                disabled={sendingCodeId === item.id || deletingCode}
                 onPress={() => void handleResendEmail(item)}
               >
                 <Ionicons name="mail-outline" size={14} color="#1d4ed8" />
@@ -221,10 +245,33 @@ export function AdminAuthPanel() {
                   {sendingCodeId === item.id ? '전송 중' : '재전송'}
                 </Text>
               </Pressable>
+              <Pressable
+                className="flex-row items-center rounded-lg bg-red-100 px-2.5 py-1.5"
+                disabled={deletingCode}
+                onPress={() => setDeleteTarget(item)}
+              >
+                <Ionicons name="trash-outline" size={14} color="#b91c1c" />
+                <Text className="ml-1 text-[11px] font-bold text-red-700">삭제</Text>
+              </Pressable>
             </View>
           </View>
         ))
       )}
+
+      <AdminConfirmModal
+        visible={!!deleteTarget}
+        title="초대 코드 삭제"
+        message={
+          deleteTarget?.used_at
+            ? `코드 "${deleteTarget.code}"은(는) 이미 사용되었습니다. 목록에서만 제거되며, 이미 부여된 권한은 유지됩니다. 계속할까요?`
+            : `코드 "${deleteTarget?.code}"을(를) 삭제하시겠습니까? 삭제 후 해당 코드로는 가입·인증할 수 없습니다.`
+        }
+        confirmLabel="삭제"
+        destructive
+        loading={deletingCode}
+        onConfirm={() => void handleDeleteCode()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </ScrollView>
   );
 }

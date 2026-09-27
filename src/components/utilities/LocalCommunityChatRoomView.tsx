@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Alert, FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { Pressable, Alert, FlatList, Text, View } from 'react-native';
 import { ChatMessageContextMenu } from '@/components/chat/ChatMessageContextMenu';
+import { ChatRoomKeyboardLayout } from '@/components/chat/ChatRoomKeyboardLayout';
 import { ChatMessageRow } from '@/components/chat/ChatMessageRow';
 import { ShortcodeComposerField } from '@/components/content/ShortcodeComposerField';
 import { useAppTheme } from '@/contexts/AppThemeContext';
@@ -9,7 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { APP_SPACING } from '@/constants/appTheme';
 import { useBlockedUsers } from '@/hooks/useBlockedUsers';
 import { useChatRoomReactions } from '@/hooks/useChatRoomReactions';
-import { useGlobalFabBottomInset } from '@/hooks/useGlobalFabInset';
+import { useChatComposerBottomInset } from '@/hooks/useChatComposerBottomInset';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
+import { useScrollChatToEndOnKeyboard } from '@/hooks/useScrollChatToEndOnKeyboard';
 import { useHardwareBackHandler } from '@/hooks/useHardwareBackHandler';
 import { useLiveDbAdmin } from '@/hooks/useLiveDbAdmin';
 import {
@@ -47,7 +50,8 @@ export function LocalCommunityChatRoomView({
 }: LocalCommunityChatRoomViewProps) {
   const { colors } = useAppTheme();
   const { user } = useAuth();
-  const fabBottomInset = useGlobalFabBottomInset();
+  const composerBottomPadding = useChatComposerBottomInset({ reduceFabPadding: embedded });
+  const keyboardHeight = useKeyboardHeight();
   const { isDbAdmin } = useLiveDbAdmin();
   const { filterBlocked, reload: reloadBlockedUsers } = useBlockedUsers();
   const listRef = useRef<FlatList<LocalCommunityMessage>>(null);
@@ -103,6 +107,12 @@ export function LocalCommunityChatRoomView({
     }, 100);
     return () => clearTimeout(timer);
   }, [visibleMessages.length]);
+
+  useScrollChatToEndOnKeyboard(listRef);
+
+  const scrollListToEnd = () => {
+    listRef.current?.scrollToEnd({ animated: true });
+  };
 
   useHardwareBackHandler(() => {
     onBack();
@@ -200,45 +210,102 @@ export function LocalCommunityChatRoomView({
   };
 
   const categoryLabel = room.category ? LOCAL_COMMUNITY_CATEGORY_LABELS[room.category] : room.topic;
-  const composerBottomPadding = embedded ? 12 : Math.max(12, fabBottomInset - 48);
+  const listBottomPadding = keyboardHeight > 0 ? 20 : 12;
 
-  return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      style={{ backgroundColor: colors.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={embedded ? 88 : 0}
+  const chatHeader = (
+    <View
+      className="border-b px-4 py-3"
+      style={{
+        borderBottomColor: colors.borderLight,
+        backgroundColor: colors.surface,
+      }}
     >
-      <View
-        className="border-b px-4 py-3"
-        style={{
-          borderBottomColor: colors.borderLight,
-          backgroundColor: colors.surface,
-        }}
-      >
-        <View className="flex-row items-center">
-          <Pressable className="mr-3 rounded-full p-1 active:opacity-80" onPress={onBack} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-          </Pressable>
-          <View className="flex-1">
-            <Text className="text-base font-bold" numberOfLines={1} style={{ color: colors.textPrimary }}>
-              {room.title}
+      <View className="flex-row items-center">
+        <Pressable className="mr-3 rounded-full p-1 active:opacity-80" onPress={onBack} hitSlop={8}>
+          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+        </Pressable>
+        <View className="flex-1">
+          <Text className="text-base font-bold" numberOfLines={1} style={{ color: colors.textPrimary }}>
+            {room.title}
+          </Text>
+          <Text className="mt-0.5 text-[11px]" style={{ color: colors.metaText }}>
+            {[categoryLabel, `${room.participantCount}명 참여`, `개설 ${room.creatorLabel}`]
+              .filter(Boolean)
+              .join(' · ')}
+          </Text>
+        </View>
+      </View>
+      {room.description ? (
+        <Text className="mt-2 pl-9 text-xs" style={{ color: colors.textSecondary }}>
+          {room.description}
+        </Text>
+      ) : null}
+    </View>
+  );
+
+  const chatComposer = (
+    <View
+      className="border-t"
+      style={{
+        borderTopColor: colors.borderLight,
+        backgroundColor: colors.surface,
+      }}
+    >
+      {replyTarget ? (
+        <View
+          className="flex-row items-center border-b px-4 py-2.5"
+          style={{ borderBottomColor: colors.borderLight, backgroundColor: colors.background }}
+        >
+          <View className="mr-3 flex-1">
+            <Text className="text-xs font-semibold" style={{ color: colors.blue }}>
+              {replyTarget.anonymousLabel}에게 답장
             </Text>
-            <Text className="mt-0.5 text-[11px]" style={{ color: colors.metaText }}>
-              {[categoryLabel, `${room.participantCount}명 참여`, `개설 ${room.creatorLabel}`]
-                .filter(Boolean)
-                .join(' · ')}
+            <Text className="mt-0.5 text-xs" numberOfLines={1} style={{ color: colors.textSecondary }}>
+              {stripChatContentForCopy(replyTarget.content)}
             </Text>
           </View>
+          <Pressable hitSlop={8} onPress={() => setReplyTarget(null)}>
+            <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+          </Pressable>
         </View>
-        {room.description ? (
-          <Text className="mt-2 pl-9 text-xs" style={{ color: colors.textSecondary }}>
-            {room.description}
-          </Text>
-        ) : null}
-      </View>
+      ) : null}
 
-      <FlatList
+      <View className="px-4 pt-3" style={{ paddingBottom: composerBottomPadding }}>
+        <View className="flex-row items-end gap-2">
+          <ShortcodeComposerField
+            value={draft}
+            onChangeText={setDraft}
+            inputProps={{
+              className: 'max-h-24 flex-1 rounded-2xl border px-3 py-2.5 text-sm',
+              style: {
+                borderColor: colors.border,
+                backgroundColor: colors.background,
+                color: colors.textPrimary,
+              },
+              placeholder: replyTarget ? '답장 입력…' : '메시지 입력 (개인정보·비방 금지)',
+              placeholderTextColor: colors.textMuted,
+              multiline: true,
+              editable: !sending,
+              onFocus: scrollListToEnd,
+            }}
+          />
+          <Pressable
+            className="rounded-xl px-4 py-3 active:opacity-90"
+            style={{ backgroundColor: sending ? colors.border : colors.blue }}
+            disabled={sending}
+            onPress={() => void handleSend()}
+          >
+            <Ionicons name="send" size={18} color="#fff" />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <>
+      <ChatRoomKeyboardLayout backgroundColor={colors.background} header={chatHeader} footer={chatComposer}>
+        <FlatList
         ref={listRef}
         data={visibleMessages}
         keyExtractor={(item) => item.id}
@@ -246,7 +313,7 @@ export function LocalCommunityChatRoomView({
         contentContainerStyle={{
           paddingHorizontal: APP_SPACING.contentHorizontal,
           paddingTop: 12,
-          paddingBottom: 12,
+          paddingBottom: listBottomPadding,
           flexGrow: 1,
         }}
         ListHeaderComponent={
@@ -273,6 +340,7 @@ export function LocalCommunityChatRoomView({
           )
         }
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         renderItem={({ item }) => (
           <ChatMessageRow
             id={item.id}
@@ -302,63 +370,8 @@ export function LocalCommunityChatRoomView({
           />
         )}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-      />
-
-      <View
-        className="border-t"
-        style={{
-          borderTopColor: colors.borderLight,
-          backgroundColor: colors.surface,
-        }}
-      >
-        {replyTarget ? (
-          <View
-            className="flex-row items-center border-b px-4 py-2.5"
-            style={{ borderBottomColor: colors.borderLight, backgroundColor: colors.background }}
-          >
-            <View className="mr-3 flex-1">
-              <Text className="text-xs font-semibold" style={{ color: colors.blue }}>
-                {replyTarget.anonymousLabel}에게 답장
-              </Text>
-              <Text className="mt-0.5 text-xs" numberOfLines={1} style={{ color: colors.textSecondary }}>
-                {stripChatContentForCopy(replyTarget.content)}
-              </Text>
-            </View>
-            <Pressable hitSlop={8} onPress={() => setReplyTarget(null)}>
-              <Ionicons name="close-circle" size={20} color={colors.textMuted} />
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View className="px-4 pt-3" style={{ paddingBottom: composerBottomPadding }}>
-          <View className="flex-row items-end gap-2">
-            <ShortcodeComposerField
-              value={draft}
-              onChangeText={setDraft}
-              inputProps={{
-                className: 'max-h-24 flex-1 rounded-2xl border px-3 py-2.5 text-sm',
-                style: {
-                  borderColor: colors.border,
-                  backgroundColor: colors.background,
-                  color: colors.textPrimary,
-                },
-                placeholder: replyTarget ? '답장 입력…' : '메시지 입력 (개인정보·비방 금지)',
-                placeholderTextColor: colors.textMuted,
-                multiline: true,
-                editable: !sending,
-              }}
-            />
-            <Pressable
-              className="rounded-xl px-4 py-3 active:opacity-90"
-              style={{ backgroundColor: sending ? colors.border : colors.blue }}
-              disabled={sending}
-              onPress={() => void handleSend()}
-            >
-              <Ionicons name="send" size={18} color="#fff" />
-            </Pressable>
-          </View>
-        </View>
-      </View>
+        />
+      </ChatRoomKeyboardLayout>
 
       <ChatMessageContextMenu
         visible={contextMenuMessage !== null}
@@ -376,6 +389,6 @@ export function LocalCommunityChatRoomView({
           void handleDeleteMessage(message);
         }}
       />
-    </KeyboardAvoidingView>
+    </>
   );
 }

@@ -1,8 +1,12 @@
+export type HomeBannerMediaType = 'image' | 'video' | 'gif';
+
 export type HomeBanner = {
   id: string;
   title: string;
   description: string;
   imageUrl: string | null;
+  videoUrl: string | null;
+  mediaType: HomeBannerMediaType;
   linkUrl: string;
   isActive: boolean;
   sortOrder: number;

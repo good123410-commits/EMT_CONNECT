@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
-import type { HomeBanner } from '@/types/homeDashboard';
+import type { HomeBanner, HomeBannerMediaType } from '@/types/homeDashboard';
 
 export const HOME_EVENT_BANNERS_TABLE = 'kemix_home_event_banners';
 export const KEMIX_MEDIA_BUCKET = 'kemix-media';
@@ -12,12 +12,21 @@ export type HomeEventBannerRow = {
   title: string;
   description: string;
   image_url: string | null;
+  video_url?: string | null;
+  media_type?: string | null;
   link_url: string;
   is_active: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
 };
+
+function normalizeMediaType(value: string | null | undefined): HomeBannerMediaType {
+  if (value === 'video' || value === 'gif' || value === 'image') {
+    return value;
+  }
+  return 'image';
+}
 
 export class HomeBannerServiceError extends Error {
   constructor(message: string) {
@@ -47,11 +56,14 @@ function assertValidBannerId(id: string): string {
 }
 
 export function mapRowToHomeBanner(row: HomeEventBannerRow): HomeBanner {
+  const mediaType = normalizeMediaType(row.media_type);
   return {
     id: row.id,
     title: row.title,
     description: row.description,
     imageUrl: row.image_url,
+    videoUrl: row.video_url ?? null,
+    mediaType,
     linkUrl: row.link_url,
     isActive: row.is_active,
     sortOrder: row.sort_order,
@@ -65,6 +77,8 @@ export type UpsertHomeBannerInput = {
   title: string;
   description: string;
   imageUrl?: string | null;
+  videoUrl?: string | null;
+  mediaType?: HomeBanner['mediaType'];
   linkUrl: string;
   isActive?: boolean;
   sortOrder?: number;
@@ -102,6 +116,8 @@ export async function upsertHomeEventBanner(input: UpsertHomeBannerInput): Promi
     p_link_url: input.linkUrl.trim(),
     p_is_active: input.isActive ?? true,
     p_sort_order: input.sortOrder ?? 0,
+    p_media_type: input.mediaType ?? 'image',
+    p_video_url: input.videoUrl?.trim() || null,
   });
 
   if (error || !data) {
@@ -163,8 +179,19 @@ export async function deleteHomeEventBanner(id: string): Promise<void> {
   }
 }
 
-export async function uploadHomeBannerImage(fileUri: string, mimeType = 'image/jpeg'): Promise<string> {
-  const ext = mimeType.includes('png') ? 'png' : 'jpg';
+function resolveUploadExtension(mimeType: string): string {
+  const normalized = mimeType.toLowerCase();
+  if (normalized.includes('gif')) return 'gif';
+  if (normalized.includes('png')) return 'png';
+  if (normalized.includes('webp')) return 'webp';
+  if (normalized.includes('mp4')) return 'mp4';
+  if (normalized.includes('quicktime') || normalized.includes('mov')) return 'mov';
+  if (normalized.includes('webm')) return 'webm';
+  return 'jpg';
+}
+
+export async function uploadHomeBannerAsset(fileUri: string, mimeType = 'image/jpeg'): Promise<string> {
+  const ext = resolveUploadExtension(mimeType);
   const path = `home-banners/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
   const response = await fetch(fileUri);
@@ -181,4 +208,9 @@ export async function uploadHomeBannerImage(fileUri: string, mimeType = 'image/j
 
   const { data } = supabase.storage.from(KEMIX_MEDIA_BUCKET).getPublicUrl(path);
   return data.publicUrl;
+}
+
+/** @deprecated uploadHomeBannerAsset 사용 */
+export async function uploadHomeBannerImage(fileUri: string, mimeType = 'image/jpeg'): Promise<string> {
+  return uploadHomeBannerAsset(fileUri, mimeType);
 }

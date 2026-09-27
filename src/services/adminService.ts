@@ -31,6 +31,9 @@ function parseRpcError(message: string, fn?: string): string {
   if (message.includes('verification_not_found')) {
     return '인증 요청을 찾을 수 없습니다.';
   }
+  if (message.includes('invitation_code_not_found')) {
+    return '초대 코드를 찾을 수 없습니다.';
+  }
   if (message.includes('title_required')) {
     return '제목을 입력해 주세요.';
   }
@@ -486,6 +489,10 @@ export async function adminCreateInvitationCodeAndSendEmail(
     expiresAt: created.expires_at,
   });
   return created;
+}
+
+export async function adminDeleteInvitationCode(codeId: string): Promise<void> {
+  await callRpc<boolean>('admin_delete_invitation_code', { p_code_id: codeId });
 }
 
 export async function adminListInvitationCodes(limit = 50): Promise<AdminInvitationCode[]> {

@@ -1,6 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, ActivityIndicator, FlatList, Image, type NativeScrollEvent, type NativeSyntheticEvent, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, FlatList, type NativeScrollEvent, type NativeSyntheticEvent, Text, useWindowDimensions, View } from 'react-native';
+import { HomeEventBannerMedia } from '@/components/home/HomeEventBannerMedia';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { APP_FONT, APP_RADIUS } from '@/constants/appTheme';
 import { useThemedColors } from '@/hooks/useThemedColors';
@@ -100,14 +101,22 @@ function BannerSlide({
   banner,
   width,
   height,
+  slideIndex,
+  activeIndex,
 }: {
   banner: HomeBanner;
   width: number;
   height: number;
+  slideIndex: number;
+  activeIndex: number;
 }) {
   const { colors, semantic } = useThemedColors();
-  const [imageReady, setImageReady] = useState(false);
   const hasLink = Boolean(banner.linkUrl.trim());
+  const isActiveSlide = slideIndex === activeIndex;
+  const shouldLoadMedia = Math.abs(slideIndex - activeIndex) <= 1;
+  const hasVisual =
+    Boolean(banner.imageUrl?.trim()) ||
+    Boolean(banner.videoUrl?.trim());
   const title = banner.title.trim();
   const description = banner.description.trim();
   const hasText = Boolean(title || description);
@@ -133,23 +142,15 @@ function BannerSlide({
         backgroundColor: colors.surfaceElevated,
       }}
     >
-      {banner.imageUrl ? (
+      {hasVisual ? (
         <>
-          <Image
-            source={{ uri: banner.imageUrl }}
-            style={{ width: '100%', height: '100%' }}
-            resizeMode="cover"
-            onLoad={() => setImageReady(true)}
-            onError={() => setImageReady(true)}
+          <HomeEventBannerMedia
+            banner={banner}
+            width={width}
+            height={height}
+            isActiveSlide={isActiveSlide}
+            shouldLoadMedia={shouldLoadMedia}
           />
-          {!imageReady ? (
-            <View
-              className="absolute inset-0 items-center justify-center"
-              style={{ backgroundColor: colors.surfaceElevated }}
-            >
-              <ActivityIndicator color={colors.blue} size="small" />
-            </View>
-          ) : null}
           {hasText ? <BannerGradientOverlay height={height} /> : null}
           {hasText ? (
             <View
@@ -274,8 +275,18 @@ export function HomeEventBannerList({ banners, embedded = false }: HomeEventBann
           ItemSeparatorComponent={() => <View style={{ width: BANNER_GAP }} />}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          renderItem={({ item }) => (
-            <BannerSlide banner={item} width={cardWidth} height={bannerHeight} />
+          windowSize={3}
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          removeClippedSubviews
+          renderItem={({ item, index }) => (
+            <BannerSlide
+              banner={item}
+              width={cardWidth}
+              height={bannerHeight}
+              slideIndex={index}
+              activeIndex={activeIndex}
+            />
           )}
         />
 

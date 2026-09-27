@@ -176,6 +176,8 @@ export type HomeEventBanner = {
   title: string;
   description: string;
   image_url: string | null;
+  video_url?: string | null;
+  media_type?: 'image' | 'video' | 'gif' | string | null;
   link_url: string;
   is_active: boolean;
   sort_order: number;

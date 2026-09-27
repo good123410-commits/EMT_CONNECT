@@ -258,6 +258,7 @@ export async function adminFetchChatRoomMessages(roomId: string): Promise<ChatMe
     .select('*')
     .eq('post_type', 'chat')
     .eq('room_id', roomId)
+    .eq('is_hidden', false)
     .order('created_at', { ascending: false })
     .limit(300);
 

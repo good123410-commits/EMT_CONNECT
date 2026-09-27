@@ -24,6 +24,7 @@ import {
 } from '@/services/homeDashboardService';
 import { upsertHomeEmergencyNotice } from '@/services/homeEmergencyNoticeService';
 import type { HomeBanner, HomeCommerceItem } from '@/types/homeDashboard';
+import { homeBannerMediaLabel, resolveHomeBannerMediaType } from '@/utils/homeBannerMedia';
 import { confirmDestructiveAction } from '@/utils/confirmDestructiveAction';
 import { withStopPropagation } from '@/utils/pressEvent';
 
@@ -105,6 +106,8 @@ export function AdminHomeDashboardPanel() {
       title: values.title,
       description: values.description,
       imageUrl: values.imageUrl.trim() || null,
+      videoUrl: values.videoUrl.trim() || null,
+      mediaType: values.mediaType,
       linkUrl: values.linkUrl,
       isActive: values.isActive,
       sortOrder: nextSort,
@@ -171,6 +174,8 @@ export function AdminHomeDashboardPanel() {
         title: banner.title,
         description: banner.description,
         imageUrl: banner.imageUrl,
+        videoUrl: banner.videoUrl,
+        mediaType: banner.mediaType,
         linkUrl: banner.linkUrl,
         isActive,
         sortOrder: banner.sortOrder,
@@ -322,7 +327,11 @@ export function AdminHomeDashboardPanel() {
                   />
                 ) : (
                   <View className="h-[72px] w-[72px] items-center justify-center rounded-xl bg-kemix-elevated">
-                    <Ionicons name="image-outline" size={24} color="#94a3b8" />
+                    <Ionicons
+                      name={resolveHomeBannerMediaType(banner) === 'video' ? 'videocam-outline' : 'image-outline'}
+                      size={24}
+                      color="#94a3b8"
+                    />
                   </View>
                 )}
                 <View className="flex-1">
@@ -337,6 +346,9 @@ export function AdminHomeDashboardPanel() {
                   </View>
                   <Text className="mt-1 text-xs text-kemix-text-secondary" numberOfLines={2}>
                     {banner.description || '설명 없음'}
+                  </Text>
+                  <Text className="mt-0.5 text-[10px] font-semibold text-violet-600">
+                    {homeBannerMediaLabel(resolveHomeBannerMediaType(banner))}
                   </Text>
                   {banner.linkUrl ? (
                     <Text className="mt-1 text-[10px] text-violet-600" numberOfLines={1}>

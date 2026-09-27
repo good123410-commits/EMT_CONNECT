@@ -5,6 +5,7 @@ import Animated, {
   useFrameCallback,
   useSharedValue,
 } from 'react-native-reanimated';
+import { HomeEmergencyTickerPeekOverlay } from '@/components/home/HomeEmergencyTickerPeekOverlay';
 import { AppIcon } from '@/components/ui/AppIcon';
 import type { EmergencyTickerItem } from '@/types/emergencyTicker';
 import {
@@ -79,7 +80,9 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
   const loopSegments = useMemo(() => buildLoopSegments(segments), [segments]);
   const estimatedWidth = useMemo(() => estimateSegmentWidth(loopSegments), [loopSegments]);
   const [measuredWidth, setMeasuredWidth] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [peekVisible, setPeekVisible] = useState(false);
+  const [peekDismissTick, setPeekDismissTick] = useState(0);
+  const [holding, setHolding] = useState(false);
 
   const translateX = useSharedValue(0);
   const loopDistance = useSharedValue(0);
@@ -130,12 +133,22 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
 
   const pauseMarquee = () => {
     isPaused.value = true;
-    setPaused(true);
+    setHolding(true);
+    setPeekVisible(true);
   };
 
-  const resumeMarquee = () => {
+  const handlePressOut = () => {
+    setHolding(false);
+    if (peekVisible) {
+      setPeekDismissTick((tick) => tick + 1);
+    } else {
+      isPaused.value = false;
+    }
+  };
+
+  const handlePeekClosed = () => {
+    setPeekVisible(false);
     isPaused.value = false;
-    setPaused(false);
   };
 
   if (!Array.isArray(segments) || segments.length === 0) {
@@ -143,39 +156,48 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
   }
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.iconWrap}>
-        <AppIcon name="alert-circle" size={15} color={TICKER_ICON_COLOR} />
+    <>
+      <View style={styles.wrapper}>
+        <View style={styles.iconWrap}>
+          <AppIcon name="alert-circle" size={15} color={TICKER_ICON_COLOR} />
+        </View>
+
+        <Pressable
+          style={styles.trackPressable}
+          onPressIn={pauseMarquee}
+          onPressOut={handlePressOut}
+          onHoverIn={pauseMarquee}
+          onHoverOut={handlePressOut}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint="누르고 있는 동안 전체 재난 문자 목록을 확인할 수 있습니다"
+        >
+          <View style={styles.track}>
+            <View pointerEvents="none" style={styles.measureLayer} collapsable={false}>
+              <View onLayout={handleSegmentLayout} style={styles.measureContent}>
+                <TickerSegmentRow segments={loopSegments} />
+              </View>
+            </View>
+
+            <Animated.View style={[styles.scrollRow, animatedStyle]} pointerEvents="none">
+              <TickerSegmentRow segments={loopSegments} />
+              <TickerSegmentRow segments={loopSegments} />
+            </Animated.View>
+
+            {holding ? <View style={styles.pauseIndicator} pointerEvents="none" /> : null}
+          </View>
+        </Pressable>
+
+        <View style={styles.liveDot} />
       </View>
 
-      <Pressable
-        style={styles.trackPressable}
-        onPressIn={pauseMarquee}
-        onPressOut={resumeMarquee}
-        onHoverIn={pauseMarquee}
-        onHoverOut={resumeMarquee}
-        accessibilityRole="adjustable"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint="길게 누르면 전광판이 잠시 멈춥니다"
-      >
-        <View style={styles.track}>
-          <View pointerEvents="none" style={styles.measureLayer} collapsable={false}>
-            <View onLayout={handleSegmentLayout} style={styles.measureContent}>
-              <TickerSegmentRow segments={loopSegments} />
-            </View>
-          </View>
-
-          <Animated.View style={[styles.scrollRow, animatedStyle]} pointerEvents="none">
-            <TickerSegmentRow segments={loopSegments} />
-            <TickerSegmentRow segments={loopSegments} />
-          </Animated.View>
-
-          {paused ? <View style={styles.pauseIndicator} pointerEvents="none" /> : null}
-        </View>
-      </Pressable>
-
-      <View style={styles.liveDot} />
-    </View>
+      <HomeEmergencyTickerPeekOverlay
+        visible={peekVisible}
+        dismissTick={peekDismissTick}
+        items={safeItems}
+        onRequestClose={handlePeekClosed}
+      />
+    </>
   );
 }
 
@@ -259,7 +281,7 @@ const styles = StyleSheet.create({
   },
   pauseIndicator: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.12)',
+    backgroundColor: 'rgba(15, 23, 42, 0.22)',
   },
   liveDot: {
     width: 6,

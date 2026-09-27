@@ -171,6 +171,85 @@ export async function countActiveLocalCommunityRooms(regionCode: string): Promis
   return count ?? 0;
 }
 
+export async function adminFetchLocalCommunityMessages(roomId: string): Promise<LocalCommunityMessage[]> {
+  const { data, error } = await supabase
+    .from(LOCAL_COMMUNITY_MESSAGES_TABLE)
+    .select('*')
+    .eq('room_id', roomId)
+    .eq('is_blinded', false)
+    .order('created_at', { ascending: false })
+    .limit(300);
+
+  if (error) {
+    throw new LocalCommunityChatServiceError(parseServiceError(error));
+  }
+
+  return (data as LocalCommunityMessageRow[]).map(mapMessageRow);
+}
+
+export async function adminDeactivateLocalCommunityRoom(roomId: string): Promise<LocalCommunityRoom> {
+  const trimmedId = roomId.trim();
+  if (!trimmedId) {
+    throw new LocalCommunityChatServiceError('채팅방을 찾을 수 없습니다.');
+  }
+
+  const { data, error } = await supabase
+    .from(LOCAL_COMMUNITY_ROOMS_TABLE)
+    .update({ is_active: false })
+    .eq('id', trimmedId)
+    .select('*');
+
+  if (error) {
+    throw new LocalCommunityChatServiceError(parseServiceError(error));
+  }
+
+  const rows = (data ?? []) as LocalCommunityRoomRow[];
+  if (!rows.length) {
+    throw new LocalCommunityChatServiceError(
+      '채팅방을 폐쇄하지 못했습니다. DB 관리자 승인 상태를 확인해 주세요.',
+    );
+  }
+
+  return mapRoomRow(rows[0]);
+}
+
+export async function adminCreateLocalCommunityRoom(input: {
+  regionCode: string;
+  title: string;
+  topic?: string;
+  category?: LocalCommunityCategory;
+  description?: string;
+}): Promise<LocalCommunityRoom> {
+  const title = input.title.trim();
+  if (title.length < 2) {
+    throw new LocalCommunityChatServiceError('방 제목을 2자 이상 입력해 주세요.');
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from(LOCAL_COMMUNITY_ROOMS_TABLE)
+    .insert({
+      region_code: input.regionCode,
+      title,
+      topic: input.topic?.trim() || null,
+      category: input.category ?? null,
+      description: input.description?.trim() || null,
+      creator_label: generateAnonymousLabel(),
+      created_by: user?.id ?? null,
+    })
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    throw new LocalCommunityChatServiceError(parseServiceError(error ?? { message: 'insert_failed' }));
+  }
+
+  return mapRoomRow(data as LocalCommunityRoomRow);
+}
+
 export async function fetchLocalCommunityMessages(roomId: string): Promise<LocalCommunityMessage[]> {
   const { data, error } = await supabase
     .from(LOCAL_COMMUNITY_MESSAGES_TABLE)
