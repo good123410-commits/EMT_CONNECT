@@ -65,34 +65,49 @@ export function sanitizeTickerMessage(message: string): string {
 }
 
 export function normalizeTickerItems(input: unknown): EmergencyTickerItem[] {
-  if (!Array.isArray(input)) return [];
+  try {
+    if (!Array.isArray(input)) return [];
 
-  const normalized: EmergencyTickerItem[] = [];
+    const normalized: EmergencyTickerItem[] = [];
 
-  for (const entry of input) {
-    if (!entry || typeof entry !== 'object') continue;
+    for (const entry of input) {
+      if (!entry || typeof entry !== 'object') continue;
 
-    const record = entry as Partial<EmergencyTickerItem>;
-    const message = typeof record.message === 'string' ? record.message.trim() : '';
-    if (!message) continue;
+      const record = entry as Partial<EmergencyTickerItem>;
+      const message = typeof record.message === 'string' ? record.message.trim() : '';
+      if (!message) continue;
 
-    const sourceType =
-      typeof record.sourceType === 'string' && record.sourceType.trim()
-        ? record.sourceType.trim()
-        : 'admin';
+      const sourceType =
+        typeof record.sourceType === 'string' && record.sourceType.trim()
+          ? record.sourceType.trim()
+          : 'admin';
 
-    normalized.push({
-      message,
-      sourceType,
-      priority: Number.isFinite(record.priority) ? Number(record.priority) : 400,
-      sortOrder: Number.isFinite(record.sortOrder) ? Number(record.sortOrder) : 0,
-    });
+      normalized.push({
+        message,
+        sourceType,
+        priority: Number.isFinite(record.priority) ? Number(record.priority) : 400,
+        sortOrder: Number.isFinite(record.sortOrder) ? Number(record.sortOrder) : 0,
+      });
+    }
+
+    return normalized;
+  } catch {
+    return [];
   }
-
-  return normalized;
 }
 
 export function buildTickerDisplaySegments(items: unknown): TickerDisplaySegment[] {
+  try {
+    return buildTickerDisplaySegmentsInner(items);
+  } catch (error) {
+    if (__DEV__) {
+      logTickerStage('display:segments:error', { error });
+    }
+    return [];
+  }
+}
+
+function buildTickerDisplaySegmentsInner(items: unknown): TickerDisplaySegment[] {
   const safeItems = normalizeTickerItems(items);
   const seen = new Set<string>();
   const dropped: Array<{ reason: string; sourceType: string; message: string }> = [];

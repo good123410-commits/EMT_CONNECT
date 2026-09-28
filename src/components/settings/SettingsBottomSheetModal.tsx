@@ -1,5 +1,13 @@
-import { Pressable, Modal, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  Modal,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppNavigationHeaderHeight } from '@/components/navigation/AppNavigationHeader';
 import { AppIcon } from '@/components/ui/AppIcon';
 import {
   SettingsAttachedModals,
@@ -15,12 +23,15 @@ type Props = {
   initialAction?: string;
 };
 
+/** KON 글로벌 헤더 바로 아래에서 시트 시작 */
+const SHEET_TOP_GAP = 8;
+
 export function SettingsBottomSheetModal({ visible, onClose, initialAction }: Props) {
   const insets = useSafeAreaInsets();
+  const appHeaderHeight = useAppNavigationHeaderHeight();
   const { colors } = useThemedColors();
-  const { height: windowHeight } = useWindowDimensions();
-  const sheetHeight = windowHeight * 0.88;
   const bottomInset = Math.max(insets.bottom, 12);
+  const sheetTop = appHeaderHeight + SHEET_TOP_GAP;
 
   if (!visible) {
     return null;
@@ -28,45 +39,52 @@ export function SettingsBottomSheetModal({ visible, onClose, initialAction }: Pr
 
   return (
     <SettingsScreenProvider initialAction={initialAction}>
-      <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <Modal
+        visible
+        animationType="slide"
+        transparent
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
+        onRequestClose={onClose}
+      >
         <View style={styles.overlay}>
-          <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="닫기" />
+          <Pressable
+            style={styles.backdrop}
+            onPress={onClose}
+            accessibilityLabel="닫기"
+          />
           <View
-            className="bg-kemix-surface"
             style={[
               styles.sheet,
               {
-                height: sheetHeight,
-                maxHeight: sheetHeight,
+                marginTop: sheetTop,
                 paddingBottom: bottomInset,
                 backgroundColor: colors.surface,
               },
             ]}
           >
-            <Pressable onPress={onClose} accessibilityLabel="설정 닫기">
-              <View style={styles.handleWrap}>
-                <View style={[styles.handle, { backgroundColor: colors.border }]} />
-              </View>
-            </Pressable>
-
-            <View
-              className="flex-row items-center justify-between px-5 py-3"
-              style={{ borderBottomWidth: 1, borderBottomColor: colors.borderLight }}
-            >
-              <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>설정</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="닫기"
-                className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
-                style={{ backgroundColor: colors.blueLight }}
-                onPress={onClose}
-                hitSlop={8}
+            <View style={[styles.sheetChrome, { backgroundColor: colors.surface }]}>
+              <View
+                className="flex-row items-center justify-between px-5 py-3"
+                style={{ borderBottomWidth: 1, borderBottomColor: colors.borderLight }}
               >
-                <AppIcon name="close" size={18} color={colors.textSecondary} />
-              </Pressable>
+                <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>설정</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="닫기"
+                  className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
+                  style={{ backgroundColor: colors.blueLight }}
+                  onPress={onClose}
+                  hitSlop={8}
+                >
+                  <AppIcon name="close" size={18} color={colors.textSecondary} />
+                </Pressable>
+              </View>
             </View>
 
-            <SettingsScrollBody embedded />
+            <View style={styles.sheetBody}>
+              <SettingsScrollBody embedded />
+            </View>
           </View>
         </View>
       </Modal>
@@ -78,27 +96,40 @@ export function SettingsBottomSheetModal({ visible, onClose, initialAction }: Pr
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    width: '100%',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
+    zIndex: 0,
+    elevation: 0,
   },
   sheet: {
+    flex: 1,
     width: '100%',
+    alignSelf: 'stretch',
     borderTopLeftRadius: APP_RADIUS.cardLg,
     borderTopRightRadius: APP_RADIUS.cardLg,
     overflow: 'hidden',
+    flexDirection: 'column',
+    zIndex: 1,
+    elevation: Platform.OS === 'android' ? 24 : 0,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: -4 },
+      },
+      default: {},
+    }),
   },
-  handleWrap: {
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 4,
+  sheetChrome: {
+    flexShrink: 0,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 999,
+  sheetBody: {
+    flex: 1,
+    minHeight: 0,
   },
   sheetTitle: {
     fontFamily: 'Pretendard-Bold',

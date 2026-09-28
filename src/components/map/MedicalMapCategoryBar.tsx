@@ -1,11 +1,13 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { APP_FONT } from '@/constants/appTheme';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import type { MedicalMapTab } from '@/types/medicalMap';
 
+const TAB_BORDER_RADIUS = 10;
+
 const MAP_CATEGORY_OPTIONS: { value: MedicalMapTab; label: string }[] = [
   { value: 'aed', label: 'AED' },
-  { value: 'er', label: '응급실' },
+  { value: 'er', label: '병원' },
   { value: 'pediatric', label: '소아' },
   { value: 'pharmacy', label: '약국' },
   { value: 'shelter', label: '쉼터' },
@@ -35,19 +37,20 @@ export function MedicalMapCategoryBar({ value, onChange }: MedicalMapCategoryBar
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               onPress={() => onChange(option.value)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 9,
-                borderRadius: 999,
-                backgroundColor: active ? colors.blue : colors.surfaceElevated,
-                borderWidth: active ? 0 : 1,
-                borderColor: colors.border,
-              }}
+              style={[
+                styles.tabButton,
+                {
+                  backgroundColor: active ? colors.blue : colors.surfaceElevated,
+                  borderColor: colors.border,
+                  borderWidth: active ? 0 : 1,
+                },
+              ]}
             >
               <Text
                 style={{
                   fontFamily: active ? APP_FONT.semibold : APP_FONT.medium,
                   fontSize: 13,
+                  lineHeight: 18,
                   color: active ? '#FFFFFF' : colors.textSecondary,
                 }}
               >
@@ -60,3 +63,15 @@ export function MedicalMapCategoryBar({ value, onChange }: MedicalMapCategoryBar
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  tabButton: {
+    minWidth: 56,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: TAB_BORDER_RADIUS,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

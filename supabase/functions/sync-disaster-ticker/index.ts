@@ -468,7 +468,17 @@ async function fetchSafetyDataPage(
           throw new Error(`HTTP ${response.status}`);
         }
 
-        const payload = (await response.json()) as Record<string, unknown>;
+        let payload: Record<string, unknown>;
+        try {
+          const parsed: unknown = await response.json();
+          payload =
+            parsed && typeof parsed === "object" && !Array.isArray(parsed)
+              ? (parsed as Record<string, unknown>)
+              : {};
+        } catch {
+          throw new Error("API JSON 파싱 실패");
+        }
+
         const header = (payload.header ?? (payload.response as Record<string, unknown> | undefined)?.header) as
           | Record<string, unknown>
           | undefined;
@@ -506,11 +516,19 @@ async function fetchSourceMessages(source: SourceConfig): Promise<string[]> {
     Math.max(source.maxItems, FETCH_ROW_BUFFER),
   );
 
-  return dedupeMessages(
-    rows
-      .map((row) => extractMessagesFromRecord(row, source.sourceCode))
-      .filter((message) => message.length >= 8 && !isJunkSyncedMessage(message)),
-  ).slice(0, source.maxItems);
+  const messages: string[] = [];
+  for (const row of rows) {
+    try {
+      const text = extractMessagesFromRecord(row, source.sourceCode);
+      if (text.length >= 8 && !isJunkSyncedMessage(text)) {
+        messages.push(text);
+      }
+    } catch {
+      // 잘못된 레코드 형식은 건너뜁니다.
+    }
+  }
+
+  return dedupeMessages(messages).slice(0, source.maxItems);
 }
 
 async function upsertCache(

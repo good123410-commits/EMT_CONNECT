@@ -4,7 +4,7 @@ const {
   withAndroidManifest,
   withDangerousMod,
   AndroidConfig,
-} = require('@expo/config-plugins');
+} = require('expo/config-plugins');
 
 const HELPER_IMPORT = 'import expo.modules.emergencyoverlay.LockScreenLaunchHelper';
 const ON_CREATE_SNIPPET = 'LockScreenLaunchHelper.applyFromIntent(this, intent)';

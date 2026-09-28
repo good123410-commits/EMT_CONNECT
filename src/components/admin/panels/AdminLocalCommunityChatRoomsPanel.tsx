@@ -300,11 +300,7 @@ export function AdminLocalCommunityChatRoomsPanel() {
     }
   };
 
-  const listMaxHeight = useMemo(() => {
-    if (createFormOpen && monitorOpen) return 120;
-    if (createFormOpen || monitorOpen) return 180;
-    return 280;
-  }, [createFormOpen, monitorOpen]);
+  const listMaxHeight = useMemo(() => (createFormOpen ? 200 : 280), [createFormOpen]);
 
   if (loading && !regionCode) {
     return (

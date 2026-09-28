@@ -12,6 +12,10 @@ import { AdminDonationPanel } from '@/components/admin/panels/AdminDonationPanel
 import { AdminShortcodesPanel } from '@/components/admin/panels/AdminShortcodesPanel';
 import { AdminHomeDashboardPanel } from '@/components/admin/panels/AdminHomeDashboardPanel';
 import { AdminUsersPanel } from '@/components/admin/panels/AdminUsersPanel';
+import {
+  AdminDashboardMobileTabMenu,
+  type AdminDashboardTabConfig,
+} from '@/components/admin/AdminDashboardMobileTabMenu';
 import { AdminDashboardGuard } from '@/components/guards/AdminDashboardGuard';
 import { SettingsSubScreenHeader } from '@/components/settings/SettingsSubScreenHeader';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,12 +24,7 @@ import { useLiveDbAdmin } from '@/hooks/useLiveDbAdmin';
 import { navigationRef } from '@/navigation/navigationRef';
 import type { AdminDashboardTab } from '@/types/admin';
 
-const ALL_TABS: Array<{
-  id: AdminDashboardTab;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  requiresDbAdmin?: boolean;
-}> = [
+const ALL_TABS: AdminDashboardTabConfig[] = [
   { id: 'approval', label: '계정 승인', icon: 'mail-outline' },
   { id: 'users', label: '유저', icon: 'people-outline', requiresDbAdmin: true },
   { id: 'auth', label: '인증/초대', icon: 'shield-checkmark-outline', requiresDbAdmin: true },
@@ -73,7 +72,6 @@ function AdminDashboardContent() {
   };
 
   const visibleTabs = useMemo(() => ALL_TABS, []);
-  const mobileTabWidth = useMemo(() => (width - 24 - 12) / 3, [width]);
 
   useEffect(() => {
     if (isDbAdmin) {
@@ -124,7 +122,6 @@ function AdminDashboardContent() {
     return (
       <Pressable
         key={tab.id}
-        style={useSidebar ? undefined : { width: mobileTabWidth }}
         className={`flex-row items-center rounded-xl border px-2 py-2 ${
           active
             ? 'border-violet-700 bg-violet-700'
@@ -167,14 +164,18 @@ function AdminDashboardContent() {
             {visibleTabs.map(tabButton)}
           </View>
         ) : (
-          <View className="px-3 pb-2">
-            <View className="flex-row flex-wrap" style={{ gap: 6 }}>
-              {visibleTabs.map(tabButton)}
-            </View>
+          <View className="px-3 pb-1">
+            <AdminDashboardMobileTabMenu
+              tabs={visibleTabs}
+              activeTab={activeTab}
+              onSelectTab={setActiveTab}
+              isDbAdmin={isDbAdmin}
+              contentWidth={width}
+            />
           </View>
         )}
 
-        <View className={`flex-1 ${useSidebar ? '' : 'px-3'}`}>
+        <View className={`min-h-0 flex-1 ${useSidebar ? '' : 'px-3'}`}>
           {renderPanel()}
         </View>
       </View>

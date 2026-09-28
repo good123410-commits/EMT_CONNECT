@@ -171,23 +171,33 @@ async function fetchAdminNoticesDirect(): Promise<EmergencyTickerItem[]> {
 }
 
 function parseCacheMessages(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((value) => String(value ?? '').trim())
-    .filter(Boolean);
+  if (raw == null) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((value) => (typeof value === 'string' ? value : String(value ?? '')).trim())
+      .filter(Boolean);
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    return [raw.trim()];
+  }
+  return [];
 }
 
 function mapCacheRowToItems(row: DisasterCacheRow): EmergencyTickerItem[] {
-  const sourceType = normalizeSourceType(row.source_code);
-  const priority = SOURCE_PRIORITY[sourceType] ?? 400;
-  const messages = parseCacheMessages(row.messages);
+  try {
+    const sourceType = normalizeSourceType(row.source_code);
+    const priority = SOURCE_PRIORITY[sourceType] ?? 400;
+    const messages = parseCacheMessages(row.messages);
 
-  return messages.map((message, index) => ({
-    message,
-    sourceType,
-    priority,
-    sortOrder: index,
-  }));
+    return messages.map((message, index) => ({
+      message,
+      sourceType,
+      priority,
+      sortOrder: index,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 async function fetchDisasterCacheRows(activeOnly: boolean): Promise<DisasterCacheRow[]> {

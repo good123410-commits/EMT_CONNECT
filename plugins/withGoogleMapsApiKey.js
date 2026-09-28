@@ -1,4 +1,4 @@
-const { withAndroidManifest, AndroidConfig } = require('@expo/config-plugins');
+const { withAndroidManifest, AndroidConfig } = require('expo/config-plugins');
 
 /**
  * Ensures Google Maps API key meta-data is present for react-native-maps on Android.

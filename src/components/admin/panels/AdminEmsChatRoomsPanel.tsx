@@ -266,11 +266,7 @@ export function AdminEmsChatRoomsPanel() {
     }
   };
 
-  const listMaxHeight = useMemo(() => {
-    if (createFormOpen && monitorOpen) return 140;
-    if (createFormOpen || monitorOpen) return 200;
-    return 320;
-  }, [createFormOpen, monitorOpen]);
+  const listMaxHeight = useMemo(() => (createFormOpen ? 220 : 320), [createFormOpen]);
 
   if (loading) {
     return (

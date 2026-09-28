@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -81,7 +81,7 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
   const estimatedWidth = useMemo(() => estimateSegmentWidth(loopSegments), [loopSegments]);
   const [measuredWidth, setMeasuredWidth] = useState(0);
   const [peekVisible, setPeekVisible] = useState(false);
-  const [peekDismissTick, setPeekDismissTick] = useState(0);
+  const peekVisibleRef = useRef(false);
   const [holding, setHolding] = useState(false);
 
   const translateX = useSharedValue(0);
@@ -134,19 +134,19 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
   const pauseMarquee = () => {
     isPaused.value = true;
     setHolding(true);
+    peekVisibleRef.current = true;
     setPeekVisible(true);
   };
 
   const handlePressOut = () => {
     setHolding(false);
-    if (peekVisible) {
-      setPeekDismissTick((tick) => tick + 1);
-    } else {
+    if (!peekVisibleRef.current) {
       isPaused.value = false;
     }
   };
 
   const handlePeekClosed = () => {
+    peekVisibleRef.current = false;
     setPeekVisible(false);
     isPaused.value = false;
   };
@@ -170,7 +170,7 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
           onHoverOut={handlePressOut}
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
-          accessibilityHint="누르고 있는 동안 전체 재난 문자 목록을 확인할 수 있습니다"
+          accessibilityHint="길게 눌러 전체 재난 문자 목록을 확인할 수 있습니다"
         >
           <View style={styles.track}>
             <View pointerEvents="none" style={styles.measureLayer} collapsable={false}>
@@ -193,7 +193,6 @@ export function HomeEmergencyTicker({ items }: HomeEmergencyTickerProps) {
 
       <HomeEmergencyTickerPeekOverlay
         visible={peekVisible}
-        dismissTick={peekDismissTick}
         items={safeItems}
         onRequestClose={handlePeekClosed}
       />

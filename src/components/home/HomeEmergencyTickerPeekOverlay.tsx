@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   runOnJS,
   useAnimatedStyle,
@@ -30,8 +31,6 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type HomeEmergencyTickerPeekOverlayProps = {
   visible: boolean;
-  /** 손을 뗄 때마다 증가 — 닫힘 애니메이션 트리거 */
-  dismissTick: number;
   items: EmergencyTickerItem[];
   onRequestClose: () => void;
 };
@@ -82,7 +81,6 @@ function buildPeekListItems(items: EmergencyTickerItem[]) {
 
 export function HomeEmergencyTickerPeekOverlay({
   visible,
-  dismissTick,
   items,
   onRequestClose,
 }: HomeEmergencyTickerPeekOverlayProps) {
@@ -92,6 +90,15 @@ export function HomeEmergencyTickerPeekOverlay({
   const listItems = buildPeekListItems(items);
   const maxSheetHeight = Math.min(windowHeight * 0.62, 480);
 
+  const clearClosingFlag = useCallback(() => {
+    closingRef.current = false;
+  }, []);
+
+  const finishClose = useCallback(() => {
+    closingRef.current = false;
+    onRequestClose();
+  }, [onRequestClose]);
+
   const closeAnimated = useCallback(() => {
     if (closingRef.current) return;
     closingRef.current = true;
@@ -99,28 +106,25 @@ export function HomeEmergencyTickerPeekOverlay({
       0,
       { duration: 200, easing: Easing.in(Easing.cubic) },
       (finished) => {
-        closingRef.current = false;
+        'worklet';
         if (finished) {
-          runOnJS(onRequestClose)();
+          runOnJS(finishClose)();
+        } else {
+          runOnJS(clearClosingFlag)();
         }
       },
     );
-  }, [onRequestClose, progress]);
+  }, [clearClosingFlag, finishClose, progress]);
 
   useEffect(() => {
-    if (visible) {
-      closingRef.current = false;
-      progress.value = withTiming(1, {
-        duration: 240,
-        easing: Easing.out(Easing.cubic),
-      });
-    }
+    if (!visible) return;
+    closingRef.current = false;
+    cancelAnimation(progress);
+    progress.value = withTiming(1, {
+      duration: 240,
+      easing: Easing.out(Easing.cubic),
+    });
   }, [visible, progress]);
-
-  useEffect(() => {
-    if (dismissTick < 1) return;
-    closeAnimated();
-  }, [dismissTick, closeAnimated]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: progress.value * 0.62,
@@ -131,10 +135,6 @@ export function HomeEmergencyTickerPeekOverlay({
     transform: [{ translateY: (1 - progress.value) * 36 }],
   }));
 
-  if (!visible) {
-    return null;
-  }
-
   return (
     <Modal
       visible={visible}
@@ -143,12 +143,7 @@ export function HomeEmergencyTickerPeekOverlay({
       statusBarTranslucent
       onRequestClose={closeAnimated}
     >
-      <View
-        style={styles.root}
-        accessibilityViewIsModal
-        onTouchEnd={closeAnimated}
-        onTouchCancel={closeAnimated}
-      >
+      <View style={styles.root} accessibilityViewIsModal>
         <AnimatedPressable
           style={[styles.backdrop, backdropStyle]}
           onPress={closeAnimated}
@@ -158,11 +153,21 @@ export function HomeEmergencyTickerPeekOverlay({
         <Animated.View style={[styles.sheetWrap, sheetStyle]} pointerEvents="box-none">
           <View style={[styles.sheet, { maxHeight: maxSheetHeight }]}>
             <View style={styles.sheetHeader}>
-              <View style={styles.sheetTitleRow}>
-                <AppIcon name="alert-circle" size={20} color="#F87171" />
-                <Text style={styles.sheetTitle}>긴급재난 문자 · 전체</Text>
+              <View style={styles.sheetHeaderRow}>
+                <View style={styles.sheetTitleRow}>
+                  <AppIcon name="alert-circle" size={20} color="#F87171" />
+                  <Text style={styles.sheetTitle}>긴급재난 문자 · 전체</Text>
+                </View>
+                <Pressable
+                  onPress={closeAnimated}
+                  style={styles.closeButton}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="닫기"
+                >
+                  <AppIcon name="close" size={22} color="#94A3B8" />
+                </Pressable>
               </View>
-              <Text style={styles.sheetHint}>손을 떼면 전광판이 다시 흐릅니다</Text>
             </View>
 
             <ScrollView
@@ -220,27 +225,38 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   sheetHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(51, 65, 85, 0.65)',
   },
+  sheetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   sheetTitleRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    minWidth: 0,
   },
   sheetTitle: {
+    flexShrink: 1,
     fontFamily: APP_FONT.bold,
     fontSize: 16,
     color: '#F8FAFC',
   },
-  sheetHint: {
-    marginTop: 6,
-    fontFamily: APP_FONT.regular,
-    fontSize: 11,
-    color: '#94A3B8',
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(51, 65, 85, 0.45)',
   },
   listScroll: {
     flexGrow: 0,

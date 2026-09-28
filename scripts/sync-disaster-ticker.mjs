@@ -88,10 +88,14 @@ const safetydataHttpDispatcher = new Agent({
 });
 
 async function safetydataFetch(url, init = {}) {
-  return fetch(url, {
-    ...init,
-    dispatcher: safetydataHttpDispatcher,
-  });
+  // Node 22+ 내장 fetch + undici Agent 조합에서 UND_ERR_INVALID_ARG 가 날 수 있어 기본은 native fetch
+  if (process.env.SAFETYDATA_USE_UNDICI === '1') {
+    return fetch(url, {
+      ...init,
+      dispatcher: safetydataHttpDispatcher,
+    });
+  }
+  return fetch(url, init);
 }
 
 function getSupabaseUrl() {
@@ -529,7 +533,13 @@ async function fetchSafetyDataPage(endpoint, serviceKey, pageNo, numOfRows) {
           throw new Error(`HTTP ${response.status}`);
         }
 
-        const payload = await response.json();
+        let payload;
+        try {
+          const parsed = await response.json();
+          payload = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch {
+          throw new Error('API JSON 파싱 실패');
+        }
         const header = payload.header ?? payload.response?.header;
         const resultCode = String(header?.resultCode ?? header?.RESULT_CODE ?? '00');
         if (resultCode && resultCode !== '00' && resultCode !== '0') {
@@ -564,11 +574,19 @@ async function fetchSourceMessages(source) {
     Math.max(source.maxItems, FETCH_ROW_BUFFER),
   );
 
-  return dedupeMessages(
-    rows
-      .map((row) => extractMessagesFromRecord(row, source.sourceCode))
-      .filter((message) => message.length >= 8 && !isJunkSyncedMessage(message)),
-  ).slice(0, source.maxItems);
+  const messages = [];
+  for (const row of rows) {
+    try {
+      const text = extractMessagesFromRecord(row, source.sourceCode);
+      if (text.length >= 8 && !isJunkSyncedMessage(text)) {
+        messages.push(text);
+      }
+    } catch {
+      // malformed row — skip
+    }
+  }
+
+  return dedupeMessages(messages).slice(0, source.maxItems);
 }
 
 async function upsertCache(supabase, sourceCode, messages, lastError = null) {
