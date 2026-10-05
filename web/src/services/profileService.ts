@@ -202,6 +202,25 @@ export async function findEmailHintByNickname(nickname: string): Promise<string 
   return typeof data === 'string' ? data : null;
 }
 
+export async function findEmailHintByNamePhone(name: string, phone: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('find_email_hint_by_name_phone', {
+    p_name: name.trim(),
+    p_phone: phone.trim(),
+  });
+
+  if (error) {
+    if (error.message.includes('name_required') || error.message.includes('phone_required')) {
+      throw new Error('이름과 휴대전화번호를 올바르게 입력해 주세요.');
+    }
+    if (error.message.includes('ambiguous_identity')) {
+      throw new Error('일치하는 정보가 여러 건입니다. 고객센터로 문의해 주세요.');
+    }
+    throw new Error(error.message || '이메일 조회에 실패했습니다.');
+  }
+
+  return typeof data === 'string' && data.length > 0 ? data : null;
+}
+
 export async function updateProfileFields(
   userId: string,
   fields: { name?: string; nickname?: string; phone?: string },

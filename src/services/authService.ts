@@ -17,6 +17,20 @@ export function getOAuthRedirectUrl(): string {
   });
 }
 
+export function getPasswordResetRedirectUrl(): string {
+  return makeRedirectUri({
+    scheme: APP_SCHEME,
+    path: 'auth/reset-password',
+  });
+}
+
+export async function resetPasswordForEmail(email: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: getPasswordResetRedirectUrl(),
+  });
+  if (error) throw error;
+}
+
 async function createSessionFromUrl(url: string): Promise<void> {
   const { params, errorCode } = QueryParams.getQueryParams(url);
   if (errorCode) throw new Error(errorCode);

@@ -25,6 +25,8 @@ type TickerRow = {
   priority?: number | null;
   sort_order?: number | null;
   sortOrder?: number | null;
+  occurred_at?: string | null;
+  occurredAt?: string | null;
 };
 
 type EmergencyNoticeRow = {
@@ -68,11 +70,16 @@ function mapTickerRow(row: TickerRow): EmergencyTickerItem | null {
   if (!message) return null;
 
   const sourceType = normalizeSourceType(row.source_type ?? row.sourceType);
+  const occurredRaw = row.occurred_at ?? row.occurredAt;
+  const occurredAt =
+    typeof occurredRaw === 'string' && occurredRaw.trim() ? occurredRaw.trim() : null;
+
   return {
     message,
     sourceType,
     priority: Number(row.priority ?? SOURCE_PRIORITY[sourceType] ?? 400),
     sortOrder: Number(row.sort_order ?? row.sortOrder ?? 0),
+    occurredAt,
   };
 }
 
@@ -167,6 +174,10 @@ async function fetchAdminNoticesDirect(): Promise<EmergencyTickerItem[]> {
       sourceType: 'admin' as const,
       priority: SOURCE_PRIORITY.admin,
       sortOrder: row.sort_order ?? index,
+      occurredAt:
+        typeof (row as { created_at?: string }).created_at === 'string'
+          ? (row as { created_at: string }).created_at
+          : null,
     }));
 }
 
@@ -189,11 +200,15 @@ function mapCacheRowToItems(row: DisasterCacheRow): EmergencyTickerItem[] {
     const priority = SOURCE_PRIORITY[sourceType] ?? 400;
     const messages = parseCacheMessages(row.messages);
 
+    const fetchedAt =
+      typeof row.fetched_at === 'string' && row.fetched_at.trim() ? row.fetched_at.trim() : null;
+
     return messages.map((message, index) => ({
       message,
       sourceType,
       priority,
       sortOrder: index,
+      occurredAt: fetchedAt,
     }));
   } catch {
     return [];

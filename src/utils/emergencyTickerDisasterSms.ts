@@ -5,7 +5,7 @@ const YMD_SEPARATED_RE = /(\d{4})[-./년\s](\d{1,2})[-./월\s](\d{1,2})/;
 const YMD_COMPACT_RE = /(?:^|[^\d])(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(?:[^\d]|$)/;
 const KOREAN_MD_RE = /(\d{1,2})월\s*(\d{1,2})일/;
 
-function pad2(value: number): string {
+export function pad2(value: number): string {
   return String(value).padStart(2, '0');
 }
 

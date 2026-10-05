@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { BRAND_FULL_NAME, BRAND_NAME, BRAND_NAME_KO } from '../constants/branding';
 import { useAuth } from '../contexts/AuthContext';
-import { findEmailHintByNickname } from '../services/profileService';
+import { findEmailHintByNamePhone } from '../services/profileService';
 import { getOAuthLinkErrorMessage } from '../services/authService';
 import type { ProfileJobRole } from '../types';
 
@@ -34,7 +34,8 @@ export function LoginModal({ open, onClose, initialView = 'login' }: LoginModalP
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [nickname, setNickname] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'kakao' | 'google' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +46,8 @@ export function LoginModal({ open, onClose, initialView = 'login' }: LoginModalP
     setEmail('');
     setPassword('');
     setConfirmPassword('');
-    setNickname('');
+    setLegalName('');
+    setPhone('');
     setError(null);
     setSuccess(null);
     setEmailHint(null);
@@ -191,19 +193,19 @@ export function LoginModal({ open, onClose, initialView = 'login' }: LoginModalP
     setSuccess(null);
     setEmailHint(null);
 
-    if (!nickname.trim()) {
-      setError('가입 시 설정한 별명을 입력해 주세요.');
+    if (!legalName.trim() || !phone.trim()) {
+      setError('이름과 휴대전화번호를 입력해 주세요.');
       return;
     }
 
     setLoading(true);
     try {
-      const hint = await findEmailHintByNickname(nickname.trim());
+      const hint = await findEmailHintByNamePhone(legalName.trim(), phone.trim());
       if (!hint) {
-        setError('일치하는 별명을 찾을 수 없습니다. 별명을 확인하거나 고객센터로 문의해 주세요.');
+        setError('입력하신 정보와 일치하는 계정을 찾을 수 없습니다.');
       } else {
         setEmailHint(hint);
-        setSuccess('가입 이메일 힌트를 찾았습니다.');
+        setSuccess('가입된 이메일 주소입니다.');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '이메일 조회에 실패했습니다.');
@@ -237,7 +239,7 @@ export function LoginModal({ open, onClose, initialView = 'login' }: LoginModalP
     login: `${BRAND_NAME} 계정으로 로그인하세요.`,
     signup: '이메일과 비밀번호로 KEMIX 계정을 만듭니다.',
     reset: '가입 시 사용한 이메일로 재설정 링크를 보내 드립니다.',
-    'find-email': '가입 시 설정한 별명으로 이메일 힌트를 조회합니다.',
+    'find-email': '가입 시 등록한 이름과 휴대전화번호로 이메일 일부를 확인합니다.',
   };
 
   return (
@@ -345,13 +347,13 @@ export function LoginModal({ open, onClose, initialView = 'login' }: LoginModalP
 
             <nav className="auth-modal-links" aria-label="계정 관련 링크">
               <button type="button" className="auth-modal-link" onClick={() => switchView('find-email')}>
-                아이디(이메일) 찾기
+                아이디 찾기
               </button>
               <span className="auth-modal-link-sep" aria-hidden>
                 |
               </span>
               <button type="button" className="auth-modal-link" onClick={() => switchView('reset')}>
-                비밀번호 재설정
+                비밀번호 찾기
               </button>
               <span className="auth-modal-link-sep" aria-hidden>
                 |
@@ -475,23 +477,38 @@ export function LoginModal({ open, onClose, initialView = 'login' }: LoginModalP
 
         {view === 'find-email' ? (
           <form className="modal-form" onSubmit={handleFindEmail} noValidate>
-            <label className="modal-label" htmlFor="find-nickname">
-              별명
+            <label className="modal-label" htmlFor="find-name">
+              이름
             </label>
             <input
               ref={emailRef}
-              id="find-nickname"
+              id="find-name"
               className="modal-input"
               type="text"
-              autoComplete="nickname"
-              placeholder="가입 시 설정한 별명"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
+              autoComplete="name"
+              placeholder="홍길동"
+              value={legalName}
+              onChange={(e) => setLegalName(e.target.value)}
               disabled={busy}
               required
             />
 
-            <p className="modal-hint">프로필 설정에서 등록한 별명으로 가입 이메일 일부를 확인할 수 있습니다.</p>
+            <label className="modal-label" htmlFor="find-phone">
+              휴대전화번호
+            </label>
+            <input
+              id="find-phone"
+              className="modal-input"
+              type="tel"
+              autoComplete="tel"
+              placeholder="01012345678"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={busy}
+              required
+            />
+
+            <p className="modal-hint">가입 시 등록한 이름과 휴대전화번호가 일치하면 이메일 일부를 표시합니다.</p>
 
             {error ? (
               <p className="modal-error" role="alert">

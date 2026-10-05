@@ -71,6 +71,12 @@ config.transformer = {
   }),
 };
 
+// Expo Go 실기기: Windows에서 localhost만 listen하면 LAN QR 접속 불가
+config.server = {
+  ...config.server,
+  host: '0.0.0.0',
+};
+
 module.exports = wrapWithReanimatedMetroConfig(
   withNativeWind(config, { input: './src/global.css' }),
 );

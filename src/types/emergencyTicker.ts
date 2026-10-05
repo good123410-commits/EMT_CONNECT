@@ -10,6 +10,8 @@ export type EmergencyTickerItem = {
   sourceType: EmergencyTickerSource;
   priority: number;
   sortOrder: number;
+  /** DB/API 기준 발생·수신 시각 (상세 보기용) */
+  occurredAt?: string | null;
 };
 
 export type HomeEmergencyNotice = {

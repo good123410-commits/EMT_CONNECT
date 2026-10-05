@@ -1,8 +1,11 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+﻿import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Pressable, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  AccountRecoveryModal,
+  type AccountRecoveryMode,
+} from '@/components/auth/AccountRecoveryModal';
 import { AuthDivider, SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
 import { BRAND_FULL_NAME, BRAND_NAME, BRAND_NAME_KO } from '@/constants/branding';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +19,7 @@ export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState<AccountRecoveryMode | null>(null);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -89,8 +93,26 @@ export function LoginScreen({ navigation }: Props) {
             )}
           </Pressable>
 
+          <View className="mt-5 flex-row items-center justify-center">
+            <Pressable
+              className="px-2 py-2"
+              onPress={() => setRecoveryMode('find-id')}
+              accessibilityRole="button"
+            >
+              <Text className="text-sm font-medium text-kemix-text-secondary">아이디 찾기</Text>
+            </Pressable>
+            <Text className="text-sm text-kemix-muted">|</Text>
+            <Pressable
+              className="px-2 py-2"
+              onPress={() => setRecoveryMode('find-password')}
+              accessibilityRole="button"
+            >
+              <Text className="text-sm font-medium text-kemix-text-secondary">비밀번호 찾기</Text>
+            </Pressable>
+          </View>
+
           <Pressable
-            className="mt-4 items-center py-2"
+            className="mt-2 items-center py-2"
             onPress={() => navigation.navigate('SignUp')}
             accessibilityRole="button"
           >
@@ -105,6 +127,12 @@ export function LoginScreen({ navigation }: Props) {
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <AccountRecoveryModal
+        visible={recoveryMode !== null}
+        mode={recoveryMode ?? 'find-id'}
+        onClose={() => setRecoveryMode(null)}
+      />
     </SafeAreaView>
   );
 }

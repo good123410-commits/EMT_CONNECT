@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -7,66 +8,20 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { HomeEmergencyTickerDetailModal } from '@/components/home/HomeEmergencyTickerDetailModal';
+import {
+  buildPeekListItems,
+  type TickerPeekListRow,
+} from '@/components/home/homeEmergencyTickerPeekUtils';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { APP_FONT, APP_RADIUS } from '@/constants/appTheme';
 import type { EmergencyTickerItem } from '@/types/emergencyTicker';
-import { EMERGENCY_TICKER_SOURCE_LABELS } from '@/types/emergencyTicker';
-import {
-  buildTickerDisplaySegments,
-  compareEmergencyTickerItems,
-  normalizeTickerItems,
-  sanitizeTickerMessage,
-} from '@/utils/emergencyTickerDisplay';
 
 type HomeEmergencyTickerPeekOverlayProps = {
   visible: boolean;
   items: EmergencyTickerItem[];
   onRequestClose: () => void;
 };
-
-function resolveSourceLabel(sourceType: string): string {
-  return EMERGENCY_TICKER_SOURCE_LABELS[sourceType] ?? '알림';
-}
-
-function resolveSourceColor(sourceType: string): string {
-  switch (sourceType) {
-    case 'weather':
-      return '#60A5FA';
-    case 'forest_fire':
-      return '#F87171';
-    case 'disaster_sms':
-      return '#FACC15';
-    case 'admin':
-      return '#E2E8F0';
-    default:
-      return '#CBD5E1';
-  }
-}
-
-function buildPeekListItems(items: EmergencyTickerItem[]) {
-  const normalized = normalizeTickerItems(items).sort(compareEmergencyTickerItems);
-  const segments = buildTickerDisplaySegments(normalized);
-  if (segments.length > 0) {
-    return segments.map((segment) => ({
-      id: `${segment.sourceType}:${segment.body}`,
-      sourceType: segment.sourceType,
-      label: segment.label || resolveSourceLabel(segment.sourceType),
-      color: segment.color,
-      body: segment.body,
-    }));
-  }
-
-  return normalized.map((item, index) => {
-    const body = sanitizeTickerMessage(item.message);
-    return {
-      id: `${item.sourceType}:${body}:${index}`,
-      sourceType: item.sourceType,
-      label: resolveSourceLabel(item.sourceType),
-      color: resolveSourceColor(item.sourceType),
-      body: body || item.message,
-    };
-  });
-}
 
 /** Web: Reanimated 없이 Modal만 사용 (UpdatePropsManager 오류 방지) */
 export function HomeEmergencyTickerPeekOverlay({
@@ -75,19 +30,26 @@ export function HomeEmergencyTickerPeekOverlay({
   onRequestClose,
 }: HomeEmergencyTickerPeekOverlayProps) {
   const { height: windowHeight } = useWindowDimensions();
-  const listItems = buildPeekListItems(items);
+  const listItems = useMemo(() => buildPeekListItems(items), [items]);
+  const [selectedRow, setSelectedRow] = useState<TickerPeekListRow | null>(null);
   const maxSheetHeight = Math.min(windowHeight * 0.62, 480);
+
+  const handleCloseList = () => {
+    setSelectedRow(null);
+    onRequestClose();
+  };
 
   if (!visible) {
     return null;
   }
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onRequestClose}>
+    <>
+    <Modal visible transparent animationType="fade" onRequestClose={handleCloseList}>
       <View style={styles.root} accessibilityViewIsModal>
         <Pressable
           style={styles.backdrop}
-          onPress={onRequestClose}
+          onPress={handleCloseList}
           accessibilityLabel="긴급재난 전광판 닫기"
         />
 
@@ -100,7 +62,7 @@ export function HomeEmergencyTickerPeekOverlay({
                   <Text style={styles.sheetTitle}>긴급재난 문자 · 전체</Text>
                 </View>
                 <Pressable
-                  onPress={onRequestClose}
+                  onPress={handleCloseList}
                   style={styles.closeButton}
                   hitSlop={8}
                   accessibilityRole="button"
@@ -120,14 +82,23 @@ export function HomeEmergencyTickerPeekOverlay({
                 <Text style={styles.emptyText}>표시할 재난 정보가 없습니다.</Text>
               ) : (
                 listItems.map((row) => (
-                  <View key={row.id} style={styles.card}>
+                  <Pressable
+                    key={row.id}
+                    style={styles.card}
+                    onPress={() => setSelectedRow(row)}
+                    accessibilityRole="button"
+                    accessibilityHint="탭하여 상세 내용과 발생 시각을 확인합니다"
+                  >
                     <View style={styles.cardHeader}>
                       <View style={[styles.chip, { borderColor: row.color }]}>
                         <Text style={[styles.chipText, { color: row.color }]}>{row.label}</Text>
                       </View>
+                      <AppIcon name="chevron-right" size={16} color="#64748B" />
                     </View>
-                    <Text style={styles.cardBody}>{row.body}</Text>
-                  </View>
+                    <Text style={styles.cardBody} numberOfLines={3}>
+                      {row.body}
+                    </Text>
+                  </Pressable>
                 ))
               )}
             </ScrollView>
@@ -135,6 +106,13 @@ export function HomeEmergencyTickerPeekOverlay({
         </View>
       </View>
     </Modal>
+
+      <HomeEmergencyTickerDetailModal
+        visible={selectedRow !== null}
+        row={selectedRow}
+        onRequestClose={() => setSelectedRow(null)}
+      />
+    </>
   );
 }
 
@@ -211,6 +189,8 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 6,
   },
   chip: {

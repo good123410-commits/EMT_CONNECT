@@ -58,7 +58,11 @@ export function sanitizeTickerMessage(message: string): string {
     .replace(/(\d{4}[-./]\d{1,2}[-./]\d{1,2}(?:일)?\s*){2,}/g, ' ')
     .replace(/\s*·\s*\d{8,14}\s*$/g, '')
     .replace(/^\d{4}[-./]\d{1,2}[-./]\d{1,2}(?:일)?\s*·?\s*/g, '')
+    .replace(/\d{1,2}:\d{2}(?::\d{2})?\s*(?:\(KST\)|KST)?/gi, ' ')
+    .replace(/\d{1,2}시\s*\d{1,2}분(?:\s*\d{1,2}초)?/g, ' ')
+    .replace(/\s*·\s*\d{4}[-./]\d{1,2}[-./]\d{1,2}(?:일)?(?:\s+\d{1,2}:\d{2})?\s*$/g, '')
     .replace(/\s*·\s*·+/g, ' · ')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 
   return text;
@@ -82,11 +86,19 @@ export function normalizeTickerItems(input: unknown): EmergencyTickerItem[] {
           ? record.sourceType.trim()
           : 'admin';
 
+      const occurredAt =
+        typeof record.occurredAt === 'string' && record.occurredAt.trim()
+          ? record.occurredAt.trim()
+          : typeof (record as { occurred_at?: string }).occurred_at === 'string'
+            ? (record as { occurred_at: string }).occurred_at.trim()
+            : null;
+
       normalized.push({
         message,
         sourceType,
         priority: Number.isFinite(record.priority) ? Number(record.priority) : 400,
         sortOrder: Number.isFinite(record.sortOrder) ? Number(record.sortOrder) : 0,
+        occurredAt,
       });
     }
 

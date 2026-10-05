@@ -16,6 +16,9 @@ const expoConfig: ExpoConfig = {
   },
   updates: {
     url: 'https://u.expo.dev/a9b6166d-0e75-49b8-9438-f7e1ae573e72',
+    // Expo Go + 로컬 Metro 개발 시 OTA가 먼저 걸리지 않도록
+    checkAutomatically: 'ON_ERROR_RECOVERY',
+    fallbackToCacheTimeout: 0,
   },
   orientation: 'portrait',
   icon: './assets/ic_launcher.png',
