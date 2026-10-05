@@ -1,4 +1,4 @@
-import type { MainTabParamList } from '@/navigation/MainTabNavigator';
+import type { MainTabParamList } from '@/navigation/mainTabTypes';
 import { navigationRef } from '@/navigation/navigationRef';
 
 export function navigateToMainTab<T extends keyof MainTabParamList>(

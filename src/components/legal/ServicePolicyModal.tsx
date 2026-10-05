@@ -1,5 +1,6 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ActivityIndicator, Modal, ScrollView, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { SettingsPlatformModal } from '@/components/settings/SettingsPlatformModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ServicePolicyContent } from '@/components/legal/ServicePolicyContent';
 import { SERVICE_POLICY_TITLE } from '@/constants/servicePolicyContent';
@@ -21,7 +22,15 @@ export function ServicePolicyModal({
   acknowledging = false,
 }: ServicePolicyModalProps) {
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={requireAcknowledgment ? undefined : onClose}>
+    <SettingsPlatformModal
+      visible={visible}
+      animationType="slide"
+      onClose={() => {
+        if (!requireAcknowledgment) {
+          onClose?.();
+        }
+      }}
+    >
       <SafeAreaView className="flex-1 bg-kemix-bg">
         <View className="flex-row items-center justify-between border-b border-kemix-border bg-kemix-surface px-4 py-3">
           <View className="flex-1 pr-3">
@@ -66,6 +75,6 @@ export function ServicePolicyModal({
           </View>
         )}
       </SafeAreaView>
-    </Modal>
+    </SettingsPlatformModal>
   );
 }

@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { View } from 'react-native';
 import { AppChrome } from '@/components/navigation/AppChrome';
-import { DraggableMoreFab } from '@/components/navigation/DraggableMoreFab';
+import { GlobalMoreFab } from '@/components/navigation/GlobalMoreFab';
 import { AppConfigProvider } from '@/contexts/AppConfigContext';
 import { AppHeaderProvider } from '@/contexts/AppHeaderContext';
 import { SettingsMenuProvider } from '@/contexts/SettingsMenuContext';
@@ -76,7 +76,7 @@ export function MoreMenuProvider({ children }: { children: ReactNode }) {
             onSelectTool={openUtilityTool}
             onOpenChemicalInfo={openChemicalInfo}
           />
-          <DraggableMoreFab />
+          <GlobalMoreFab />
         </View>
       </MoreMenuContext.Provider>
       </SettingsMenuProvider>

@@ -37,63 +37,105 @@ export function SettingsBottomSheetModal({ visible, onClose, initialAction }: Pr
     return null;
   }
 
+  const sheetPanel = (
+      <View
+        style={[
+          styles.sheet,
+          Platform.OS === 'web' ? styles.sheetWeb : { marginTop: sheetTop },
+          {
+            paddingBottom: bottomInset,
+            backgroundColor: colors.surface,
+          },
+        ]}
+      >
+        <View style={[styles.sheetChrome, { backgroundColor: colors.surface }]}>
+          <View
+            className="flex-row items-center justify-between px-5 py-3"
+            style={{ borderBottomWidth: 1, borderBottomColor: colors.borderLight }}
+          >
+            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>설정</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="닫기"
+              className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
+              style={{ backgroundColor: colors.blueLight }}
+              onPress={onClose}
+              hitSlop={8}
+            >
+              <AppIcon name="close" size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.sheetBody}>
+          <SettingsScrollBody embedded />
+        </View>
+      </View>
+  );
+
   return (
     <SettingsScreenProvider initialAction={initialAction}>
-      <Modal
-        visible
-        animationType="slide"
-        transparent
-        statusBarTranslucent
-        presentationStyle="overFullScreen"
-        onRequestClose={onClose}
-      >
-        <View style={styles.overlay}>
-          <Pressable
-            style={styles.backdrop}
-            onPress={onClose}
-            accessibilityLabel="닫기"
-          />
-          <View
-            style={[
-              styles.sheet,
-              {
-                marginTop: sheetTop,
-                paddingBottom: bottomInset,
-                backgroundColor: colors.surface,
-              },
-            ]}
-          >
-            <View style={[styles.sheetChrome, { backgroundColor: colors.surface }]}>
-              <View
-                className="flex-row items-center justify-between px-5 py-3"
-                style={{ borderBottomWidth: 1, borderBottomColor: colors.borderLight }}
-              >
-                <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>설정</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="닫기"
-                  className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
-                  style={{ backgroundColor: colors.blueLight }}
-                  onPress={onClose}
-                  hitSlop={8}
-                >
-                  <AppIcon name="close" size={18} color={colors.textSecondary} />
-                </Pressable>
-              </View>
-            </View>
-
-            <View style={styles.sheetBody}>
-              <SettingsScrollBody embedded />
+      {Platform.OS === 'web' ? (
+        <View style={styles.webOverlay} accessibilityViewIsModal pointerEvents="box-none">
+          <View style={styles.webStack} pointerEvents="box-none">
+            <Pressable
+              style={[styles.webTopDismiss, { height: sheetTop }]}
+              onPress={onClose}
+              accessibilityLabel="닫기"
+            />
+            <View style={styles.webSheetHost} pointerEvents="auto">
+              {sheetPanel}
             </View>
           </View>
         </View>
-      </Modal>
+      ) : (
+        <Modal
+          visible
+          animationType="slide"
+          transparent
+          statusBarTranslucent
+          presentationStyle="overFullScreen"
+          onRequestClose={onClose}
+        >
+          <View style={styles.overlay}>
+            <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="닫기" />
+            {sheetPanel}
+          </View>
+        </Modal>
+      )}
       <SettingsAttachedModals />
     </SettingsScreenProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  webOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10000,
+    flex: 1,
+    width: '100%',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  webStack: {
+    flex: 1,
+    width: '100%',
+  },
+  webTopDismiss: {
+    width: '100%',
+  },
+  webSheetHost: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
+  },
+  sheetWeb: {
+    flex: 1,
+    marginTop: 0,
+  },
   overlay: {
     flex: 1,
     width: '100%',

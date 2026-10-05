@@ -1,5 +1,5 @@
 import type { AppIconName } from '@/components/ui/AppIcon';
-import type { MainTabParamList } from '@/navigation/MainTabNavigator';
+import type { MainTabParamList } from '@/navigation/mainTabTypes';
 import type { UtilitiesStackParamList } from '@/navigation/UtilitiesStackNavigator';
 
 export type BookmarkTarget =

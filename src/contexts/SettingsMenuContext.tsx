@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { runDeferredOnWeb } from '@/utils/deferredOnWeb';
 import { SettingsBottomSheetModal } from '@/components/settings/SettingsBottomSheetModal';
 
 type SettingsMenuContextValue = {
@@ -33,12 +34,17 @@ export function SettingsMenuProvider({ children }: { children: ReactNode }) {
   const [initialAction, setInitialAction] = useState<string | undefined>(undefined);
 
   const openSettings = useCallback((action?: string) => {
-    setInitialAction(action);
-    setVisible(true);
+    runDeferredOnWeb(() => {
+      setInitialAction(action);
+      setVisible(true);
+    });
   }, []);
+
   const closeSettings = useCallback(() => {
-    setVisible(false);
-    setInitialAction(undefined);
+    runDeferredOnWeb(() => {
+      setVisible(false);
+      setInitialAction(undefined);
+    });
   }, []);
 
   const value = useMemo(

@@ -1,1 +1,1 @@
-export { DraggableMoreFab as MoreMenuFab } from '@/components/navigation/DraggableMoreFab';
+export { GlobalMoreFab as MoreMenuFab } from '@/components/navigation/GlobalMoreFab';

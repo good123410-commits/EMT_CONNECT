@@ -1,6 +1,7 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Alert, Text, useWindowDimensions, View } from 'react-native';
+import { confirmDestructiveAction } from '@/utils/confirmDestructiveAction';
 import { AdminAmbulancePanel } from '@/components/admin/panels/AdminAmbulancePanel';
 import { AdminHospitalsPanel } from '@/components/admin/panels/AdminHospitalsPanel';
 import { AdminApprovalPanel } from '@/components/admin/panels/AdminApprovalPanel';
@@ -65,10 +66,12 @@ function AdminDashboardContent() {
   const [activeTab, setActiveTab] = useState<AdminDashboardTab>('approval');
 
   const handleSignOut = () => {
-    Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
-      { text: '취소', style: 'cancel' },
-      { text: '로그아웃', style: 'destructive', onPress: () => void signOut() },
-    ]);
+    confirmDestructiveAction(
+      '로그아웃',
+      '로그아웃 하시겠습니까?',
+      () => signOut(),
+      '로그아웃',
+    );
   };
 
   const visibleTabs = useMemo(() => ALL_TABS, []);

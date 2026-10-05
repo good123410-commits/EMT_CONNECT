@@ -5,7 +5,7 @@ import {
   SETTINGS_NESTED_TITLES,
   UTILITY_SCREEN_TITLES,
 } from '@/constants/navigationHeader';
-import type { MainTabParamList } from '@/navigation/MainTabNavigator';
+import type { MainTabParamList } from '@/navigation/mainTabTypes';
 import type { UtilitiesStackParamList } from '@/navigation/UtilitiesStackNavigator';
 import { navigationRef } from '@/navigation/navigationRef';
 import type { RootStackParamList } from '@/navigation/types';

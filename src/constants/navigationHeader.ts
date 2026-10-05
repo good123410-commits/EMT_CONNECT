@@ -1,6 +1,6 @@
 import { APP_COLORS } from '@/constants/appTheme';
 import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
-import type { MainTabParamList } from '@/navigation/MainTabNavigator';
+import type { MainTabParamList } from '@/navigation/mainTabTypes';
 import type { UtilitiesStackParamList } from '@/navigation/UtilitiesStackNavigator';
 import { UTILITY_TOOL_ITEMS } from '@/constants/utilityTools';
 import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';

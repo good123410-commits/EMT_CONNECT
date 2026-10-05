@@ -208,8 +208,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
+    let { error } = await supabase.auth.signOut();
+    if (error) {
+      const local = await supabase.auth.signOut({ scope: 'local' });
+      error = local.error;
+    }
     if (error) throw error;
+    setSession(null);
     setProfile(null);
   }, []);
 

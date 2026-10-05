@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { isValidGuideAdminCode, isValidOpsAdminCode } from '@/constants/adminCodes';
 import { useAuth } from '@/contexts/AuthContext';
 import type { UserRole } from '@/lib/supabaseClient';
@@ -55,7 +63,7 @@ const DEV_ROLE_PRESETS: Record<UserRole, DevRolePreset> = {
 };
 
 export function UserRoleProvider({ children }: { children: ReactNode }) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [devOverride, setDevOverride] = useState<DevRolePreset | null>(null);
   const [isExpertMode, setIsExpertMode] = useState(false);
   const [guideAdminVerified, setGuideAdminVerified] = useState(false);
@@ -89,6 +97,17 @@ export function UserRoleProvider({ children }: { children: ReactNode }) {
   const clearOpsAdminVerification = useCallback(() => {
     setOpsAdminVerified(false);
   }, []);
+
+  useEffect(() => {
+    if (!session) {
+      setGuideAdminVerified(false);
+      setOpsAdminVerified(false);
+      setIsExpertMode(false);
+      if (__DEV__) {
+        setDevOverride(null);
+      }
+    }
+  }, [session]);
 
   const isGuideAdmin = canManageEmergencyGuides(role, guideAdminVerified);
 

@@ -1,7 +1,9 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { navigateToAdminDashboard } from '@/navigation/settingsNavigation';
 import { useCallback, useState } from 'react';
-import { Pressable, Alert, Modal, ScrollView, Text, TextInput, View } from 'react-native';
+import { runDeferredOnWeb } from '@/utils/deferredOnWeb';
+import { Pressable, Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { SettingsPlatformModal } from '@/components/settings/SettingsPlatformModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSettingsMenuOptional } from '@/contexts/SettingsMenuContext';
 import { useUserRole } from '@/contexts/UserRoleContext';
@@ -25,9 +27,7 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
   const runAfterDismiss = useCallback(
     (action: () => void) => {
       dismissSettingsLayers();
-      requestAnimationFrame(() => {
-        action();
-      });
+      runDeferredOnWeb(action);
     },
     [dismissSettingsLayers],
   );
@@ -43,7 +43,7 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <SettingsPlatformModal visible={visible} animationType="slide" onClose={onClose}>
       <View className="flex-1 bg-kemix-bg" style={{ paddingTop: insets.top }}>
         <View className="flex-row items-center justify-between border-b border-kemix-border bg-kemix-surface px-4 py-3">
           <View className="flex-1 pr-3">
@@ -81,6 +81,6 @@ export function SettingsAdminPortalModal({ visible, onClose }: Props) {
           </View>
         </ScrollView>
       </View>
-    </Modal>
+    </SettingsPlatformModal>
   );
 }

@@ -1,5 +1,16 @@
 import { Alert, Platform } from 'react-native';
 
+async function runConfirmAction(onConfirm: () => void | Promise<void>): Promise<void> {
+  try {
+    await onConfirm();
+  } catch (error) {
+    Alert.alert(
+      '처리 실패',
+      error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+    );
+  }
+}
+
 export function confirmDestructiveAction(
   title: string,
   message: string,
@@ -8,7 +19,7 @@ export function confirmDestructiveAction(
 ): void {
   if (Platform.OS === 'web') {
     if (window.confirm(`${title}\n\n${message}`)) {
-      void onConfirm();
+      void runConfirmAction(onConfirm);
     }
     return;
   }
@@ -18,7 +29,7 @@ export function confirmDestructiveAction(
     {
       text: confirmLabel,
       style: 'destructive',
-      onPress: () => void onConfirm(),
+      onPress: () => void runConfirmAction(onConfirm),
     },
   ]);
 }

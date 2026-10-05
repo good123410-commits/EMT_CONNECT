@@ -1,6 +1,6 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { AuthStackParamList } from '@/navigation/AuthStack';
-import type { MainTabParamList } from '@/navigation/MainTabNavigator';
+import type { MainTabParamList } from '@/navigation/mainTabTypes';
 import type { UtilitiesStackParamList } from '@/navigation/UtilitiesStackNavigator';
 
 export type RootStackParamList = {

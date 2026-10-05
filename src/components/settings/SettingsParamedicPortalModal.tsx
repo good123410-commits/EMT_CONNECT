@@ -1,6 +1,7 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback } from 'react';
-import { Pressable, Modal, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { SettingsPlatformModal } from '@/components/settings/SettingsPlatformModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmsAuthPanel } from '@/components/rewards/EmsAuthPanel';
 import { EMS_COMMUNITY_TAB_LABEL } from '@/constants/emsCommunity';
@@ -34,7 +35,7 @@ export function SettingsParamedicPortalModal({ visible, onClose }: Props) {
     resolveEmsAuthStatus(profile, null) === 'verified';
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <SettingsPlatformModal visible={visible} animationType="slide" onClose={onClose}>
       <View className="flex-1 bg-kemix-bg" style={{ paddingTop: insets.top }}>
         <View className="flex-row items-center justify-between border-b border-kemix-border bg-kemix-surface px-4 py-3">
           <View className="flex-1 pr-3">
@@ -81,7 +82,7 @@ export function SettingsParamedicPortalModal({ visible, onClose }: Props) {
           )}
         </ScrollView>
       </View>
-    </Modal>
+    </SettingsPlatformModal>
   );
 }
 

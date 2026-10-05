@@ -1,6 +1,7 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ActivityIndicator, Alert, Modal, ScrollView, Text, View } from 'react-native';
+import { Pressable, ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
+import { SettingsPlatformModal } from '@/components/settings/SettingsPlatformModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemedColors } from '@/hooks/useThemedColors';
 import { DonationAccountSelectButton } from '@/components/support/DonationAccountSelectButton';
@@ -63,7 +64,7 @@ export function SettingsDonationModal({ visible, onClose }: SettingsDonationModa
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <SettingsPlatformModal visible={visible} animationType="slide" onClose={onClose}>
       <SafeAreaView className="flex-1 bg-kemix-bg">
         <View className="flex-row items-center justify-between border-b border-kemix-border bg-kemix-surface px-4 py-3">
           <Text className="text-lg font-bold text-kemix-text">후원하기</Text>
@@ -122,6 +123,6 @@ export function SettingsDonationModal({ visible, onClose }: SettingsDonationModa
           </Text>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </SettingsPlatformModal>
   );
 }

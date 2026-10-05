@@ -1,0 +1,239 @@
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { AppIcon } from '@/components/ui/AppIcon';
+import { APP_FONT, APP_RADIUS } from '@/constants/appTheme';
+import type { EmergencyTickerItem } from '@/types/emergencyTicker';
+import { EMERGENCY_TICKER_SOURCE_LABELS } from '@/types/emergencyTicker';
+import {
+  buildTickerDisplaySegments,
+  compareEmergencyTickerItems,
+  normalizeTickerItems,
+  sanitizeTickerMessage,
+} from '@/utils/emergencyTickerDisplay';
+
+type HomeEmergencyTickerPeekOverlayProps = {
+  visible: boolean;
+  items: EmergencyTickerItem[];
+  onRequestClose: () => void;
+};
+
+function resolveSourceLabel(sourceType: string): string {
+  return EMERGENCY_TICKER_SOURCE_LABELS[sourceType] ?? '알림';
+}
+
+function resolveSourceColor(sourceType: string): string {
+  switch (sourceType) {
+    case 'weather':
+      return '#60A5FA';
+    case 'forest_fire':
+      return '#F87171';
+    case 'disaster_sms':
+      return '#FACC15';
+    case 'admin':
+      return '#E2E8F0';
+    default:
+      return '#CBD5E1';
+  }
+}
+
+function buildPeekListItems(items: EmergencyTickerItem[]) {
+  const normalized = normalizeTickerItems(items).sort(compareEmergencyTickerItems);
+  const segments = buildTickerDisplaySegments(normalized);
+  if (segments.length > 0) {
+    return segments.map((segment) => ({
+      id: `${segment.sourceType}:${segment.body}`,
+      sourceType: segment.sourceType,
+      label: segment.label || resolveSourceLabel(segment.sourceType),
+      color: segment.color,
+      body: segment.body,
+    }));
+  }
+
+  return normalized.map((item, index) => {
+    const body = sanitizeTickerMessage(item.message);
+    return {
+      id: `${item.sourceType}:${body}:${index}`,
+      sourceType: item.sourceType,
+      label: resolveSourceLabel(item.sourceType),
+      color: resolveSourceColor(item.sourceType),
+      body: body || item.message,
+    };
+  });
+}
+
+/** Web: Reanimated 없이 Modal만 사용 (UpdatePropsManager 오류 방지) */
+export function HomeEmergencyTickerPeekOverlay({
+  visible,
+  items,
+  onRequestClose,
+}: HomeEmergencyTickerPeekOverlayProps) {
+  const { height: windowHeight } = useWindowDimensions();
+  const listItems = buildPeekListItems(items);
+  const maxSheetHeight = Math.min(windowHeight * 0.62, 480);
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onRequestClose}>
+      <View style={styles.root} accessibilityViewIsModal>
+        <Pressable
+          style={styles.backdrop}
+          onPress={onRequestClose}
+          accessibilityLabel="긴급재난 전광판 닫기"
+        />
+
+        <View style={[styles.sheetWrap]} pointerEvents="box-none">
+          <View style={[styles.sheet, { maxHeight: maxSheetHeight }]}>
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeaderRow}>
+                <View style={styles.sheetTitleRow}>
+                  <AppIcon name="alert-circle" size={20} color="#F87171" />
+                  <Text style={styles.sheetTitle}>긴급재난 문자 · 전체</Text>
+                </View>
+                <Pressable
+                  onPress={onRequestClose}
+                  style={styles.closeButton}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="닫기"
+                >
+                  <AppIcon name="close" size={22} color="#94A3B8" />
+                </Pressable>
+              </View>
+            </View>
+
+            <ScrollView
+              style={styles.listScroll}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator
+            >
+              {listItems.length === 0 ? (
+                <Text style={styles.emptyText}>표시할 재난 정보가 없습니다.</Text>
+              ) : (
+                listItems.map((row) => (
+                  <View key={row.id} style={styles.card}>
+                    <View style={styles.cardHeader}>
+                      <View style={[styles.chip, { borderColor: row.color }]}>
+                        <Text style={[styles.chipText, { color: row.color }]}>{row.label}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.cardBody}>{row.body}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(2, 6, 23, 0.62)',
+  },
+  sheetWrap: {
+    width: '100%',
+  },
+  sheet: {
+    borderRadius: APP_RADIUS.cardLg,
+    backgroundColor: '#0F172A',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    overflow: 'hidden',
+  },
+  sheetHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(51, 65, 85, 0.65)',
+  },
+  sheetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  sheetTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
+  },
+  sheetTitle: {
+    flexShrink: 1,
+    fontFamily: APP_FONT.bold,
+    fontSize: 16,
+    color: '#F8FAFC',
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(51, 65, 85, 0.45)',
+  },
+  listScroll: {
+    flexGrow: 0,
+  },
+  listContent: {
+    padding: 12,
+    paddingBottom: 16,
+    gap: 10,
+  },
+  card: {
+    borderRadius: 12,
+    backgroundColor: 'rgba(30, 41, 59, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(71, 85, 105, 0.55)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    marginBottom: 6,
+  },
+  chip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  chipText: {
+    fontFamily: APP_FONT.semibold,
+    fontSize: 10,
+  },
+  cardBody: {
+    fontFamily: APP_FONT.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#E2E8F0',
+  },
+  emptyText: {
+    textAlign: 'center',
+    paddingVertical: 24,
+    fontFamily: APP_FONT.regular,
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+});

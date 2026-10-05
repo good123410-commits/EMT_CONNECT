@@ -3,19 +3,10 @@ import { AppIcon, type AppIconName } from '@/components/ui/AppIcon';
 import { MainTabBar } from '@/components/navigation/MainTabBar';
 import { createDeferredScreen } from '@/navigation/deferredScreen';
 import { useMainTabBarConfig } from '@/navigation/mainTabBarOptions';
-import type { MedicalMapTab } from '@/types/medicalMap';
+import type { MainTabParamList } from '@/navigation/mainTabTypes';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-export type MainTabParamList = {
-  Home: undefined;
-  Guide: undefined;
-  Map: { initialTab?: MedicalMapTab } | undefined;
-  Paramedic: undefined;
-  All: undefined;
-};
-
-/** @deprecated MainTabParamList 사용 */
-export type PublicTabParamList = MainTabParamList;
+export type { MainTabParamList, PublicTabParamList } from '@/navigation/mainTabTypes';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -53,7 +44,8 @@ const TAB_ICONS: Record<string, TabIconConfig> = {
   All: { active: 'menu', inactive: 'menu' },
 };
 
-const HomeScreen = createDeferredScreen(() => require('@/screens/HomeScreen').HomeScreen);
+/** Web 번들: HomeScreen.native / Reanimated 티커가 절대 끼어 들지 않도록 .web만 require */
+const HomeScreen = createDeferredScreen(() => require('@/screens/HomeScreen.web').HomeScreen);
 const EmergencyGuideScreen = createDeferredScreen(
   () => require('@/screens/EmergencyGuideScreen').EmergencyGuideScreen,
 );

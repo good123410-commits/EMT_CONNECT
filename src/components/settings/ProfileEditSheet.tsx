@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Pressable, ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SettingsPlatformModal } from '@/components/settings/SettingsPlatformModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { APP_RADIUS } from '@/constants/appTheme';
@@ -106,7 +107,7 @@ export function ProfileEditSheet({ visible, onClose }: Props) {
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <SettingsPlatformModal visible={visible} animationType="slide" transparent onClose={onClose}>
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="닫기" />
         <View
@@ -228,7 +229,7 @@ export function ProfileEditSheet({ visible, onClose }: Props) {
           </ScrollView>
         </View>
       </View>
-    </Modal>
+    </SettingsPlatformModal>
   );
 }
 

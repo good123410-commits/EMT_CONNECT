@@ -5,7 +5,7 @@ import Animated, {
   useFrameCallback,
   useSharedValue,
 } from 'react-native-reanimated';
-import { HomeEmergencyTickerPeekOverlay } from '@/components/home/HomeEmergencyTickerPeekOverlay';
+import { HomeEmergencyTickerPeekOverlay } from '@/components/home/HomeEmergencyTickerPeekOverlay.native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import type { EmergencyTickerItem } from '@/types/emergencyTicker';
 import {

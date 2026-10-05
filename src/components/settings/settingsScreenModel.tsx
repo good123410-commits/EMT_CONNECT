@@ -11,7 +11,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Pressable, Alert, Modal, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { SettingsPlatformModal } from '@/components/settings/SettingsPlatformModal';
+import { runDeferredOnWeb } from '@/utils/deferredOnWeb';
+import { confirmDestructiveAction } from '@/utils/confirmDestructiveAction';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   LOCATION_CONSENT_TEXT,
@@ -64,6 +67,7 @@ const SettingsScreenContext = createContext<SettingsScreenState | null>(null);
 
 function useSettingsScreenState(): SettingsScreenState {
   const { user, profile, signOut } = useAuth();
+  const settingsMenu = useSettingsMenuOptional();
   const [locationConsent, setLocationConsent] = useState(false);
   const [legalModal, setLegalModal] = useState<LegalModalKind>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -133,11 +137,16 @@ function useSettingsScreenState(): SettingsScreenState {
   }, []);
 
   const handleSignOut = useCallback(() => {
-    Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
-      { text: '취소', style: 'cancel' },
-      { text: '로그아웃', style: 'destructive', onPress: () => void signOut() },
-    ]);
-  }, [signOut]);
+    confirmDestructiveAction(
+      '로그아웃',
+      '로그아웃 하시겠습니까?',
+      async () => {
+        await signOut();
+        settingsMenu?.closeSettings();
+      },
+      '로그아웃',
+    );
+  }, [signOut, settingsMenu]);
 
   return useMemo(
     () => ({
@@ -230,17 +239,6 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
   const pushSettings = usePushNotificationSettingsOptional();
   const { canOpenAdminDashboard } = useExpertSettingsAccess();
 
-  const handleOpenAdminDashboard = useCallback(() => {
-    if (canOpenAdminDashboard) {
-      settingsMenu?.closeSettings();
-      requestAnimationFrame(() => {
-        navigateToAdminDashboard();
-      });
-      return;
-    }
-    setAdminPortalVisible(true);
-  }, [canOpenAdminDashboard, settingsMenu, setAdminPortalVisible]);
-
   const navigateToAuth = useCallback(
     (screen: 'Login' | 'SignUp') => {
       settingsMenu?.closeSettings();
@@ -250,6 +248,37 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
     },
     [settingsMenu],
   );
+
+  const openAdminPortal = useCallback(() => {
+    runDeferredOnWeb(() => setAdminPortalVisible(true));
+  }, [setAdminPortalVisible]);
+
+  const openLegalModal = useCallback(
+    (kind: NonNullable<LegalModalKind>) => {
+      runDeferredOnWeb(() => setLegalModal(kind));
+    },
+    [setLegalModal],
+  );
+
+  const handleOpenAdminDashboard = useCallback(() => {
+    if (!user) {
+      Alert.alert(
+        '로그인 필요',
+        '관리자 대시보드는 로그인 후 이용할 수 있습니다. 로그인 화면으로 이동할까요?',
+        [
+          { text: '취소', style: 'cancel' },
+          { text: '로그인', onPress: () => navigateToAuth('Login') },
+        ],
+      );
+      return;
+    }
+    if (canOpenAdminDashboard) {
+      settingsMenu?.closeSettings();
+      navigateToAdminDashboard();
+      return;
+    }
+    openAdminPortal();
+  }, [canOpenAdminDashboard, navigateToAuth, openAdminPortal, settingsMenu, user]);
 
   const contentPaddingBottom = embedded ? 24 : 32;
   const displayName = profile?.name?.trim() || user?.email?.trim() || '로그인됨';
@@ -280,7 +309,7 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
               icon="person-circle-outline"
               label="개인정보 수정"
               subtitle="별명 · 전화번호 · 비밀번호"
-              onPress={() => setProfileEditVisible(true)}
+              onPress={() => runDeferredOnWeb(() => setProfileEditVisible(true))}
             />
             <SettingsRow
               icon="log-out-outline"
@@ -344,17 +373,17 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
         <SettingsRow
           icon="document-text-outline"
           label="개인정보 처리방침 안내"
-          onPress={() => setLegalModal('privacy')}
+          onPress={() => openLegalModal('privacy')}
         />
         <SettingsRow
           icon="reader-outline"
           label="서비스 이용약관"
-          onPress={() => setLegalModal('terms')}
+          onPress={() => openLegalModal('terms')}
         />
         <SettingsRow
           icon="information-circle-outline"
           label="위치기반서비스 이용동의 안내"
-          onPress={() => setLegalModal('location')}
+          onPress={() => openLegalModal('location')}
           showDivider={false}
         />
       </SettingsSection>
@@ -391,12 +420,12 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
           icon="heart-outline"
           label="후원하기"
           subtitle="후원 계좌 및 안내"
-          onPress={() => setDonationModalVisible(true)}
+          onPress={() => runDeferredOnWeb(() => setDonationModalVisible(true))}
         />
         <SettingsRow
           icon="shield-checkmark-outline"
           label="운영 정책 및 면책 안내"
-          onPress={() => setLegalModal('servicePolicy')}
+          onPress={() => openLegalModal('servicePolicy')}
           showDivider={false}
         />
       </SettingsSection>
@@ -406,7 +435,7 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
           icon="shield-checkmark-outline"
           label="EMS 인증 · 전용 공간"
           subtitle="자격증 제출 · EMS 커뮤니티"
-          onPress={() => setParamedicPortalVisible(true)}
+          onPress={() => runDeferredOnWeb(() => setParamedicPortalVisible(true))}
           accent="green"
         />
         <SettingsRow
@@ -422,7 +451,7 @@ export function SettingsScrollBody({ embedded = false }: SettingsScrollBodyProps
       <View className="overflow-hidden rounded-2xl border border-red-200 bg-kemix-surface">
         <Pressable
           className="flex-row items-center gap-3 px-4 py-4 active:bg-red-50"
-          onPress={() => setDeleteModalVisible(true)}
+          onPress={() => runDeferredOnWeb(() => setDeleteModalVisible(true))}
         >
           <Ionicons name="trash-outline" size={22} color="#dc2626" />
           <View className="flex-1">
@@ -529,7 +558,7 @@ function DeleteAccountSheet({
   if (!visible) return null;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+    <SettingsPlatformModal visible transparent animationType="fade" onClose={onClose}>
       <View className="flex-1 justify-end bg-black/45">
         <View className="rounded-t-3xl bg-kemix-surface px-5 pb-8 pt-4">
           <View className="mb-4 items-center">
@@ -556,7 +585,7 @@ function DeleteAccountSheet({
           </Pressable>
         </View>
       </View>
-    </Modal>
+    </SettingsPlatformModal>
   );
 }
 
@@ -574,7 +603,7 @@ function LegalDocumentModal({
   if (!visible) return null;
 
   return (
-    <Modal visible animationType="slide" onRequestClose={onClose}>
+    <SettingsPlatformModal visible animationType="slide" onClose={onClose}>
       <SafeAreaView className="flex-1 bg-kemix-surface">
         <View className="flex-row items-center justify-between border-b border-kemix-border px-4 py-3">
           <Text className="text-lg font-bold text-kemix-text">{title}</Text>
@@ -586,7 +615,7 @@ function LegalDocumentModal({
           <Text className="text-sm leading-7 text-kemix-text">{body}</Text>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </SettingsPlatformModal>
   );
 }
 

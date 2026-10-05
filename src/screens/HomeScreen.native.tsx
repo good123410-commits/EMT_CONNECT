@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { HomeBookmarksSection } from '@/components/home/HomeBookmarksSection';
 import { HomeCommerceCuration } from '@/components/home/HomeCommerceCuration';
-import { HomeEmergencyTicker } from '@/components/home/HomeEmergencyTicker';
+import { HomeEmergencyTicker } from '@/components/home/HomeEmergencyTicker.native';
 import { HomeEventBannerSection } from '@/components/home/HomeEventBannerSection';
 import { HomeLocationSection } from '@/components/home/HomeLocationSection';
 import { ThemedScreen } from '@/components/theme/ThemedScreen';
